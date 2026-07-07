@@ -81,6 +81,19 @@ export default function Home() {
             <p className="mt-3 text-[color:var(--muted)] text-lg">
               {featuredProject.tagline}
             </p>
+            {/* Mini pipeline — same LA → x86-64 chain the visualizer walks. */}
+            <div className="mt-6 flex items-center gap-2 flex-wrap font-mono text-xs">
+              {["LA", "IR", "L3", "L2", "L1", "x86-64"].map((L, i) => (
+                <span key={L} className="flex items-center gap-2">
+                  <span className="px-2 py-1 rounded bg-[color:var(--subtle)] border border-[color:var(--border)]">
+                    {L}
+                  </span>
+                  {i < 5 && (
+                    <span className="text-[color:var(--accent)] opacity-70">→</span>
+                  )}
+                </span>
+              ))}
+            </div>
             <ul className="mt-6 space-y-2 text-[15px] leading-relaxed">
               {featuredProject.bullets.map((b) => (
                 <li key={b} className="flex gap-3">
