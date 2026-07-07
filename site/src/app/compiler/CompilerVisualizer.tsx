@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Layer, PresetLayers, PresetMeta } from "@/lib/loadPresets";
 import type { OptExample } from "@/data/compiler";
+import { PASS_DEMOS, type PassDemoId } from "@/data/passDemos";
 
 type PresetBundle = { meta: PresetMeta; layers: PresetLayers };
 
@@ -65,11 +66,15 @@ export default function CompilerVisualizer({
   );
   const [optFlags, setOptFlags] = useState<OptFlags>(defaultOptFlags);
   const [result, setResult] = useState<CompileResult | null>(null);
+  const [baseline, setBaseline] = useState<CompileResult | null>(null); // all-opts-off compile
+  const [compareMode, setCompareMode] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState<Layer>("LA");
   const [pending, setPending] = useState(false);
+  const [baselinePending, setBaselinePending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [initialTried, setInitialTried] = useState(false);
   const activeReq = useRef(0);
+  const baselineReq = useRef(0);
 
   const compile = useCallback(
     async (opts?: {
@@ -180,6 +185,68 @@ export default function CompilerVisualizer({
     [scheduleRecompile],
   );
 
+  // Compile-with-all-opts-off — the baseline for diff view. Kicked off any
+  // time source or fromLayer changes (or user opens compare mode).
+  const compileBaseline = useCallback(
+    async (opts?: { source?: string; fromLayer?: Layer }) => {
+      const reqId = ++baselineReq.current;
+      setBaselinePending(true);
+      try {
+        const noOpts: OptFlags = {};
+        for (const p of IR_PASSES) noOpts[p.id] = false;
+        const res = await fetch("/api/compile", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            source: opts?.source ?? source,
+            fromLayer: opts?.fromLayer ?? fromLayer,
+            optFlags: noOpts,
+          }),
+        });
+        const data: CompileResult = await res.json();
+        if (baselineReq.current !== reqId) return;
+        setBaseline(data);
+      } catch {
+        /* baseline is best-effort */
+      } finally {
+        if (baselineReq.current === reqId) setBaselinePending(false);
+      }
+    },
+    [source, fromLayer],
+  );
+
+  // Load a per-pass demo — sets source, enables *only* that pass so the diff
+  // isolates its effect, and (if in compare mode) refreshes the baseline.
+  const loadDemo = useCallback(
+    (id: PassDemoId) => {
+      const src = PASS_DEMOS[id];
+      if (!src) return;
+      const next: OptFlags = {};
+      for (const p of IR_PASSES) next[p.id] = false;
+      if (id !== "combo" && (IR_PASSES as ReadonlyArray<{ id: string }>).some((p) => p.id === id)) {
+        next[id as IrPassId] = true;
+      } else if (id === "combo") {
+        next.sccp = true;
+        next.dce = true;
+        next.licm = true;
+      }
+      setActivePresetSlug(null);
+      setSource(src);
+      setFromLayer("LA");
+      setOptFlags(next);
+      setCompareMode(true);
+      compile({ source: src, fromLayer: "LA", optFlags: next });
+      compileBaseline({ source: src, fromLayer: "LA" });
+    },
+    [compile, compileBaseline],
+  );
+
+  const toggleCompareMode = useCallback(() => {
+    const next = !compareMode;
+    setCompareMode(next);
+    if (next && !baseline) compileBaseline();
+  }, [compareMode, baseline, compileBaseline]);
+
   const handleKey = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
@@ -249,11 +316,53 @@ export default function CompilerVisualizer({
         </div>
       </section>
 
+      {/* Pass demos — one-click showcase for each optimization */}
+      <section>
+        <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
+          <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
+            02 · Pass showcase
+          </h2>
+          <span className="font-mono text-xs text-[color:var(--muted)]">
+            each button loads code + isolates that pass
+          </span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {(
+            [
+              { id: "sccp", label: "SCCP", hint: "prunes unreachable branches, folds constants" },
+              { id: "dce", label: "DCE", hint: "removes unused computations" },
+              { id: "licm", label: "LICM", hint: "hoists loop-invariant work" },
+              { id: "gvn", label: "GVN", hint: "dedupes identical expressions" },
+              { id: "copy-prop", label: "CopyProp", hint: "chases copy chains" },
+              { id: "algebra", label: "AlgSimp", hint: "x*1 → x, y+0 → y" },
+              { id: "cmov-synth", label: "CMovSynth", hint: "branch → cmov" },
+              { id: "combo", label: "Combo (SCCP+DCE+LICM)", hint: "three passes at once" },
+            ] as { id: PassDemoId; label: string; hint: string }[]
+          ).map((d) => (
+            <button
+              key={d.id}
+              onClick={() => loadDemo(d.id)}
+              className="text-left rounded-lg border border-[color:var(--border)] hover:border-[color:var(--accent)] p-3 transition-all group"
+            >
+              <div className="font-mono text-xs mb-1 flex items-center gap-2">
+                <span className="text-[color:var(--accent)] opacity-60 group-hover:opacity-100">
+                  ▸
+                </span>
+                {d.label}
+              </div>
+              <div className="text-xs text-[color:var(--muted)] leading-snug">
+                {d.hint}
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
       {/* Editor */}
       <section>
         <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
           <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
-            02 · Write code · compile
+            03 · Write code · compile
           </h2>
           <div className="flex items-center gap-2 font-mono text-xs">
             <label className="text-[color:var(--muted)]">start at</label>
@@ -294,7 +403,8 @@ export default function CompilerVisualizer({
             value={source}
             onChange={(e) => {
               setSource(e.target.value);
-              setActivePresetSlug(null); // any manual edit disowns the preset
+              setActivePresetSlug(null);
+              setBaseline(null); // invalidate; user must recompile to compare
             }}
             onKeyDown={handleKey}
             spellCheck={false}
@@ -337,10 +447,22 @@ export default function CompilerVisualizer({
 
       {/* Pipeline */}
       <section>
-        <div className="flex items-baseline justify-between mb-4">
+        <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
           <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
-            03 · Step through the pipeline
+            04 · Step through the pipeline
           </h2>
+          <button
+            onClick={toggleCompareMode}
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs transition-colors ${
+              compareMode
+                ? "border-[color:var(--accent)] text-[color:var(--accent)] bg-[color:var(--subtle)]"
+                : "border-[color:var(--border)] text-[color:var(--muted)] hover:border-[color:var(--fg)] hover:text-[color:var(--fg)]"
+            }`}
+            title="Compile the same source with all opts off and show side-by-side"
+          >
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-current" />
+            {compareMode ? "comparing vs unoptimized" : "compare vs unoptimized"}
+          </button>
         </div>
 
         {/* Layer stepper */}
@@ -389,40 +511,52 @@ export default function CompilerVisualizer({
 
         {/* Layer viewer */}
         <div className="grid lg:grid-cols-[1fr_18rem] gap-4">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={selectedLayer + (result ? "-r" : "-p")}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.16 }}
-              className="min-w-0"
-            >
-              <div className="rounded-lg border border-[color:var(--border)] overflow-hidden">
-                <div className="flex items-center justify-between border-b border-[color:var(--border)] bg-[color:var(--subtle)] px-4 py-2">
-                  <span className="font-mono text-xs text-[color:var(--muted)]">
-                    prog.{selectedLayer}
-                  </span>
-                  <span className="font-mono text-xs text-[color:var(--muted)] tabular">
-                    {currentCode
-                      ? `${currentCode.split("\n").length} lines · ${currentCode.length.toLocaleString()} chars`
-                      : pending
-                        ? "…"
-                        : "no output"}
-                  </span>
-                </div>
-                <pre className="code-pane max-h-[70vh] rounded-none border-0">
-                  <code>
-                    {currentCode ||
-                      (pending
-                        ? "running compiler…"
-                        : currentErr ||
-                          "This layer wasn't produced. If you started from a later stage, earlier layers won't exist. If compilation failed, see the error above.")}
-                  </code>
-                </pre>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+          <div className="min-w-0">
+            {compareMode ? (
+              <ComparisonPane
+                layer={selectedLayer}
+                optimized={currentCode}
+                baseline={baseline?.layers?.[selectedLayer] ?? ""}
+                pending={pending}
+                baselinePending={baselinePending}
+              />
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={selectedLayer + (result ? "-r" : "-p")}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.16 }}
+                  className="min-w-0"
+                >
+                  <div className="rounded-lg border border-[color:var(--border)] overflow-hidden">
+                    <div className="flex items-center justify-between border-b border-[color:var(--border)] bg-[color:var(--subtle)] px-4 py-2">
+                      <span className="font-mono text-xs text-[color:var(--muted)]">
+                        prog.{selectedLayer}
+                      </span>
+                      <span className="font-mono text-xs text-[color:var(--muted)] tabular">
+                        {currentCode
+                          ? `${currentCode.split("\n").length} lines · ${currentCode.length.toLocaleString()} chars`
+                          : pending
+                            ? "…"
+                            : "no output"}
+                      </span>
+                    </div>
+                    <pre className="code-pane max-h-[70vh] rounded-none border-0">
+                      <code>
+                        {currentCode ||
+                          (pending
+                            ? "running compiler…"
+                            : currentErr ||
+                              "This layer wasn't produced. If you started from a later stage, earlier layers won't exist. If compilation failed, see the error above.")}
+                      </code>
+                    </pre>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            )}
+          </div>
 
           <aside className="space-y-4">
             <div className="rounded-lg border border-[color:var(--border)] p-4">
@@ -530,7 +664,7 @@ export default function CompilerVisualizer({
       <section>
         <div className="flex items-baseline justify-between mb-4">
           <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
-            04 · What each pass does
+            05 · What each pass does
           </h2>
         </div>
         <p className="text-[color:var(--muted)] max-w-2xl mb-8">
@@ -540,6 +674,150 @@ export default function CompilerVisualizer({
         </p>
         <OptGallery examples={optExamples} />
       </section>
+    </div>
+  );
+}
+
+/**
+ * Side-by-side pane showing the same layer's output with the user's opt
+ * selections vs the same source compiled with every pass turned off. Lines
+ * present only on the optimized side get a green rail; lines present only on
+ * baseline get an amber rail. Same lines are dimmed to draw the eye to diffs.
+ */
+function ComparisonPane({
+  layer,
+  optimized,
+  baseline,
+  pending,
+  baselinePending,
+}: {
+  layer: Layer;
+  optimized: string;
+  baseline: string;
+  pending: boolean;
+  baselinePending: boolean;
+}) {
+  const optLines = useMemo(() => (optimized || "").split("\n"), [optimized]);
+  const baseLines = useMemo(() => (baseline || "").split("\n"), [baseline]);
+  const optSet = useMemo(() => new Set(optLines), [optLines]);
+  const baseSet = useMemo(() => new Set(baseLines), [baseLines]);
+
+  const stats = {
+    optLen: optimized.length,
+    baseLen: baseline.length,
+    savings:
+      baseline.length > 0
+        ? Math.round(((baseline.length - optimized.length) / baseline.length) * 100)
+        : 0,
+    optOnly: optLines.filter((l) => l && !baseSet.has(l)).length,
+    baseOnly: baseLines.filter((l) => l && !optSet.has(l)).length,
+  };
+
+  const renderLines = (lines: string[], other: Set<string>, side: "opt" | "base") => (
+    <div className="font-mono text-[0.8rem] leading-6 whitespace-pre overflow-x-auto">
+      {lines.map((line, i) => {
+        const same = other.has(line);
+        const isEmpty = line.trim() === "";
+        const cls = isEmpty
+          ? ""
+          : same
+            ? "opacity-45"
+            : side === "opt"
+              ? "bg-[color:var(--accent)]/10 border-l-2 border-[color:var(--accent)] pl-2 -ml-2"
+              : "bg-[color:var(--muted)]/10 border-l-2 border-[color:var(--muted)] pl-2 -ml-2";
+        return (
+          <div key={i} className={cls}>
+            {line || " "}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="grid md:grid-cols-2 gap-3">
+        <div className="rounded-lg border border-[color:var(--border)] overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[color:var(--border)] bg-[color:var(--subtle)] px-4 py-2">
+            <span className="font-mono text-xs">
+              <span className="text-[color:var(--accent)]">optimized</span>
+              <span className="text-[color:var(--muted)]"> · prog.{layer}</span>
+            </span>
+            <span className="font-mono text-xs text-[color:var(--muted)] tabular">
+              {optLines.length} lines
+              {pending && " · running…"}
+            </span>
+          </div>
+          <div className="p-4 max-h-[70vh] overflow-auto">
+            {optimized ? (
+              renderLines(optLines, baseSet, "opt")
+            ) : (
+              <p className="font-mono text-xs text-[color:var(--muted)]">
+                {pending ? "compiling…" : "no output for this layer"}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-[color:var(--border)] overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[color:var(--border)] bg-[color:var(--subtle)] px-4 py-2">
+            <span className="font-mono text-xs">
+              <span className="text-[color:var(--muted)]">unoptimized</span>
+              <span className="text-[color:var(--muted)]"> · prog.{layer}</span>
+            </span>
+            <span className="font-mono text-xs text-[color:var(--muted)] tabular">
+              {baseLines.length} lines
+              {baselinePending && " · running…"}
+            </span>
+          </div>
+          <div className="p-4 max-h-[70vh] overflow-auto">
+            {baseline ? (
+              renderLines(baseLines, optSet, "base")
+            ) : (
+              <p className="font-mono text-xs text-[color:var(--muted)]">
+                {baselinePending
+                  ? "compiling baseline…"
+                  : "baseline not yet computed"}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {optimized && baseline && (
+        <div className="rounded-lg border border-[color:var(--border)] p-3 flex flex-wrap items-center gap-x-6 gap-y-1 font-mono text-xs">
+          <span className="text-[color:var(--muted)]">
+            optimized:{" "}
+            <span className="text-[color:var(--accent)] tabular">
+              {stats.optLen.toLocaleString()}
+            </span>{" "}
+            chars
+          </span>
+          <span className="text-[color:var(--muted)]">
+            unoptimized:{" "}
+            <span className="text-[color:var(--fg)] tabular">
+              {stats.baseLen.toLocaleString()}
+            </span>{" "}
+            chars
+          </span>
+          <span className="text-[color:var(--muted)]">
+            savings:{" "}
+            <span className="text-[color:var(--accent)] tabular">
+              {stats.savings}%
+            </span>
+          </span>
+          <span className="text-[color:var(--muted)]">
+            unique-to-optimized:{" "}
+            <span className="text-[color:var(--fg)] tabular">{stats.optOnly}</span>{" "}
+            lines
+          </span>
+          <span className="text-[color:var(--muted)]">
+            eliminated:{" "}
+            <span className="text-[color:var(--fg)] tabular">{stats.baseOnly}</span>{" "}
+            lines
+          </span>
+        </div>
+      )}
     </div>
   );
 }
