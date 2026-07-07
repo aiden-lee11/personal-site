@@ -42,11 +42,11 @@ export const OPT_EXAMPLES: OptExample[] = [
     br %cond :body :exit
 
   :body
-    %off <- %n * 8              ;; loop-invariant — recomputed every iter
+    %off <- %n * 8       ;; invariant, recomputed
     %ptr <- %arr + %off
-    %v <- load %ptr
+    %v   <- load %ptr
     %sum <- %sum + %v
-    %i <- %i + 1
+    %i   <- %i + 1
     br :header
 
   :exit
@@ -59,8 +59,8 @@ export const OPT_EXAMPLES: OptExample[] = [
     %i <- 0
     br :preheader
 
-  :preheader                    ;; runs once, before the loop
-    %off <- %n * 8              ;; hoisted out of the loop
+  :preheader             ;; runs once
+    %off <- %n * 8       ;; hoisted
     %ptr <- %arr + %off
     br :header
 
@@ -69,9 +69,9 @@ export const OPT_EXAMPLES: OptExample[] = [
     br %cond :body :exit
 
   :body
-    %v <- load %ptr             ;; loop body is smaller and cheaper
+    %v   <- load %ptr    ;; body is leaner
     %sum <- %sum + %v
-    %i <- %i + 1
+    %i   <- %i + 1
     br :header
 
   :exit

@@ -307,8 +307,9 @@ function OptGallery({ examples }: { examples: OptExample[] }) {
           {active.what}
         </p>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
+        {/* Desktop: before + after side by side */}
+        <div className="hidden md:grid md:grid-cols-2 gap-4 min-w-0">
+          <div className="min-w-0">
             <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--muted)] mb-2">
               Before
             </p>
@@ -316,7 +317,7 @@ function OptGallery({ examples }: { examples: OptExample[] }) {
               <code>{active.before}</code>
             </pre>
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--accent)] mb-2">
               After · {active.name}
             </p>
@@ -326,8 +327,8 @@ function OptGallery({ examples }: { examples: OptExample[] }) {
           </div>
         </div>
 
-        {/* Mobile: single pane that swaps */}
-        <div className="md:hidden mt-4">
+        {/* Mobile: single pane, before/after toggle above swaps content */}
+        <div className="md:hidden">
           <AnimatePresence mode="wait">
             <motion.pre
               key={showAfter ? "after" : "before"}
@@ -335,7 +336,7 @@ function OptGallery({ examples }: { examples: OptExample[] }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.15 }}
-              className="code-pane"
+              className="code-pane max-h-[60vh]"
             >
               <code>{showAfter ? active.after : active.before}</code>
             </motion.pre>

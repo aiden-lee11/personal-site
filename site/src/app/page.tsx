@@ -17,7 +17,7 @@ export default function Home() {
         <p className="font-mono text-xs text-[color:var(--muted)] mb-6 tracking-wide uppercase">
           Northwestern CS · Spring 2027
         </p>
-        <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl leading-[1.05] tracking-tight max-w-3xl">
+        <h1 className="font-serif text-[2.5rem] leading-[1.05] sm:text-6xl lg:text-7xl tracking-tight max-w-3xl">
           Hi, I&apos;m Aiden.
           <br />
           <span className="text-[color:var(--muted)]">
