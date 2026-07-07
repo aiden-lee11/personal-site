@@ -1,0 +1,11 @@
+(@main
+  (@main
+    0
+    :call_label0
+    goto :call_label2
+    :call_label1
+    return
+    :call_label2
+    return
+  )
+)

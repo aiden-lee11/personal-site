@@ -1,56 +1,130 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Geist, Geist_Mono, Press_Start_2P, VT323 } from "next/font/google";
+import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const pixelHeading = Press_Start_2P({
+const serif = Instrument_Serif({
   weight: "400",
   subsets: ["latin"],
-  variable: "--font-press-start",
+  variable: "--font-instrument-serif",
+  display: "swap",
 });
 
-const pixelBody = VT323({
-  weight: "400",
+const mono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-vt323",
+  variable: "--font-jetbrains",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Aiden Lee — Personal Site",
-  description: "Projects, blog, and resume for Aiden Lee",
+  title: "Aiden Lee",
+  description:
+    "Aiden Lee — CS at Northwestern. Compilers, distributed systems, and interactive tools.",
+  metadataBase: new URL("https://aidenlee.dev"),
+  openGraph: {
+    title: "Aiden Lee",
+    description:
+      "CS at Northwestern. Compilers, distributed systems, and interactive tools.",
+    url: "/",
+    siteName: "Aiden Lee",
+    type: "website",
+  },
 };
+
+const NAV_LINKS = [
+  { href: "/compiler", label: "Compiler" },
+  { href: "/projects", label: "Projects" },
+  { href: "/writing", label: "Writing" },
+  { href: "/Aiden-Lee-Resume.pdf", label: "Résumé", external: true },
+];
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${pixelHeading.variable} ${pixelBody.variable} antialiased retro-bg min-h-screen`}> 
-        <header className="sticky top-0 z-30 backdrop-blur bg-white/70 dark:bg-black/50 border-b border-neutral-200 dark:border-neutral-800 pixel-border">
+      <body
+        className={`${inter.variable} ${serif.variable} ${mono.variable} min-h-screen flex flex-col`}
+      >
+        <header className="border-b border-[color:var(--border)]">
           <nav className="mx-auto max-w-5xl px-6 h-14 flex items-center gap-6">
-            <Link className="font-press text-[14px]" href="/">Aiden Lee</Link>
-            <div className="ml-auto flex items-center gap-4 text-[16px] font-vt">
-              <Link className="hover:underline" href="/blog">Blog</Link>
-              <Link className="hover:underline" href="/resume">Resume</Link>
-              <a className="hover:underline" href="/Aiden-Lee-Resume.pdf" target="_blank" rel="noreferrer">PDF</a>
-            </div>
+            <Link
+              href="/"
+              className="font-mono text-sm tracking-tight hover:text-[color:var(--accent)] transition-colors"
+            >
+              aiden lee
+            </Link>
+            <ul className="ml-auto flex items-center gap-5 text-sm">
+              {NAV_LINKS.map((l) =>
+                l.external ? (
+                  <li key={l.href}>
+                    <a
+                      href={l.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[color:var(--muted)] hover:text-[color:var(--fg)] transition-colors"
+                    >
+                      {l.label}
+                    </a>
+                  </li>
+                ) : (
+                  <li key={l.href}>
+                    <Link
+                      href={l.href}
+                      className="text-[color:var(--muted)] hover:text-[color:var(--fg)] transition-colors"
+                    >
+                      {l.label}
+                    </Link>
+                  </li>
+                ),
+              )}
+            </ul>
           </nav>
         </header>
-        <div className="mx-auto max-w-5xl px-6">
-          {children}
-        </div>
+        <main className="flex-1">{children}</main>
+        <footer className="border-t border-[color:var(--border)] mt-24">
+          <div className="mx-auto max-w-5xl px-6 py-8 flex flex-wrap gap-4 items-center justify-between text-xs text-[color:var(--muted)] font-mono">
+            <span>© {new Date().getFullYear()} Aiden Lee</span>
+            <div className="flex gap-4">
+              <a
+                href="https://github.com/aiden-lee11"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-[color:var(--fg)] transition-colors"
+              >
+                github
+              </a>
+              <a
+                href="https://www.linkedin.com/in/aiden-lee11/"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-[color:var(--fg)] transition-colors"
+              >
+                linkedin
+              </a>
+              <a
+                href="https://www.youtube.com/@aiden-lee11"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-[color:var(--fg)] transition-colors"
+              >
+                youtube
+              </a>
+              <a
+                href="mailto:aidenlee2027@u.northwestern.edu"
+                className="hover:text-[color:var(--fg)] transition-colors"
+              >
+                email
+              </a>
+            </div>
+          </div>
+        </footer>
       </body>
     </html>
   );

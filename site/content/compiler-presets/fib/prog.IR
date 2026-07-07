@@ -1,0 +1,123 @@
+define void @main ( ) {
+
+ :new_label0
+ int64 %res
+ %res <- 1
+ %res <-  call @fibonacci (41)
+  call print (%res)
+ return 
+
+ :new_label1
+ return 
+
+}
+
+define int64 @fibonacci ( int64 %k) {
+
+ :new_label0
+ int64 %newVar12
+ int64 %newVar11
+ int64 %newVar10
+ int64 %newVar9
+ int64 %newVar8
+ int64 %newVar7
+ int64 %newVar6
+ int64 %res
+ int64 %i
+ int64 %b
+ int64 %a
+ int64 %newVar5
+ int64 %newVar4
+ int64 %newVar3
+ int64 %newVar2
+ int64 %newVar1
+ int64 %newVar0
+ int64 %if
+ %if <- 1
+ %newVar0 <- 1
+ %newVar0 <- %k
+ %newVar0 <- %newVar0 >> 1
+ %newVar1 <- 1
+ %newVar1 <- 3
+ %newVar1 <- %newVar1 >> 1
+ %if <- %newVar0 = %newVar1
+ %if <- %if << 1
+ %if <- %if + 1
+ %newVar2 <- 1
+ %newVar2 <- %if
+ %newVar2 <- %newVar2 >> 1
+ br %newVar2 :initialConditionTrue :initialConditionFalse 
+
+ :initialConditionFalse
+ %newVar3 <- 1
+ %newVar3 <- %k
+ %newVar3 <- %newVar3 >> 1
+ %newVar4 <- 1
+ %newVar4 <- 5
+ %newVar4 <- %newVar4 >> 1
+ %if <- %newVar3 = %newVar4
+ %if <- %if << 1
+ %if <- %if + 1
+ %newVar5 <- 1
+ %newVar5 <- %if
+ %newVar5 <- %newVar5 >> 1
+ br %newVar5 :initialConditionTrue :initialConditionFalse2 
+
+ :initialConditionFalse2
+ %a <- 1
+ %b <- 1
+ %i <- 1
+ %res <- 1
+ %a <- 3
+ %b <- 3
+ %i <- 7
+ %res <- 1
+ br :for
+
+ :for
+ %newVar6 <- 1
+ %newVar6 <- %i
+ %newVar6 <- %newVar6 >> 1
+ %newVar7 <- 1
+ %newVar7 <- %k
+ %newVar7 <- %newVar7 >> 1
+ %if <- %newVar6 <= %newVar7
+ %if <- %if << 1
+ %if <- %if + 1
+ %newVar8 <- 1
+ %newVar8 <- %if
+ %newVar8 <- %newVar8 >> 1
+ br %newVar8 :forIntoLoop :forBreak 
+
+ :forBreak
+ return %res
+
+ :forIntoLoop
+ %res <- %a
+ %newVar9 <- 1
+ %newVar9 <- %res
+ %newVar9 <- %newVar9 >> 1
+ %newVar10 <- 1
+ %newVar10 <- %b
+ %newVar10 <- %newVar10 >> 1
+ %res <- %newVar9 + %newVar10
+ %res <- %res << 1
+ %res <- %res + 1
+ %a <- %b
+ %b <- %res
+ %newVar11 <- 1
+ %newVar11 <- %i
+ %newVar11 <- %newVar11 >> 1
+ %newVar12 <- 1
+ %newVar12 <- 3
+ %newVar12 <- %newVar12 >> 1
+ %i <- %newVar11 + %newVar12
+ %i <- %i << 1
+ %i <- %i + 1
+ br :for
+
+ :initialConditionTrue
+ return 3
+
+}
+

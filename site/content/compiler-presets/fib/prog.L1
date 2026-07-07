@@ -1,0 +1,137 @@
+(@main
+(@main
+	0 0
+	:call_label0
+	goto :call_label2
+	:call_label1
+	return
+	:call_label2
+	rdi <- 1
+	rdi <- 41
+	mem rsp -8 <- :call_label3
+	call @fibonacci 1
+	:call_label3
+	rdi <- rax
+	rdi <- rdi
+	call print 1
+	return
+)
+
+(@fibonacci
+	1 0
+	rsi <- rdi
+	:call_label_ciao_4
+	goto :call_label_ciao_11
+	:call_label_ciao_5
+	rax <- 3
+	return
+	:call_label_ciao_6
+	rcx <- rax
+	rdi <- 1
+	rdi <- rcx
+	rdi <- rdi
+	rdi >>= 1
+	rdx <- 1
+	rdx <- r8
+	rdx <- rdx
+	rdx >>= 1
+	rcx <- rdi
+	rcx += rdx
+	rcx <- rcx
+	rcx <<= 1
+	rcx <- rcx
+	rcx += 1
+	rax <- r8
+	r8 <- rcx
+	rdx <- 1
+	rdx <- r9
+	rdx <- rdx
+	rdx >>= 1
+	rdi <- 1
+	rdi <- 3
+	rdi <- rdi
+	rdi >>= 1
+	r9 <- rdx
+	r9 += rdi
+	r9 <- r9
+	r9 <<= 1
+	r9 <- r9
+	r9 += 1
+	goto :call_label_ciao_7
+	:call_label_ciao_7
+	rdi <- 1
+	rdi <- r9
+	rdi <- rdi
+	rdi >>= 1
+	rdx <- 1
+	rdx <- rsi
+	rdx <- rdx
+	rdx >>= 1
+	rdx <- rdi <= rdx
+	rdx <- rdx
+	rdx <<= 1
+	rdx <- rdx
+	rdx += 1
+	rdi <- 1
+	rdi <- rdx
+	rdi <- rdi
+	rdi >>= 1
+	cjump rdi = 1 :call_label_ciao_6
+	goto :call_label_ciao_8
+	:call_label_ciao_8
+	rax <- rcx
+	return
+	:call_label_ciao_9
+	rax <- 1
+	r8 <- 1
+	r9 <- 1
+	rcx <- 1
+	rax <- 3
+	r8 <- 3
+	r9 <- 7
+	rcx <- 1
+	goto :call_label_ciao_7
+	:call_label_ciao_10
+	rdi <- 1
+	rdi <- rsi
+	rdi <- rdi
+	rdi >>= 1
+	rdx <- 1
+	rdx <- 5
+	rdx <- rdx
+	rdx >>= 1
+	rdx <- rdi = rdx
+	rdx <- rdx
+	rdx <<= 1
+	rdx <- rdx
+	rdx += 1
+	rdi <- 1
+	rdi <- rdx
+	rdi <- rdi
+	rdi >>= 1
+	cjump rdi = 1 :call_label_ciao_5
+	goto :call_label_ciao_9
+	:call_label_ciao_11
+	rdx <- 1
+	rdx <- 1
+	rdx <- rsi
+	rdx <- rdx
+	rdx >>= 1
+	rdi <- 1
+	rdi <- 3
+	rdi <- rdi
+	rdi >>= 1
+	rdx <- rdx = rdi
+	rdx <- rdx
+	rdx <<= 1
+	rdx <- rdx
+	rdx += 1
+	rdi <- 1
+	rdi <- rdx
+	rdi <- rdi
+	rdi >>= 1
+	cjump rdi = 1 :call_label_ciao_5
+	goto :call_label_ciao_10
+)
+
+)

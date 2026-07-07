@@ -1,0 +1,32 @@
+services:
+  claude:
+    build: .
+    image: aiden-claude-sandbox
+    # stdin/tty so `docker compose run` gives an interactive shell
+    stdin_open: true
+    tty: true
+    working_dir: /Users/aidenlee/Developer/personal-site
+    environment:
+      HOME: /Users/aidenlee
+    volumes:
+      # The only writable host path: the personal-site repo itself.
+      - /Users/aidenlee/Developer/personal-site:/Users/aidenlee/Developer/personal-site
+
+      # Read-only mounts so I can pull content but can't modify the originals.
+      - /Users/aidenlee/Desktop/northwestern/322:/Users/aidenlee/Desktop/northwestern/322:ro
+      - /Users/aidenlee/Desktop/personal:/Users/aidenlee/Desktop/personal:ro
+
+      # ~/.claude carries auth, session transcripts (so --continue works), and the
+      # memory dir I've already populated. Writable because memory updates happen here.
+      - /Users/aidenlee/.claude:/Users/aidenlee/.claude
+
+      # The main config file lives at ~/.claude.json (sibling to the .claude dir,
+      # not inside it). Claude Code refuses to start without it.
+      - /Users/aidenlee/.claude.json:/Users/aidenlee/.claude.json
+
+    # Next.js dev server
+    ports:
+      - "3000:3000"
+
+    # No other host mounts, no host network. The container can reach the internet
+    # (needed for Anthropic API + npm) but cannot see the rest of your filesystem.

@@ -1,0 +1,22 @@
+define void @main ( ) {
+
+ :new_label0
+ int64 %newVar0
+ %newVar0 <- 1
+ %newVar0 <- 1
+ %newVar0 <- %newVar0 >> 1
+ br %newVar0 :true :false 
+
+ :true
+  call print (3)
+ br :false
+
+ :false
+  call print (7)
+ return 
+
+ :new_label1
+ return 
+
+}
+

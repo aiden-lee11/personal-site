@@ -1,0 +1,1326 @@
+(@main
+  (@main
+    0
+    :call_label0
+    goto :call_label62
+    :call_label1
+    return
+    :call_label2
+    %newVar_ciao_1 <- 0
+    %newVar_ciao_2 <- %m
+    %newVar_ciao_2 += 16
+    %newVar_ciao_3 <- mem %newVar_ciao_2 0 
+    %newVar_ciao_4 <- %newVar_ciao_3
+    %newVar_ciao_4 >>= 1
+    %newVar_ciao_5 <- 1
+    %newVar_ciao_5 <- %newVar_ciao_5
+    %newVar_ciao_5 *= %newVar_ciao_4
+    %newVar_ciao_6 <- %newVar21
+    %newVar_ciao_6 *= %newVar_ciao_5
+    %newVar_ciao_1 <- %newVar_ciao_1
+    %newVar_ciao_1 += %newVar_ciao_6
+    %newVar_ciao_1 <- %newVar_ciao_1
+    %newVar_ciao_1 += %newVar23
+    %newVar_ciao_0 <- %newVar_ciao_1
+    %newVar_ciao_0 *= 8
+    %newVar_ciao_0 <- %newVar_ciao_0
+    %newVar_ciao_0 += 24
+    %newVar_ciao_7 <- %m
+    %newVar_ciao_7 += %newVar_ciao_0
+    mem %newVar_ciao_7 0  <- %v
+    rdi <- %m
+    rsi <- %v
+    mem rsp -8 <- :call_label63
+    call @checkMatrix 2
+    :call_label63
+    %r <- rax
+    rdi <- %r
+    call print 1
+    return
+    :call_label3
+    rdi <- %newVar79
+    rsi <- %newVar81
+    rdx <- %newVar80
+    rcx <- %newVar82
+    call tensor-error 4
+    goto :call_label2
+    :call_label4
+    rdi <- %newVar79
+    rsi <- %newVar80
+    rdx <- %newVar82
+    call tuple-error 3
+    goto :call_label3
+    :call_label5
+    rdi <- %newVar79
+    rsi <- %newVar80
+    rdx <- %newVar82
+    call tensor-error 3
+    goto :call_label4
+    :call_label6
+    rdi <- %newVar79
+    call tensor-error 1
+    goto :call_label5
+    :call_label7
+    goto :call_label2
+    :call_label8
+    %newVar89 <- %newVar23 < %newVar87
+    
+    cjump %newVar89 = 1 :call_label7
+    goto :call_label3
+    :call_label9
+    %newVar81 <- 3
+    %newVar_ciao_8 <- 1
+    %newVar_ciao_8 *= 8
+    %newVar_ciao_9 <- %newVar_ciao_8
+    %newVar_ciao_9 += 8
+    %newVar_ciao_10 <- %m
+    %newVar_ciao_10 += %newVar_ciao_9
+    %newVar87 <- mem %newVar_ciao_10 0 
+    %newVar80 <- %newVar87
+    %newVar87 <- %newVar87
+    %newVar87 >>= 1
+    %newVar82 <- %newVar23
+    %newVar82 <- %newVar82
+    %newVar82 <<= 1
+    %newVar82 <- %newVar82
+    %newVar82 += 1
+    %newVar88 <- 0 <= %newVar23
+    
+    cjump %newVar88 = 1 :call_label8
+    goto :call_label3
+    :call_label10
+    %newVar86 <- %newVar21 < %newVar84
+    
+    cjump %newVar86 = 1 :call_label9
+    goto :call_label3
+    :call_label11
+    %newVar81 <- 1
+    %newVar_ciao_11 <- 0
+    %newVar_ciao_11 *= 8
+    %newVar_ciao_12 <- %newVar_ciao_11
+    %newVar_ciao_12 += 8
+    %newVar_ciao_13 <- %m
+    %newVar_ciao_13 += %newVar_ciao_12
+    %newVar84 <- mem %newVar_ciao_13 0 
+    %newVar80 <- %newVar84
+    %newVar84 <- %newVar84
+    %newVar84 >>= 1
+    %newVar82 <- %newVar21
+    %newVar82 <- %newVar82
+    %newVar82 <<= 1
+    %newVar82 <- %newVar82
+    %newVar82 += 1
+    %newVar85 <- 0 <= %newVar21
+    
+    cjump %newVar85 = 1 :call_label10
+    goto :call_label3
+    :call_label12
+    %newVar_ciao_15 <- 0
+    %newVar_ciao_16 <- %m
+    %newVar_ciao_16 += 16
+    %newVar_ciao_17 <- mem %newVar_ciao_16 0 
+    %newVar_ciao_18 <- %newVar_ciao_17
+    %newVar_ciao_18 >>= 1
+    %newVar_ciao_19 <- 1
+    %newVar_ciao_19 <- %newVar_ciao_19
+    %newVar_ciao_19 *= %newVar_ciao_18
+    %newVar_ciao_20 <- %newVar17
+    %newVar_ciao_20 *= %newVar_ciao_19
+    %newVar_ciao_15 <- %newVar_ciao_15
+    %newVar_ciao_15 += %newVar_ciao_20
+    %newVar_ciao_15 <- %newVar_ciao_15
+    %newVar_ciao_15 += %newVar19
+    %newVar_ciao_14 <- %newVar_ciao_15
+    %newVar_ciao_14 *= 8
+    %newVar_ciao_14 <- %newVar_ciao_14
+    %newVar_ciao_14 += 24
+    %newVar_ciao_21 <- %m
+    %newVar_ciao_21 += %newVar_ciao_14
+    mem %newVar_ciao_21 0  <- %v
+    rdi <- %m
+    rsi <- %v
+    mem rsp -8 <- :call_label64
+    call @checkMatrix 2
+    :call_label64
+    %r <- rax
+    rdi <- %r
+    call print 1
+    rdi <- %m
+    rsi <- 1
+    mem rsp -8 <- :call_label65
+    call @initMatrix 2
+    :call_label65
+    %newVar20 <- 1
+    %newVar21 <- 1
+    %newVar21 <- 7
+    %newVar21 <- %newVar21
+    %newVar21 >>= 1
+    %newVar22 <- 1
+    %newVar23 <- 1
+    %newVar23 <- 7
+    %newVar23 <- %newVar23
+    %newVar23 >>= 1
+    %newVar79 <- 77
+    %newVar80 <- 1
+    %newVar81 <- 1
+    %newVar82 <- 1
+    %newVar83 <- %m = 0
+    
+    cjump %newVar83 = 1 :call_label6
+    goto :call_label11
+    :call_label13
+    rdi <- %newVar68
+    rsi <- %newVar70
+    rdx <- %newVar69
+    rcx <- %newVar71
+    call tensor-error 4
+    goto :call_label12
+    :call_label14
+    rdi <- %newVar68
+    rsi <- %newVar69
+    rdx <- %newVar71
+    call tuple-error 3
+    goto :call_label13
+    :call_label15
+    rdi <- %newVar68
+    rsi <- %newVar69
+    rdx <- %newVar71
+    call tensor-error 3
+    goto :call_label14
+    :call_label16
+    rdi <- %newVar68
+    call tensor-error 1
+    goto :call_label15
+    :call_label17
+    goto :call_label12
+    :call_label18
+    %newVar78 <- %newVar19 < %newVar76
+    
+    cjump %newVar78 = 1 :call_label17
+    goto :call_label13
+    :call_label19
+    %newVar70 <- 3
+    %newVar_ciao_22 <- 1
+    %newVar_ciao_22 *= 8
+    %newVar_ciao_23 <- %newVar_ciao_22
+    %newVar_ciao_23 += 8
+    %newVar_ciao_24 <- %m
+    %newVar_ciao_24 += %newVar_ciao_23
+    %newVar76 <- mem %newVar_ciao_24 0 
+    %newVar69 <- %newVar76
+    %newVar76 <- %newVar76
+    %newVar76 >>= 1
+    %newVar71 <- %newVar19
+    %newVar71 <- %newVar71
+    %newVar71 <<= 1
+    %newVar71 <- %newVar71
+    %newVar71 += 1
+    %newVar77 <- 0 <= %newVar19
+    
+    cjump %newVar77 = 1 :call_label18
+    goto :call_label13
+    :call_label20
+    %newVar75 <- %newVar17 < %newVar73
+    
+    cjump %newVar75 = 1 :call_label19
+    goto :call_label13
+    :call_label21
+    %newVar70 <- 1
+    %newVar_ciao_25 <- 0
+    %newVar_ciao_25 *= 8
+    %newVar_ciao_26 <- %newVar_ciao_25
+    %newVar_ciao_26 += 8
+    %newVar_ciao_27 <- %m
+    %newVar_ciao_27 += %newVar_ciao_26
+    %newVar73 <- mem %newVar_ciao_27 0 
+    %newVar69 <- %newVar73
+    %newVar73 <- %newVar73
+    %newVar73 >>= 1
+    %newVar71 <- %newVar17
+    %newVar71 <- %newVar71
+    %newVar71 <<= 1
+    %newVar71 <- %newVar71
+    %newVar71 += 1
+    %newVar74 <- 0 <= %newVar17
+    
+    cjump %newVar74 = 1 :call_label20
+    goto :call_label13
+    :call_label22
+    %newVar_ciao_29 <- 0
+    %newVar_ciao_30 <- %m
+    %newVar_ciao_30 += 16
+    %newVar_ciao_31 <- mem %newVar_ciao_30 0 
+    %newVar_ciao_32 <- %newVar_ciao_31
+    %newVar_ciao_32 >>= 1
+    %newVar_ciao_33 <- 1
+    %newVar_ciao_33 <- %newVar_ciao_33
+    %newVar_ciao_33 *= %newVar_ciao_32
+    %newVar_ciao_34 <- %newVar13
+    %newVar_ciao_34 *= %newVar_ciao_33
+    %newVar_ciao_29 <- %newVar_ciao_29
+    %newVar_ciao_29 += %newVar_ciao_34
+    %newVar_ciao_29 <- %newVar_ciao_29
+    %newVar_ciao_29 += %newVar15
+    %newVar_ciao_28 <- %newVar_ciao_29
+    %newVar_ciao_28 *= 8
+    %newVar_ciao_28 <- %newVar_ciao_28
+    %newVar_ciao_28 += 24
+    %newVar_ciao_35 <- %m
+    %newVar_ciao_35 += %newVar_ciao_28
+    mem %newVar_ciao_35 0  <- %v
+    rdi <- %m
+    rsi <- %v
+    mem rsp -8 <- :call_label66
+    call @checkMatrix 2
+    :call_label66
+    %r <- rax
+    rdi <- %r
+    call print 1
+    rdi <- %m
+    rsi <- 1
+    mem rsp -8 <- :call_label67
+    call @initMatrix 2
+    :call_label67
+    %newVar16 <- 1
+    %newVar17 <- 1
+    %newVar17 <- 7
+    %newVar17 <- %newVar17
+    %newVar17 >>= 1
+    %newVar18 <- 1
+    %newVar19 <- 1
+    %newVar19 <- 3
+    %newVar19 <- %newVar19
+    %newVar19 >>= 1
+    %newVar68 <- 67
+    %newVar69 <- 1
+    %newVar70 <- 1
+    %newVar71 <- 1
+    %newVar72 <- %m = 0
+    
+    cjump %newVar72 = 1 :call_label16
+    goto :call_label21
+    :call_label23
+    rdi <- %newVar57
+    rsi <- %newVar59
+    rdx <- %newVar58
+    rcx <- %newVar60
+    call tensor-error 4
+    goto :call_label22
+    :call_label24
+    rdi <- %newVar57
+    rsi <- %newVar58
+    rdx <- %newVar60
+    call tuple-error 3
+    goto :call_label23
+    :call_label25
+    rdi <- %newVar57
+    rsi <- %newVar58
+    rdx <- %newVar60
+    call tensor-error 3
+    goto :call_label24
+    :call_label26
+    rdi <- %newVar57
+    call tensor-error 1
+    goto :call_label25
+    :call_label27
+    goto :call_label22
+    :call_label28
+    %newVar67 <- %newVar15 < %newVar65
+    
+    cjump %newVar67 = 1 :call_label27
+    goto :call_label23
+    :call_label29
+    %newVar59 <- 3
+    %newVar_ciao_36 <- 1
+    %newVar_ciao_36 *= 8
+    %newVar_ciao_37 <- %newVar_ciao_36
+    %newVar_ciao_37 += 8
+    %newVar_ciao_38 <- %m
+    %newVar_ciao_38 += %newVar_ciao_37
+    %newVar65 <- mem %newVar_ciao_38 0 
+    %newVar58 <- %newVar65
+    %newVar65 <- %newVar65
+    %newVar65 >>= 1
+    %newVar60 <- %newVar15
+    %newVar60 <- %newVar60
+    %newVar60 <<= 1
+    %newVar60 <- %newVar60
+    %newVar60 += 1
+    %newVar66 <- 0 <= %newVar15
+    
+    cjump %newVar66 = 1 :call_label28
+    goto :call_label23
+    :call_label30
+    %newVar64 <- %newVar13 < %newVar62
+    
+    cjump %newVar64 = 1 :call_label29
+    goto :call_label23
+    :call_label31
+    %newVar59 <- 1
+    %newVar_ciao_39 <- 0
+    %newVar_ciao_39 *= 8
+    %newVar_ciao_40 <- %newVar_ciao_39
+    %newVar_ciao_40 += 8
+    %newVar_ciao_41 <- %m
+    %newVar_ciao_41 += %newVar_ciao_40
+    %newVar62 <- mem %newVar_ciao_41 0 
+    %newVar58 <- %newVar62
+    %newVar62 <- %newVar62
+    %newVar62 >>= 1
+    %newVar60 <- %newVar13
+    %newVar60 <- %newVar60
+    %newVar60 <<= 1
+    %newVar60 <- %newVar60
+    %newVar60 += 1
+    %newVar63 <- 0 <= %newVar13
+    
+    cjump %newVar63 = 1 :call_label30
+    goto :call_label23
+    :call_label32
+    %newVar_ciao_43 <- 0
+    %newVar_ciao_44 <- %m
+    %newVar_ciao_44 += 16
+    %newVar_ciao_45 <- mem %newVar_ciao_44 0 
+    %newVar_ciao_46 <- %newVar_ciao_45
+    %newVar_ciao_46 >>= 1
+    %newVar_ciao_47 <- 1
+    %newVar_ciao_47 <- %newVar_ciao_47
+    %newVar_ciao_47 *= %newVar_ciao_46
+    %newVar_ciao_48 <- %newVar9
+    %newVar_ciao_48 *= %newVar_ciao_47
+    %newVar_ciao_43 <- %newVar_ciao_43
+    %newVar_ciao_43 += %newVar_ciao_48
+    %newVar_ciao_43 <- %newVar_ciao_43
+    %newVar_ciao_43 += %newVar11
+    %newVar_ciao_42 <- %newVar_ciao_43
+    %newVar_ciao_42 *= 8
+    %newVar_ciao_42 <- %newVar_ciao_42
+    %newVar_ciao_42 += 24
+    %newVar_ciao_49 <- %m
+    %newVar_ciao_49 += %newVar_ciao_42
+    mem %newVar_ciao_49 0  <- %v
+    rdi <- %m
+    rsi <- %v
+    mem rsp -8 <- :call_label68
+    call @checkMatrix 2
+    :call_label68
+    %r <- rax
+    rdi <- %r
+    call print 1
+    rdi <- %m
+    rsi <- 1
+    mem rsp -8 <- :call_label69
+    call @initMatrix 2
+    :call_label69
+    %newVar12 <- 1
+    %newVar13 <- 1
+    %newVar13 <- 7
+    %newVar13 <- %newVar13
+    %newVar13 >>= 1
+    %newVar14 <- 1
+    %newVar15 <- 1
+    %newVar15 <- 1
+    %newVar15 <- %newVar15
+    %newVar15 >>= 1
+    %newVar57 <- 57
+    %newVar58 <- 1
+    %newVar59 <- 1
+    %newVar60 <- 1
+    %newVar61 <- %m = 0
+    
+    cjump %newVar61 = 1 :call_label26
+    goto :call_label31
+    :call_label33
+    rdi <- %newVar46
+    rsi <- %newVar48
+    rdx <- %newVar47
+    rcx <- %newVar49
+    call tensor-error 4
+    goto :call_label32
+    :call_label34
+    rdi <- %newVar46
+    rsi <- %newVar47
+    rdx <- %newVar49
+    call tuple-error 3
+    goto :call_label33
+    :call_label35
+    rdi <- %newVar46
+    rsi <- %newVar47
+    rdx <- %newVar49
+    call tensor-error 3
+    goto :call_label34
+    :call_label36
+    rdi <- %newVar46
+    call tensor-error 1
+    goto :call_label35
+    :call_label37
+    goto :call_label32
+    :call_label38
+    %newVar56 <- %newVar11 < %newVar54
+    
+    cjump %newVar56 = 1 :call_label37
+    goto :call_label33
+    :call_label39
+    %newVar48 <- 3
+    %newVar_ciao_50 <- 1
+    %newVar_ciao_50 *= 8
+    %newVar_ciao_51 <- %newVar_ciao_50
+    %newVar_ciao_51 += 8
+    %newVar_ciao_52 <- %m
+    %newVar_ciao_52 += %newVar_ciao_51
+    %newVar54 <- mem %newVar_ciao_52 0 
+    %newVar47 <- %newVar54
+    %newVar54 <- %newVar54
+    %newVar54 >>= 1
+    %newVar49 <- %newVar11
+    %newVar49 <- %newVar49
+    %newVar49 <<= 1
+    %newVar49 <- %newVar49
+    %newVar49 += 1
+    %newVar55 <- 0 <= %newVar11
+    
+    cjump %newVar55 = 1 :call_label38
+    goto :call_label33
+    :call_label40
+    %newVar53 <- %newVar9 < %newVar51
+    
+    cjump %newVar53 = 1 :call_label39
+    goto :call_label33
+    :call_label41
+    %newVar48 <- 1
+    %newVar_ciao_53 <- 0
+    %newVar_ciao_53 *= 8
+    %newVar_ciao_54 <- %newVar_ciao_53
+    %newVar_ciao_54 += 8
+    %newVar_ciao_55 <- %m
+    %newVar_ciao_55 += %newVar_ciao_54
+    %newVar51 <- mem %newVar_ciao_55 0 
+    %newVar47 <- %newVar51
+    %newVar51 <- %newVar51
+    %newVar51 >>= 1
+    %newVar49 <- %newVar9
+    %newVar49 <- %newVar49
+    %newVar49 <<= 1
+    %newVar49 <- %newVar49
+    %newVar49 += 1
+    %newVar52 <- 0 <= %newVar9
+    
+    cjump %newVar52 = 1 :call_label40
+    goto :call_label33
+    :call_label42
+    %newVar_ciao_57 <- 0
+    %newVar_ciao_58 <- %m
+    %newVar_ciao_58 += 16
+    %newVar_ciao_59 <- mem %newVar_ciao_58 0 
+    %newVar_ciao_60 <- %newVar_ciao_59
+    %newVar_ciao_60 >>= 1
+    %newVar_ciao_61 <- 1
+    %newVar_ciao_61 <- %newVar_ciao_61
+    %newVar_ciao_61 *= %newVar_ciao_60
+    %newVar_ciao_62 <- %newVar5
+    %newVar_ciao_62 *= %newVar_ciao_61
+    %newVar_ciao_57 <- %newVar_ciao_57
+    %newVar_ciao_57 += %newVar_ciao_62
+    %newVar_ciao_57 <- %newVar_ciao_57
+    %newVar_ciao_57 += %newVar7
+    %newVar_ciao_56 <- %newVar_ciao_57
+    %newVar_ciao_56 *= 8
+    %newVar_ciao_56 <- %newVar_ciao_56
+    %newVar_ciao_56 += 24
+    %newVar_ciao_63 <- %m
+    %newVar_ciao_63 += %newVar_ciao_56
+    mem %newVar_ciao_63 0  <- %v
+    rdi <- %m
+    rsi <- %v
+    mem rsp -8 <- :call_label70
+    call @checkMatrix 2
+    :call_label70
+    %r <- rax
+    rdi <- %r
+    call print 1
+    rdi <- %m
+    rsi <- 1
+    mem rsp -8 <- :call_label71
+    call @initMatrix 2
+    :call_label71
+    %newVar8 <- 1
+    %newVar9 <- 1
+    %newVar9 <- 3
+    %newVar9 <- %newVar9
+    %newVar9 >>= 1
+    %newVar10 <- 1
+    %newVar11 <- 1
+    %newVar11 <- 1
+    %newVar11 <- %newVar11
+    %newVar11 >>= 1
+    %newVar46 <- 47
+    %newVar47 <- 1
+    %newVar48 <- 1
+    %newVar49 <- 1
+    %newVar50 <- %m = 0
+    
+    cjump %newVar50 = 1 :call_label36
+    goto :call_label41
+    :call_label43
+    rdi <- %newVar35
+    rsi <- %newVar37
+    rdx <- %newVar36
+    rcx <- %newVar38
+    call tensor-error 4
+    goto :call_label42
+    :call_label44
+    rdi <- %newVar35
+    rsi <- %newVar36
+    rdx <- %newVar38
+    call tuple-error 3
+    goto :call_label43
+    :call_label45
+    rdi <- %newVar35
+    rsi <- %newVar36
+    rdx <- %newVar38
+    call tensor-error 3
+    goto :call_label44
+    :call_label46
+    rdi <- %newVar35
+    call tensor-error 1
+    goto :call_label45
+    :call_label47
+    goto :call_label42
+    :call_label48
+    %newVar45 <- %newVar7 < %newVar43
+    
+    cjump %newVar45 = 1 :call_label47
+    goto :call_label43
+    :call_label49
+    %newVar37 <- 3
+    %newVar_ciao_64 <- 1
+    %newVar_ciao_64 *= 8
+    %newVar_ciao_65 <- %newVar_ciao_64
+    %newVar_ciao_65 += 8
+    %newVar_ciao_66 <- %m
+    %newVar_ciao_66 += %newVar_ciao_65
+    %newVar43 <- mem %newVar_ciao_66 0 
+    %newVar36 <- %newVar43
+    %newVar43 <- %newVar43
+    %newVar43 >>= 1
+    %newVar38 <- %newVar7
+    %newVar38 <- %newVar38
+    %newVar38 <<= 1
+    %newVar38 <- %newVar38
+    %newVar38 += 1
+    %newVar44 <- 0 <= %newVar7
+    
+    cjump %newVar44 = 1 :call_label48
+    goto :call_label43
+    :call_label50
+    %newVar42 <- %newVar5 < %newVar40
+    
+    cjump %newVar42 = 1 :call_label49
+    goto :call_label43
+    :call_label51
+    %newVar37 <- 1
+    %newVar_ciao_67 <- 0
+    %newVar_ciao_67 *= 8
+    %newVar_ciao_68 <- %newVar_ciao_67
+    %newVar_ciao_68 += 8
+    %newVar_ciao_69 <- %m
+    %newVar_ciao_69 += %newVar_ciao_68
+    %newVar40 <- mem %newVar_ciao_69 0 
+    %newVar36 <- %newVar40
+    %newVar40 <- %newVar40
+    %newVar40 >>= 1
+    %newVar38 <- %newVar5
+    %newVar38 <- %newVar38
+    %newVar38 <<= 1
+    %newVar38 <- %newVar38
+    %newVar38 += 1
+    %newVar41 <- 0 <= %newVar5
+    
+    cjump %newVar41 = 1 :call_label50
+    goto :call_label43
+    :call_label52
+    %newVar_ciao_71 <- 0
+    %newVar_ciao_72 <- %m
+    %newVar_ciao_72 += 16
+    %newVar_ciao_73 <- mem %newVar_ciao_72 0 
+    %newVar_ciao_74 <- %newVar_ciao_73
+    %newVar_ciao_74 >>= 1
+    %newVar_ciao_75 <- 1
+    %newVar_ciao_75 <- %newVar_ciao_75
+    %newVar_ciao_75 *= %newVar_ciao_74
+    %newVar_ciao_76 <- %newVar1
+    %newVar_ciao_76 *= %newVar_ciao_75
+    %newVar_ciao_71 <- %newVar_ciao_71
+    %newVar_ciao_71 += %newVar_ciao_76
+    %newVar_ciao_71 <- %newVar_ciao_71
+    %newVar_ciao_71 += %newVar3
+    %newVar_ciao_70 <- %newVar_ciao_71
+    %newVar_ciao_70 *= 8
+    %newVar_ciao_70 <- %newVar_ciao_70
+    %newVar_ciao_70 += 24
+    %newVar_ciao_77 <- %m
+    %newVar_ciao_77 += %newVar_ciao_70
+    mem %newVar_ciao_77 0  <- %v
+    rdi <- %m
+    rsi <- %v
+    mem rsp -8 <- :call_label72
+    call @checkMatrix 2
+    :call_label72
+    %r <- rax
+    rdi <- %r
+    call print 1
+    rdi <- %m
+    rsi <- 1
+    mem rsp -8 <- :call_label73
+    call @initMatrix 2
+    :call_label73
+    %newVar4 <- 1
+    %newVar5 <- 1
+    %newVar5 <- 1
+    %newVar5 <- %newVar5
+    %newVar5 >>= 1
+    %newVar6 <- 1
+    %newVar7 <- 1
+    %newVar7 <- 3
+    %newVar7 <- %newVar7
+    %newVar7 >>= 1
+    %newVar35 <- 37
+    %newVar36 <- 1
+    %newVar37 <- 1
+    %newVar38 <- 1
+    %newVar39 <- %m = 0
+    
+    cjump %newVar39 = 1 :call_label46
+    goto :call_label51
+    :call_label53
+    rdi <- %newVar24
+    rsi <- %newVar26
+    rdx <- %newVar25
+    rcx <- %newVar27
+    call tensor-error 4
+    goto :call_label52
+    :call_label54
+    rdi <- %newVar24
+    rsi <- %newVar25
+    rdx <- %newVar27
+    call tuple-error 3
+    goto :call_label53
+    :call_label55
+    rdi <- %newVar24
+    rsi <- %newVar25
+    rdx <- %newVar27
+    call tensor-error 3
+    goto :call_label54
+    :call_label56
+    rdi <- %newVar24
+    call tensor-error 1
+    goto :call_label55
+    :call_label57
+    goto :call_label52
+    :call_label58
+    %newVar34 <- %newVar3 < %newVar32
+    
+    cjump %newVar34 = 1 :call_label57
+    goto :call_label53
+    :call_label59
+    %newVar26 <- 3
+    %newVar_ciao_78 <- 1
+    %newVar_ciao_78 *= 8
+    %newVar_ciao_79 <- %newVar_ciao_78
+    %newVar_ciao_79 += 8
+    %newVar_ciao_80 <- %m
+    %newVar_ciao_80 += %newVar_ciao_79
+    %newVar32 <- mem %newVar_ciao_80 0 
+    %newVar25 <- %newVar32
+    %newVar32 <- %newVar32
+    %newVar32 >>= 1
+    %newVar27 <- %newVar3
+    %newVar27 <- %newVar27
+    %newVar27 <<= 1
+    %newVar27 <- %newVar27
+    %newVar27 += 1
+    %newVar33 <- 0 <= %newVar3
+    
+    cjump %newVar33 = 1 :call_label58
+    goto :call_label53
+    :call_label60
+    %newVar31 <- %newVar1 < %newVar29
+    
+    cjump %newVar31 = 1 :call_label59
+    goto :call_label53
+    :call_label61
+    %newVar26 <- 1
+    %newVar_ciao_81 <- 0
+    %newVar_ciao_81 *= 8
+    %newVar_ciao_82 <- %newVar_ciao_81
+    %newVar_ciao_82 += 8
+    %newVar_ciao_83 <- %m
+    %newVar_ciao_83 += %newVar_ciao_82
+    %newVar29 <- mem %newVar_ciao_83 0 
+    %newVar25 <- %newVar29
+    %newVar29 <- %newVar29
+    %newVar29 >>= 1
+    %newVar27 <- %newVar1
+    %newVar27 <- %newVar27
+    %newVar27 <<= 1
+    %newVar27 <- %newVar27
+    %newVar27 += 1
+    %newVar30 <- 0 <= %newVar1
+    
+    cjump %newVar30 = 1 :call_label60
+    goto :call_label53
+    :call_label62
+    %m <- 0
+    %r <- 1
+    %v <- 1
+    %v <- 43
+    %newVar_ciao_85 <- 9
+    %newVar_ciao_85 >>= 1
+    %newVar_ciao_84 <- %newVar_ciao_85
+    %newVar_ciao_86 <- 9
+    %newVar_ciao_86 >>= 1
+    %newVar_ciao_84 <- %newVar_ciao_84
+    %newVar_ciao_84 *= %newVar_ciao_86
+    %newVar_ciao_84 <- %newVar_ciao_84
+    %newVar_ciao_84 <<= 1
+    %newVar_ciao_84 <- %newVar_ciao_84
+    %newVar_ciao_84 += 1
+    %newVar_ciao_84 <- %newVar_ciao_84
+    %newVar_ciao_84 += 4
+    rdi <- %newVar_ciao_84
+    rsi <- 1
+    call allocate 2
+    %m <- rax
+    %newVar_ciao_87 <- %m
+    %newVar_ciao_87 += 8
+    mem %newVar_ciao_87 0  <- 9
+    %newVar_ciao_88 <- %m
+    %newVar_ciao_88 += 16
+    mem %newVar_ciao_88 0  <- 9
+    rdi <- %m
+    rsi <- 1
+    mem rsp -8 <- :call_label74
+    call @initMatrix 2
+    :call_label74
+    rdi <- %m
+    rsi <- %v
+    mem rsp -8 <- :call_label75
+    call @checkMatrix 2
+    :call_label75
+    %r <- rax
+    rdi <- %r
+    call print 1
+    rdi <- %m
+    rsi <- 1
+    mem rsp -8 <- :call_label76
+    call @initMatrix 2
+    :call_label76
+    %newVar0 <- 1
+    %newVar1 <- 1
+    %newVar1 <- 1
+    %newVar1 <- %newVar1
+    %newVar1 >>= 1
+    %newVar2 <- 1
+    %newVar3 <- 1
+    %newVar3 <- 1
+    %newVar3 <- %newVar3
+    %newVar3 >>= 1
+    %newVar24 <- 27
+    %newVar25 <- 1
+    %newVar26 <- 1
+    %newVar27 <- 1
+    %newVar28 <- %m = 0
+    
+    cjump %newVar28 = 1 :call_label56
+    goto :call_label61
+  )
+  (@initMatrix
+    2
+    %m <- rdi
+    %initValue <- rsi
+    :call_label_ciao_77
+    goto :call_label_ciao_95
+    :call_label_ciao_78
+    return
+    :call_label_ciao_79
+    return
+    :call_label_ciao_80
+    %newVar12 <- 1
+    %newVar12 <- %index
+    %newVar12 <- %newVar12
+    %newVar12 >>= 1
+    %newVar13 <- 1
+    %newVar13 <- 3
+    %newVar13 <- %newVar13
+    %newVar13 >>= 1
+    %index <- %newVar12
+    %index += %newVar13
+    %index <- %index
+    %index <<= 1
+    %index <- %index
+    %index += 1
+    goto :call_label_ciao_81
+    :call_label_ciao_81
+    %check <- 1
+    %newVar0 <- 1
+    %newVar0 <- %index
+    %newVar0 <- %newVar0
+    %newVar0 >>= 1
+    %newVar1 <- 1
+    %newVar1 <- %l1
+    %newVar1 <- %newVar1
+    %newVar1 >>= 1
+    %check <- %newVar0 < %newVar1
+    
+    %check <- %check
+    %check <<= 1
+    %check <- %check
+    %check += 1
+    %newVar2 <- 1
+    %newVar2 <- %check
+    %newVar2 <- %newVar2
+    %newVar2 >>= 1
+    cjump %newVar2 = 1 :call_label_ciao_82
+    goto :call_label_ciao_79
+    :call_label_ciao_82
+    %index2 <- 1
+    %index2 <- 1
+    goto :call_label_ciao_83
+    :call_label_ciao_83
+    %check2 <- 1
+    %newVar3 <- 1
+    %newVar3 <- %index2
+    %newVar3 <- %newVar3
+    %newVar3 >>= 1
+    %newVar4 <- 1
+    %newVar4 <- %l2
+    %newVar4 <- %newVar4
+    %newVar4 >>= 1
+    %check2 <- %newVar3 < %newVar4
+    
+    %check2 <- %check2
+    %check2 <<= 1
+    %check2 <- %check2
+    %check2 += 1
+    %newVar5 <- 1
+    %newVar5 <- %check2
+    %newVar5 <- %newVar5
+    %newVar5 >>= 1
+    cjump %newVar5 = 1 :call_label_ciao_84
+    goto :call_label_ciao_80
+    :call_label_ciao_84
+    %newVar6 <- 1
+    %newVar7 <- 1
+    %newVar7 <- %index
+    %newVar7 <- %newVar7
+    %newVar7 >>= 1
+    %newVar8 <- 1
+    %newVar9 <- 1
+    %newVar9 <- %index2
+    %newVar9 <- %newVar9
+    %newVar9 >>= 1
+    %newVar14 <- 137
+    %newVar15 <- 1
+    %newVar16 <- 1
+    %newVar17 <- 1
+    %newVar18 <- %m = 0
+    
+    cjump %newVar18 = 1 :call_label_ciao_94
+    goto :call_label_ciao_85
+    :call_label_ciao_85
+    %newVar16 <- 1
+    %newVar_ciao_0 <- 0
+    %newVar_ciao_0 *= 8
+    %newVar_ciao_1 <- %newVar_ciao_0
+    %newVar_ciao_1 += 8
+    %newVar_ciao_2 <- %m
+    %newVar_ciao_2 += %newVar_ciao_1
+    %newVar19 <- mem %newVar_ciao_2 0 
+    %newVar15 <- %newVar19
+    %newVar19 <- %newVar19
+    %newVar19 >>= 1
+    %newVar17 <- %newVar7
+    %newVar17 <- %newVar17
+    %newVar17 <<= 1
+    %newVar17 <- %newVar17
+    %newVar17 += 1
+    %newVar20 <- 0 <= %newVar7
+    
+    cjump %newVar20 = 1 :call_label_ciao_86
+    goto :call_label_ciao_91
+    :call_label_ciao_86
+    %newVar21 <- %newVar7 < %newVar19
+    
+    cjump %newVar21 = 1 :call_label_ciao_87
+    goto :call_label_ciao_91
+    :call_label_ciao_87
+    %newVar16 <- 3
+    %newVar_ciao_3 <- 1
+    %newVar_ciao_3 *= 8
+    %newVar_ciao_4 <- %newVar_ciao_3
+    %newVar_ciao_4 += 8
+    %newVar_ciao_5 <- %m
+    %newVar_ciao_5 += %newVar_ciao_4
+    %newVar22 <- mem %newVar_ciao_5 0 
+    %newVar15 <- %newVar22
+    %newVar22 <- %newVar22
+    %newVar22 >>= 1
+    %newVar17 <- %newVar9
+    %newVar17 <- %newVar17
+    %newVar17 <<= 1
+    %newVar17 <- %newVar17
+    %newVar17 += 1
+    %newVar23 <- 0 <= %newVar9
+    
+    cjump %newVar23 = 1 :call_label_ciao_88
+    goto :call_label_ciao_91
+    :call_label_ciao_88
+    %newVar24 <- %newVar9 < %newVar22
+    
+    cjump %newVar24 = 1 :call_label_ciao_89
+    goto :call_label_ciao_91
+    :call_label_ciao_89
+    goto :call_label_ciao_90
+    :call_label_ciao_90
+    %newVar_ciao_7 <- 0
+    %newVar_ciao_8 <- %m
+    %newVar_ciao_8 += 16
+    %newVar_ciao_9 <- mem %newVar_ciao_8 0 
+    %newVar_ciao_10 <- %newVar_ciao_9
+    %newVar_ciao_10 >>= 1
+    %newVar_ciao_11 <- 1
+    %newVar_ciao_11 <- %newVar_ciao_11
+    %newVar_ciao_11 *= %newVar_ciao_10
+    %newVar_ciao_12 <- %newVar7
+    %newVar_ciao_12 *= %newVar_ciao_11
+    %newVar_ciao_7 <- %newVar_ciao_7
+    %newVar_ciao_7 += %newVar_ciao_12
+    %newVar_ciao_7 <- %newVar_ciao_7
+    %newVar_ciao_7 += %newVar9
+    %newVar_ciao_6 <- %newVar_ciao_7
+    %newVar_ciao_6 *= 8
+    %newVar_ciao_6 <- %newVar_ciao_6
+    %newVar_ciao_6 += 24
+    %newVar_ciao_13 <- %m
+    %newVar_ciao_13 += %newVar_ciao_6
+    mem %newVar_ciao_13 0  <- %initValue
+    %newVar10 <- 1
+    %newVar10 <- %index2
+    %newVar10 <- %newVar10
+    %newVar10 >>= 1
+    %newVar11 <- 1
+    %newVar11 <- 3
+    %newVar11 <- %newVar11
+    %newVar11 >>= 1
+    %index2 <- %newVar10
+    %index2 += %newVar11
+    %index2 <- %index2
+    %index2 <<= 1
+    %index2 <- %index2
+    %index2 += 1
+    goto :call_label_ciao_83
+    :call_label_ciao_91
+    rdi <- %newVar14
+    rsi <- %newVar16
+    rdx <- %newVar15
+    rcx <- %newVar17
+    call tensor-error 4
+    goto :call_label_ciao_90
+    :call_label_ciao_92
+    rdi <- %newVar14
+    rsi <- %newVar15
+    rdx <- %newVar17
+    call tuple-error 3
+    goto :call_label_ciao_91
+    :call_label_ciao_93
+    rdi <- %newVar14
+    rsi <- %newVar15
+    rdx <- %newVar17
+    call tensor-error 3
+    goto :call_label_ciao_92
+    :call_label_ciao_94
+    rdi <- %newVar14
+    call tensor-error 1
+    goto :call_label_ciao_93
+    :call_label_ciao_95
+    %l1 <- 1
+    %l2 <- 1
+    %newVar_ciao_14 <- 0
+    %newVar_ciao_14 *= 8
+    %newVar_ciao_15 <- %newVar_ciao_14
+    %newVar_ciao_15 += 8
+    %newVar_ciao_16 <- %m
+    %newVar_ciao_16 += %newVar_ciao_15
+    %l1 <- mem %newVar_ciao_16 0 
+    %newVar_ciao_17 <- 1
+    %newVar_ciao_17 *= 8
+    %newVar_ciao_18 <- %newVar_ciao_17
+    %newVar_ciao_18 += 8
+    %newVar_ciao_19 <- %m
+    %newVar_ciao_19 += %newVar_ciao_18
+    %l2 <- mem %newVar_ciao_19 0 
+    %index <- 1
+    %index <- 1
+    goto :call_label_ciao_81
+  )
+  (@checkMatrix
+    2
+    %m <- rdi
+    %v <- rsi
+    :call_label_ciao__ciao_96
+    goto :call_label_ciao__ciao_115
+    :call_label_ciao__ciao_97
+    rax <- %found
+    return
+    :call_label_ciao__ciao_98
+    %found <- 3
+    goto :call_label_ciao__ciao_97
+    :call_label_ciao__ciao_99
+    %newVar15 <- 1
+    %newVar15 <- %index
+    %newVar15 <- %newVar15
+    %newVar15 >>= 1
+    %newVar16 <- 1
+    %newVar16 <- 3
+    %newVar16 <- %newVar16
+    %newVar16 >>= 1
+    %index <- %newVar15
+    %index += %newVar16
+    %index <- %index
+    %index <<= 1
+    %index <- %index
+    %index += 1
+    goto :call_label_ciao__ciao_100
+    :call_label_ciao__ciao_100
+    %check <- 1
+    %newVar0 <- 1
+    %newVar0 <- %index
+    %newVar0 <- %newVar0
+    %newVar0 >>= 1
+    %newVar1 <- 1
+    %newVar1 <- %l1
+    %newVar1 <- %newVar1
+    %newVar1 >>= 1
+    %check <- %newVar0 < %newVar1
+    
+    %check <- %check
+    %check <<= 1
+    %check <- %check
+    %check += 1
+    %newVar2 <- 1
+    %newVar2 <- %check
+    %newVar2 <- %newVar2
+    %newVar2 >>= 1
+    cjump %newVar2 = 1 :call_label_ciao__ciao_101
+    goto :call_label_ciao__ciao_97
+    :call_label_ciao__ciao_101
+    %index2 <- 1
+    %index2 <- 1
+    goto :call_label_ciao__ciao_102
+    :call_label_ciao__ciao_102
+    %check2 <- 1
+    %newVar3 <- 1
+    %newVar3 <- %index2
+    %newVar3 <- %newVar3
+    %newVar3 >>= 1
+    %newVar4 <- 1
+    %newVar4 <- %l2
+    %newVar4 <- %newVar4
+    %newVar4 >>= 1
+    %check2 <- %newVar3 < %newVar4
+    
+    %check2 <- %check2
+    %check2 <<= 1
+    %check2 <- %check2
+    %check2 += 1
+    %newVar5 <- 1
+    %newVar5 <- %check2
+    %newVar5 <- %newVar5
+    %newVar5 >>= 1
+    cjump %newVar5 = 1 :call_label_ciao__ciao_103
+    goto :call_label_ciao__ciao_99
+    :call_label_ciao__ciao_103
+    %e <- 1
+    %sameE <- 1
+    %newVar6 <- 1
+    %newVar7 <- 1
+    %newVar7 <- %index
+    %newVar7 <- %newVar7
+    %newVar7 >>= 1
+    %newVar8 <- 1
+    %newVar9 <- 1
+    %newVar9 <- %index2
+    %newVar9 <- %newVar9
+    %newVar9 >>= 1
+    %newVar17 <- 221
+    %newVar18 <- 1
+    %newVar19 <- 1
+    %newVar20 <- 1
+    %newVar21 <- %m = 0
+    
+    cjump %newVar21 = 1 :call_label_ciao__ciao_114
+    goto :call_label_ciao__ciao_104
+    :call_label_ciao__ciao_104
+    %newVar19 <- 1
+    %newVar_ciao_0 <- 0
+    %newVar_ciao_0 *= 8
+    %newVar_ciao_1 <- %newVar_ciao_0
+    %newVar_ciao_1 += 8
+    %newVar_ciao_2 <- %m
+    %newVar_ciao_2 += %newVar_ciao_1
+    %newVar22 <- mem %newVar_ciao_2 0 
+    %newVar18 <- %newVar22
+    %newVar22 <- %newVar22
+    %newVar22 >>= 1
+    %newVar20 <- %newVar7
+    %newVar20 <- %newVar20
+    %newVar20 <<= 1
+    %newVar20 <- %newVar20
+    %newVar20 += 1
+    %newVar23 <- 0 <= %newVar7
+    
+    cjump %newVar23 = 1 :call_label_ciao__ciao_105
+    goto :call_label_ciao__ciao_111
+    :call_label_ciao__ciao_105
+    %newVar24 <- %newVar7 < %newVar22
+    
+    cjump %newVar24 = 1 :call_label_ciao__ciao_106
+    goto :call_label_ciao__ciao_111
+    :call_label_ciao__ciao_106
+    %newVar19 <- 3
+    %newVar_ciao_3 <- 1
+    %newVar_ciao_3 *= 8
+    %newVar_ciao_4 <- %newVar_ciao_3
+    %newVar_ciao_4 += 8
+    %newVar_ciao_5 <- %m
+    %newVar_ciao_5 += %newVar_ciao_4
+    %newVar25 <- mem %newVar_ciao_5 0 
+    %newVar18 <- %newVar25
+    %newVar25 <- %newVar25
+    %newVar25 >>= 1
+    %newVar20 <- %newVar9
+    %newVar20 <- %newVar20
+    %newVar20 <<= 1
+    %newVar20 <- %newVar20
+    %newVar20 += 1
+    %newVar26 <- 0 <= %newVar9
+    
+    cjump %newVar26 = 1 :call_label_ciao__ciao_107
+    goto :call_label_ciao__ciao_111
+    :call_label_ciao__ciao_107
+    %newVar27 <- %newVar9 < %newVar25
+    
+    cjump %newVar27 = 1 :call_label_ciao__ciao_108
+    goto :call_label_ciao__ciao_111
+    :call_label_ciao__ciao_108
+    goto :call_label_ciao__ciao_109
+    :call_label_ciao__ciao_109
+    %newVar_ciao_7 <- 0
+    %newVar_ciao_8 <- %m
+    %newVar_ciao_8 += 16
+    %newVar_ciao_9 <- mem %newVar_ciao_8 0 
+    %newVar_ciao_10 <- %newVar_ciao_9
+    %newVar_ciao_10 >>= 1
+    %newVar_ciao_11 <- 1
+    %newVar_ciao_11 <- %newVar_ciao_11
+    %newVar_ciao_11 *= %newVar_ciao_10
+    %newVar_ciao_12 <- %newVar7
+    %newVar_ciao_12 *= %newVar_ciao_11
+    %newVar_ciao_7 <- %newVar_ciao_7
+    %newVar_ciao_7 += %newVar_ciao_12
+    %newVar_ciao_7 <- %newVar_ciao_7
+    %newVar_ciao_7 += %newVar9
+    %newVar_ciao_6 <- %newVar_ciao_7
+    %newVar_ciao_6 *= 8
+    %newVar_ciao_6 <- %newVar_ciao_6
+    %newVar_ciao_6 += 24
+    %newVar_ciao_13 <- %m
+    %newVar_ciao_13 += %newVar_ciao_6
+    %e <- mem %newVar_ciao_13 0 
+    %newVar10 <- 1
+    %newVar10 <- %e
+    %newVar10 <- %newVar10
+    %newVar10 >>= 1
+    %newVar11 <- 1
+    %newVar11 <- %v
+    %newVar11 <- %newVar11
+    %newVar11 >>= 1
+    %sameE <- %newVar10 = %newVar11
+    
+    %sameE <- %sameE
+    %sameE <<= 1
+    %sameE <- %sameE
+    %sameE += 1
+    %newVar12 <- 1
+    %newVar12 <- %sameE
+    %newVar12 <- %newVar12
+    %newVar12 >>= 1
+    cjump %newVar12 = 1 :call_label_ciao__ciao_98
+    goto :call_label_ciao__ciao_110
+    :call_label_ciao__ciao_110
+    %newVar13 <- 1
+    %newVar13 <- %index2
+    %newVar13 <- %newVar13
+    %newVar13 >>= 1
+    %newVar14 <- 1
+    %newVar14 <- 3
+    %newVar14 <- %newVar14
+    %newVar14 >>= 1
+    %index2 <- %newVar13
+    %index2 += %newVar14
+    %index2 <- %index2
+    %index2 <<= 1
+    %index2 <- %index2
+    %index2 += 1
+    goto :call_label_ciao__ciao_102
+    :call_label_ciao__ciao_111
+    rdi <- %newVar17
+    rsi <- %newVar19
+    rdx <- %newVar18
+    rcx <- %newVar20
+    call tensor-error 4
+    goto :call_label_ciao__ciao_109
+    :call_label_ciao__ciao_112
+    rdi <- %newVar17
+    rsi <- %newVar18
+    rdx <- %newVar20
+    call tuple-error 3
+    goto :call_label_ciao__ciao_111
+    :call_label_ciao__ciao_113
+    rdi <- %newVar17
+    rsi <- %newVar18
+    rdx <- %newVar20
+    call tensor-error 3
+    goto :call_label_ciao__ciao_112
+    :call_label_ciao__ciao_114
+    rdi <- %newVar17
+    call tensor-error 1
+    goto :call_label_ciao__ciao_113
+    :call_label_ciao__ciao_115
+    %l1 <- 1
+    %l2 <- 1
+    %newVar_ciao_14 <- 0
+    %newVar_ciao_14 *= 8
+    %newVar_ciao_15 <- %newVar_ciao_14
+    %newVar_ciao_15 += 8
+    %newVar_ciao_16 <- %m
+    %newVar_ciao_16 += %newVar_ciao_15
+    %l1 <- mem %newVar_ciao_16 0 
+    %newVar_ciao_17 <- 1
+    %newVar_ciao_17 *= 8
+    %newVar_ciao_18 <- %newVar_ciao_17
+    %newVar_ciao_18 += 8
+    %newVar_ciao_19 <- %m
+    %newVar_ciao_19 += %newVar_ciao_18
+    %l2 <- mem %newVar_ciao_19 0 
+    %index <- 1
+    %found <- 1
+    %found <- 1
+    %index <- 1
+    rdi <- %m
+    call print 1
+    rdi <- %v
+    call print 1
+    goto :call_label_ciao__ciao_100
+  )
+)

@@ -1,0 +1,862 @@
+define @main () {
+ :NNNNNNNNNNNN
+ br :new_label60
+ :new_label61
+ return 
+ :new_label59
+ %newVar_ciao_1 <- 0
+ %newVar_ciao_2 <- %m + 16
+ %newVar_ciao_3 <- load %newVar_ciao_2
+ %newVar_ciao_4 <- %newVar_ciao_3 >> 1
+ %newVar_ciao_5 <- 1
+ %newVar_ciao_5 <- %newVar_ciao_4 * %newVar_ciao_5
+ %newVar_ciao_6 <- %newVar21 * %newVar_ciao_5
+ %newVar_ciao_1 <- %newVar_ciao_6 + %newVar_ciao_1
+ %newVar_ciao_1 <- %newVar_ciao_1 + %newVar23
+ %newVar_ciao_0 <- %newVar_ciao_1 * 8
+ %newVar_ciao_0 <- %newVar_ciao_0 + 24
+ %newVar_ciao_7 <- %m + %newVar_ciao_0
+ store %newVar_ciao_7 <- %v
+ %r <- call @checkMatrix (%m, %v)
+ call print (%r)
+ return 
+ :new_label52
+ call tensor-error (%newVar79, %newVar81, %newVar80, %newVar82)
+ br :new_label59
+ :new_label53
+ call tuple-error (%newVar79, %newVar80, %newVar82)
+ br :new_label52
+ :new_label51
+ call tensor-error (%newVar79, %newVar80, %newVar82)
+ br :new_label53
+ :new_label50
+ call tensor-error (%newVar79)
+ br :new_label51
+ :new_label58
+ br :new_label59
+ :new_label57
+ %newVar89 <- %newVar23 < %newVar87
+ br %newVar89 :new_label58 
+ br :new_label52
+ :new_label56
+ %newVar81 <- 3
+ %newVar_ciao_8 <- 1 * 8
+ %newVar_ciao_9 <- %newVar_ciao_8 + 8
+ %newVar_ciao_10 <- %m + %newVar_ciao_9
+ %newVar87 <- load %newVar_ciao_10
+ %newVar80 <- %newVar87
+ %newVar87 <- %newVar87 >> 1
+ %newVar82 <- %newVar23
+ %newVar82 <- %newVar82 << 1
+ %newVar82 <- %newVar82 + 1
+ %newVar88 <- %newVar23 >= 0
+ br %newVar88 :new_label57 
+ br :new_label52
+ :new_label55
+ %newVar86 <- %newVar21 < %newVar84
+ br %newVar86 :new_label56 
+ br :new_label52
+ :new_label54
+ %newVar81 <- 1
+ %newVar_ciao_11 <- 0 * 8
+ %newVar_ciao_12 <- %newVar_ciao_11 + 8
+ %newVar_ciao_13 <- %m + %newVar_ciao_12
+ %newVar84 <- load %newVar_ciao_13
+ %newVar80 <- %newVar84
+ %newVar84 <- %newVar84 >> 1
+ %newVar82 <- %newVar21
+ %newVar82 <- %newVar82 << 1
+ %newVar82 <- %newVar82 + 1
+ %newVar85 <- %newVar21 >= 0
+ br %newVar85 :new_label55 
+ br :new_label52
+ :new_label49
+ %newVar_ciao_15 <- 0
+ %newVar_ciao_16 <- %m + 16
+ %newVar_ciao_17 <- load %newVar_ciao_16
+ %newVar_ciao_18 <- %newVar_ciao_17 >> 1
+ %newVar_ciao_19 <- 1
+ %newVar_ciao_19 <- %newVar_ciao_18 * %newVar_ciao_19
+ %newVar_ciao_20 <- %newVar17 * %newVar_ciao_19
+ %newVar_ciao_15 <- %newVar_ciao_20 + %newVar_ciao_15
+ %newVar_ciao_15 <- %newVar_ciao_15 + %newVar19
+ %newVar_ciao_14 <- %newVar_ciao_15 * 8
+ %newVar_ciao_14 <- %newVar_ciao_14 + 24
+ %newVar_ciao_21 <- %m + %newVar_ciao_14
+ store %newVar_ciao_21 <- %v
+ %r <- call @checkMatrix (%m, %v)
+ call print (%r)
+ call @initMatrix (%m, 1)
+ %newVar20 <- 1
+ %newVar21 <- 1
+ %newVar21 <- 7
+ %newVar21 <- %newVar21 >> 1
+ %newVar22 <- 1
+ %newVar23 <- 1
+ %newVar23 <- 7
+ %newVar23 <- %newVar23 >> 1
+ %newVar79 <- 77
+ %newVar80 <- 1
+ %newVar81 <- 1
+ %newVar82 <- 1
+ %newVar83 <- %m = 0
+ br %newVar83 :new_label50 
+ br :new_label54
+ :new_label42
+ call tensor-error (%newVar68, %newVar70, %newVar69, %newVar71)
+ br :new_label49
+ :new_label43
+ call tuple-error (%newVar68, %newVar69, %newVar71)
+ br :new_label42
+ :new_label41
+ call tensor-error (%newVar68, %newVar69, %newVar71)
+ br :new_label43
+ :new_label40
+ call tensor-error (%newVar68)
+ br :new_label41
+ :new_label48
+ br :new_label49
+ :new_label47
+ %newVar78 <- %newVar19 < %newVar76
+ br %newVar78 :new_label48 
+ br :new_label42
+ :new_label46
+ %newVar70 <- 3
+ %newVar_ciao_22 <- 1 * 8
+ %newVar_ciao_23 <- %newVar_ciao_22 + 8
+ %newVar_ciao_24 <- %m + %newVar_ciao_23
+ %newVar76 <- load %newVar_ciao_24
+ %newVar69 <- %newVar76
+ %newVar76 <- %newVar76 >> 1
+ %newVar71 <- %newVar19
+ %newVar71 <- %newVar71 << 1
+ %newVar71 <- %newVar71 + 1
+ %newVar77 <- %newVar19 >= 0
+ br %newVar77 :new_label47 
+ br :new_label42
+ :new_label45
+ %newVar75 <- %newVar17 < %newVar73
+ br %newVar75 :new_label46 
+ br :new_label42
+ :new_label44
+ %newVar70 <- 1
+ %newVar_ciao_25 <- 0 * 8
+ %newVar_ciao_26 <- %newVar_ciao_25 + 8
+ %newVar_ciao_27 <- %m + %newVar_ciao_26
+ %newVar73 <- load %newVar_ciao_27
+ %newVar69 <- %newVar73
+ %newVar73 <- %newVar73 >> 1
+ %newVar71 <- %newVar17
+ %newVar71 <- %newVar71 << 1
+ %newVar71 <- %newVar71 + 1
+ %newVar74 <- %newVar17 >= 0
+ br %newVar74 :new_label45 
+ br :new_label42
+ :new_label39
+ %newVar_ciao_29 <- 0
+ %newVar_ciao_30 <- %m + 16
+ %newVar_ciao_31 <- load %newVar_ciao_30
+ %newVar_ciao_32 <- %newVar_ciao_31 >> 1
+ %newVar_ciao_33 <- 1
+ %newVar_ciao_33 <- %newVar_ciao_32 * %newVar_ciao_33
+ %newVar_ciao_34 <- %newVar13 * %newVar_ciao_33
+ %newVar_ciao_29 <- %newVar_ciao_34 + %newVar_ciao_29
+ %newVar_ciao_29 <- %newVar_ciao_29 + %newVar15
+ %newVar_ciao_28 <- %newVar_ciao_29 * 8
+ %newVar_ciao_28 <- %newVar_ciao_28 + 24
+ %newVar_ciao_35 <- %m + %newVar_ciao_28
+ store %newVar_ciao_35 <- %v
+ %r <- call @checkMatrix (%m, %v)
+ call print (%r)
+ call @initMatrix (%m, 1)
+ %newVar16 <- 1
+ %newVar17 <- 1
+ %newVar17 <- 7
+ %newVar17 <- %newVar17 >> 1
+ %newVar18 <- 1
+ %newVar19 <- 1
+ %newVar19 <- 3
+ %newVar19 <- %newVar19 >> 1
+ %newVar68 <- 67
+ %newVar69 <- 1
+ %newVar70 <- 1
+ %newVar71 <- 1
+ %newVar72 <- %m = 0
+ br %newVar72 :new_label40 
+ br :new_label44
+ :new_label32
+ call tensor-error (%newVar57, %newVar59, %newVar58, %newVar60)
+ br :new_label39
+ :new_label33
+ call tuple-error (%newVar57, %newVar58, %newVar60)
+ br :new_label32
+ :new_label31
+ call tensor-error (%newVar57, %newVar58, %newVar60)
+ br :new_label33
+ :new_label30
+ call tensor-error (%newVar57)
+ br :new_label31
+ :new_label38
+ br :new_label39
+ :new_label37
+ %newVar67 <- %newVar15 < %newVar65
+ br %newVar67 :new_label38 
+ br :new_label32
+ :new_label36
+ %newVar59 <- 3
+ %newVar_ciao_36 <- 1 * 8
+ %newVar_ciao_37 <- %newVar_ciao_36 + 8
+ %newVar_ciao_38 <- %m + %newVar_ciao_37
+ %newVar65 <- load %newVar_ciao_38
+ %newVar58 <- %newVar65
+ %newVar65 <- %newVar65 >> 1
+ %newVar60 <- %newVar15
+ %newVar60 <- %newVar60 << 1
+ %newVar60 <- %newVar60 + 1
+ %newVar66 <- %newVar15 >= 0
+ br %newVar66 :new_label37 
+ br :new_label32
+ :new_label35
+ %newVar64 <- %newVar13 < %newVar62
+ br %newVar64 :new_label36 
+ br :new_label32
+ :new_label34
+ %newVar59 <- 1
+ %newVar_ciao_39 <- 0 * 8
+ %newVar_ciao_40 <- %newVar_ciao_39 + 8
+ %newVar_ciao_41 <- %m + %newVar_ciao_40
+ %newVar62 <- load %newVar_ciao_41
+ %newVar58 <- %newVar62
+ %newVar62 <- %newVar62 >> 1
+ %newVar60 <- %newVar13
+ %newVar60 <- %newVar60 << 1
+ %newVar60 <- %newVar60 + 1
+ %newVar63 <- %newVar13 >= 0
+ br %newVar63 :new_label35 
+ br :new_label32
+ :new_label29
+ %newVar_ciao_43 <- 0
+ %newVar_ciao_44 <- %m + 16
+ %newVar_ciao_45 <- load %newVar_ciao_44
+ %newVar_ciao_46 <- %newVar_ciao_45 >> 1
+ %newVar_ciao_47 <- 1
+ %newVar_ciao_47 <- %newVar_ciao_46 * %newVar_ciao_47
+ %newVar_ciao_48 <- %newVar9 * %newVar_ciao_47
+ %newVar_ciao_43 <- %newVar_ciao_48 + %newVar_ciao_43
+ %newVar_ciao_43 <- %newVar_ciao_43 + %newVar11
+ %newVar_ciao_42 <- %newVar_ciao_43 * 8
+ %newVar_ciao_42 <- %newVar_ciao_42 + 24
+ %newVar_ciao_49 <- %m + %newVar_ciao_42
+ store %newVar_ciao_49 <- %v
+ %r <- call @checkMatrix (%m, %v)
+ call print (%r)
+ call @initMatrix (%m, 1)
+ %newVar12 <- 1
+ %newVar13 <- 1
+ %newVar13 <- 7
+ %newVar13 <- %newVar13 >> 1
+ %newVar14 <- 1
+ %newVar15 <- 1
+ %newVar15 <- 1
+ %newVar15 <- %newVar15 >> 1
+ %newVar57 <- 57
+ %newVar58 <- 1
+ %newVar59 <- 1
+ %newVar60 <- 1
+ %newVar61 <- %m = 0
+ br %newVar61 :new_label30 
+ br :new_label34
+ :new_label22
+ call tensor-error (%newVar46, %newVar48, %newVar47, %newVar49)
+ br :new_label29
+ :new_label23
+ call tuple-error (%newVar46, %newVar47, %newVar49)
+ br :new_label22
+ :new_label21
+ call tensor-error (%newVar46, %newVar47, %newVar49)
+ br :new_label23
+ :new_label20
+ call tensor-error (%newVar46)
+ br :new_label21
+ :new_label28
+ br :new_label29
+ :new_label27
+ %newVar56 <- %newVar11 < %newVar54
+ br %newVar56 :new_label28 
+ br :new_label22
+ :new_label26
+ %newVar48 <- 3
+ %newVar_ciao_50 <- 1 * 8
+ %newVar_ciao_51 <- %newVar_ciao_50 + 8
+ %newVar_ciao_52 <- %m + %newVar_ciao_51
+ %newVar54 <- load %newVar_ciao_52
+ %newVar47 <- %newVar54
+ %newVar54 <- %newVar54 >> 1
+ %newVar49 <- %newVar11
+ %newVar49 <- %newVar49 << 1
+ %newVar49 <- %newVar49 + 1
+ %newVar55 <- %newVar11 >= 0
+ br %newVar55 :new_label27 
+ br :new_label22
+ :new_label25
+ %newVar53 <- %newVar9 < %newVar51
+ br %newVar53 :new_label26 
+ br :new_label22
+ :new_label24
+ %newVar48 <- 1
+ %newVar_ciao_53 <- 0 * 8
+ %newVar_ciao_54 <- %newVar_ciao_53 + 8
+ %newVar_ciao_55 <- %m + %newVar_ciao_54
+ %newVar51 <- load %newVar_ciao_55
+ %newVar47 <- %newVar51
+ %newVar51 <- %newVar51 >> 1
+ %newVar49 <- %newVar9
+ %newVar49 <- %newVar49 << 1
+ %newVar49 <- %newVar49 + 1
+ %newVar52 <- %newVar9 >= 0
+ br %newVar52 :new_label25 
+ br :new_label22
+ :new_label19
+ %newVar_ciao_57 <- 0
+ %newVar_ciao_58 <- %m + 16
+ %newVar_ciao_59 <- load %newVar_ciao_58
+ %newVar_ciao_60 <- %newVar_ciao_59 >> 1
+ %newVar_ciao_61 <- 1
+ %newVar_ciao_61 <- %newVar_ciao_60 * %newVar_ciao_61
+ %newVar_ciao_62 <- %newVar5 * %newVar_ciao_61
+ %newVar_ciao_57 <- %newVar_ciao_62 + %newVar_ciao_57
+ %newVar_ciao_57 <- %newVar_ciao_57 + %newVar7
+ %newVar_ciao_56 <- %newVar_ciao_57 * 8
+ %newVar_ciao_56 <- %newVar_ciao_56 + 24
+ %newVar_ciao_63 <- %m + %newVar_ciao_56
+ store %newVar_ciao_63 <- %v
+ %r <- call @checkMatrix (%m, %v)
+ call print (%r)
+ call @initMatrix (%m, 1)
+ %newVar8 <- 1
+ %newVar9 <- 1
+ %newVar9 <- 3
+ %newVar9 <- %newVar9 >> 1
+ %newVar10 <- 1
+ %newVar11 <- 1
+ %newVar11 <- 1
+ %newVar11 <- %newVar11 >> 1
+ %newVar46 <- 47
+ %newVar47 <- 1
+ %newVar48 <- 1
+ %newVar49 <- 1
+ %newVar50 <- %m = 0
+ br %newVar50 :new_label20 
+ br :new_label24
+ :new_label12
+ call tensor-error (%newVar35, %newVar37, %newVar36, %newVar38)
+ br :new_label19
+ :new_label13
+ call tuple-error (%newVar35, %newVar36, %newVar38)
+ br :new_label12
+ :new_label11
+ call tensor-error (%newVar35, %newVar36, %newVar38)
+ br :new_label13
+ :new_label10
+ call tensor-error (%newVar35)
+ br :new_label11
+ :new_label18
+ br :new_label19
+ :new_label17
+ %newVar45 <- %newVar7 < %newVar43
+ br %newVar45 :new_label18 
+ br :new_label12
+ :new_label16
+ %newVar37 <- 3
+ %newVar_ciao_64 <- 1 * 8
+ %newVar_ciao_65 <- %newVar_ciao_64 + 8
+ %newVar_ciao_66 <- %m + %newVar_ciao_65
+ %newVar43 <- load %newVar_ciao_66
+ %newVar36 <- %newVar43
+ %newVar43 <- %newVar43 >> 1
+ %newVar38 <- %newVar7
+ %newVar38 <- %newVar38 << 1
+ %newVar38 <- %newVar38 + 1
+ %newVar44 <- %newVar7 >= 0
+ br %newVar44 :new_label17 
+ br :new_label12
+ :new_label15
+ %newVar42 <- %newVar5 < %newVar40
+ br %newVar42 :new_label16 
+ br :new_label12
+ :new_label14
+ %newVar37 <- 1
+ %newVar_ciao_67 <- 0 * 8
+ %newVar_ciao_68 <- %newVar_ciao_67 + 8
+ %newVar_ciao_69 <- %m + %newVar_ciao_68
+ %newVar40 <- load %newVar_ciao_69
+ %newVar36 <- %newVar40
+ %newVar40 <- %newVar40 >> 1
+ %newVar38 <- %newVar5
+ %newVar38 <- %newVar38 << 1
+ %newVar38 <- %newVar38 + 1
+ %newVar41 <- %newVar5 >= 0
+ br %newVar41 :new_label15 
+ br :new_label12
+ :new_label9
+ %newVar_ciao_71 <- 0
+ %newVar_ciao_72 <- %m + 16
+ %newVar_ciao_73 <- load %newVar_ciao_72
+ %newVar_ciao_74 <- %newVar_ciao_73 >> 1
+ %newVar_ciao_75 <- 1
+ %newVar_ciao_75 <- %newVar_ciao_74 * %newVar_ciao_75
+ %newVar_ciao_76 <- %newVar1 * %newVar_ciao_75
+ %newVar_ciao_71 <- %newVar_ciao_76 + %newVar_ciao_71
+ %newVar_ciao_71 <- %newVar_ciao_71 + %newVar3
+ %newVar_ciao_70 <- %newVar_ciao_71 * 8
+ %newVar_ciao_70 <- %newVar_ciao_70 + 24
+ %newVar_ciao_77 <- %m + %newVar_ciao_70
+ store %newVar_ciao_77 <- %v
+ %r <- call @checkMatrix (%m, %v)
+ call print (%r)
+ call @initMatrix (%m, 1)
+ %newVar4 <- 1
+ %newVar5 <- 1
+ %newVar5 <- 1
+ %newVar5 <- %newVar5 >> 1
+ %newVar6 <- 1
+ %newVar7 <- 1
+ %newVar7 <- 3
+ %newVar7 <- %newVar7 >> 1
+ %newVar35 <- 37
+ %newVar36 <- 1
+ %newVar37 <- 1
+ %newVar38 <- 1
+ %newVar39 <- %m = 0
+ br %newVar39 :new_label10 
+ br :new_label14
+ :new_label2
+ call tensor-error (%newVar24, %newVar26, %newVar25, %newVar27)
+ br :new_label9
+ :new_label3
+ call tuple-error (%newVar24, %newVar25, %newVar27)
+ br :new_label2
+ :new_label1
+ call tensor-error (%newVar24, %newVar25, %newVar27)
+ br :new_label3
+ :new_label0
+ call tensor-error (%newVar24)
+ br :new_label1
+ :new_label8
+ br :new_label9
+ :new_label7
+ %newVar34 <- %newVar3 < %newVar32
+ br %newVar34 :new_label8 
+ br :new_label2
+ :new_label6
+ %newVar26 <- 3
+ %newVar_ciao_78 <- 1 * 8
+ %newVar_ciao_79 <- %newVar_ciao_78 + 8
+ %newVar_ciao_80 <- %m + %newVar_ciao_79
+ %newVar32 <- load %newVar_ciao_80
+ %newVar25 <- %newVar32
+ %newVar32 <- %newVar32 >> 1
+ %newVar27 <- %newVar3
+ %newVar27 <- %newVar27 << 1
+ %newVar27 <- %newVar27 + 1
+ %newVar33 <- %newVar3 >= 0
+ br %newVar33 :new_label7 
+ br :new_label2
+ :new_label5
+ %newVar31 <- %newVar1 < %newVar29
+ br %newVar31 :new_label6 
+ br :new_label2
+ :new_label4
+ %newVar26 <- 1
+ %newVar_ciao_81 <- 0 * 8
+ %newVar_ciao_82 <- %newVar_ciao_81 + 8
+ %newVar_ciao_83 <- %m + %newVar_ciao_82
+ %newVar29 <- load %newVar_ciao_83
+ %newVar25 <- %newVar29
+ %newVar29 <- %newVar29 >> 1
+ %newVar27 <- %newVar1
+ %newVar27 <- %newVar27 << 1
+ %newVar27 <- %newVar27 + 1
+ %newVar30 <- %newVar1 >= 0
+ br %newVar30 :new_label5 
+ br :new_label2
+ :new_label60
+ %m <- 0
+ %r <- 1
+ %v <- 1
+ %v <- 43
+ %newVar_ciao_85 <- 9 >> 1
+ %newVar_ciao_84 <- %newVar_ciao_85
+ %newVar_ciao_86 <- 9 >> 1
+ %newVar_ciao_84 <- %newVar_ciao_84 * %newVar_ciao_86
+ %newVar_ciao_84 <- %newVar_ciao_84 << 1
+ %newVar_ciao_84 <- %newVar_ciao_84 + 1
+ %newVar_ciao_84 <- %newVar_ciao_84 + 4
+ %m <- call allocate (%newVar_ciao_84, 1)
+ %newVar_ciao_87 <- %m + 8
+ store %newVar_ciao_87 <- 9
+ %newVar_ciao_88 <- %m + 16
+ store %newVar_ciao_88 <- 9
+ call @initMatrix (%m, 1)
+ %r <- call @checkMatrix (%m, %v)
+ call print (%r)
+ call @initMatrix (%m, 1)
+ %newVar0 <- 1
+ %newVar1 <- 1
+ %newVar1 <- 1
+ %newVar1 <- %newVar1 >> 1
+ %newVar2 <- 1
+ %newVar3 <- 1
+ %newVar3 <- 1
+ %newVar3 <- %newVar3 >> 1
+ %newVar24 <- 27
+ %newVar25 <- 1
+ %newVar26 <- 1
+ %newVar27 <- 1
+ %newVar28 <- %m = 0
+ br %newVar28 :new_label0 
+ br :new_label4
+}
+
+define @initMatrix (%m, %initValue) {
+ :NNNNNNNNNNNNN
+ br :new_label10
+ :new_label11
+ return 
+ :leave
+ return 
+ :endOuterBody
+ %newVar12 <- 1
+ %newVar12 <- %index
+ %newVar12 <- %newVar12 >> 1
+ %newVar13 <- 1
+ %newVar13 <- 3
+ %newVar13 <- %newVar13 >> 1
+ %index <- %newVar12 + %newVar13
+ %index <- %index << 1
+ %index <- %index + 1
+ br :header
+ :header
+ %check <- 1
+ %newVar0 <- 1
+ %newVar0 <- %index
+ %newVar0 <- %newVar0 >> 1
+ %newVar1 <- 1
+ %newVar1 <- %l1
+ %newVar1 <- %newVar1 >> 1
+ %check <- %newVar0 < %newVar1
+ %check <- %check << 1
+ %check <- %check + 1
+ %newVar2 <- 1
+ %newVar2 <- %check
+ %newVar2 <- %newVar2 >> 1
+ br %newVar2 :outerBody 
+ br :leave
+ :outerBody
+ %index2 <- 1
+ %index2 <- 1
+ br :header2
+ :header2
+ %check2 <- 1
+ %newVar3 <- 1
+ %newVar3 <- %index2
+ %newVar3 <- %newVar3 >> 1
+ %newVar4 <- 1
+ %newVar4 <- %l2
+ %newVar4 <- %newVar4 >> 1
+ %check2 <- %newVar3 < %newVar4
+ %check2 <- %check2 << 1
+ %check2 <- %check2 + 1
+ %newVar5 <- 1
+ %newVar5 <- %check2
+ %newVar5 <- %newVar5 >> 1
+ br %newVar5 :innerBody 
+ br :endOuterBody
+ :innerBody
+ %newVar6 <- 1
+ %newVar7 <- 1
+ %newVar7 <- %index
+ %newVar7 <- %newVar7 >> 1
+ %newVar8 <- 1
+ %newVar9 <- 1
+ %newVar9 <- %index2
+ %newVar9 <- %newVar9 >> 1
+ %newVar14 <- 137
+ %newVar15 <- 1
+ %newVar16 <- 1
+ %newVar17 <- 1
+ %newVar18 <- %m = 0
+ br %newVar18 :new_label0 
+ br :new_label4
+ :new_label4
+ %newVar16 <- 1
+ %newVar_ciao_0 <- 0 * 8
+ %newVar_ciao_1 <- %newVar_ciao_0 + 8
+ %newVar_ciao_2 <- %m + %newVar_ciao_1
+ %newVar19 <- load %newVar_ciao_2
+ %newVar15 <- %newVar19
+ %newVar19 <- %newVar19 >> 1
+ %newVar17 <- %newVar7
+ %newVar17 <- %newVar17 << 1
+ %newVar17 <- %newVar17 + 1
+ %newVar20 <- %newVar7 >= 0
+ br %newVar20 :new_label5 
+ br :new_label2
+ :new_label5
+ %newVar21 <- %newVar7 < %newVar19
+ br %newVar21 :new_label6 
+ br :new_label2
+ :new_label6
+ %newVar16 <- 3
+ %newVar_ciao_3 <- 1 * 8
+ %newVar_ciao_4 <- %newVar_ciao_3 + 8
+ %newVar_ciao_5 <- %m + %newVar_ciao_4
+ %newVar22 <- load %newVar_ciao_5
+ %newVar15 <- %newVar22
+ %newVar22 <- %newVar22 >> 1
+ %newVar17 <- %newVar9
+ %newVar17 <- %newVar17 << 1
+ %newVar17 <- %newVar17 + 1
+ %newVar23 <- %newVar9 >= 0
+ br %newVar23 :new_label7 
+ br :new_label2
+ :new_label7
+ %newVar24 <- %newVar9 < %newVar22
+ br %newVar24 :new_label8 
+ br :new_label2
+ :new_label8
+ br :new_label9
+ :new_label9
+ %newVar_ciao_7 <- 0
+ %newVar_ciao_8 <- %m + 16
+ %newVar_ciao_9 <- load %newVar_ciao_8
+ %newVar_ciao_10 <- %newVar_ciao_9 >> 1
+ %newVar_ciao_11 <- 1
+ %newVar_ciao_11 <- %newVar_ciao_10 * %newVar_ciao_11
+ %newVar_ciao_12 <- %newVar7 * %newVar_ciao_11
+ %newVar_ciao_7 <- %newVar_ciao_12 + %newVar_ciao_7
+ %newVar_ciao_7 <- %newVar_ciao_7 + %newVar9
+ %newVar_ciao_6 <- %newVar_ciao_7 * 8
+ %newVar_ciao_6 <- %newVar_ciao_6 + 24
+ %newVar_ciao_13 <- %m + %newVar_ciao_6
+ store %newVar_ciao_13 <- %initValue
+ %newVar10 <- 1
+ %newVar10 <- %index2
+ %newVar10 <- %newVar10 >> 1
+ %newVar11 <- 1
+ %newVar11 <- 3
+ %newVar11 <- %newVar11 >> 1
+ %index2 <- %newVar10 + %newVar11
+ %index2 <- %index2 << 1
+ %index2 <- %index2 + 1
+ br :header2
+ :new_label2
+ call tensor-error (%newVar14, %newVar16, %newVar15, %newVar17)
+ br :new_label9
+ :new_label3
+ call tuple-error (%newVar14, %newVar15, %newVar17)
+ br :new_label2
+ :new_label1
+ call tensor-error (%newVar14, %newVar15, %newVar17)
+ br :new_label3
+ :new_label0
+ call tensor-error (%newVar14)
+ br :new_label1
+ :new_label10
+ %l1 <- 1
+ %l2 <- 1
+ %newVar_ciao_14 <- 0 * 8
+ %newVar_ciao_15 <- %newVar_ciao_14 + 8
+ %newVar_ciao_16 <- %m + %newVar_ciao_15
+ %l1 <- load %newVar_ciao_16
+ %newVar_ciao_17 <- 1 * 8
+ %newVar_ciao_18 <- %newVar_ciao_17 + 8
+ %newVar_ciao_19 <- %m + %newVar_ciao_18
+ %l2 <- load %newVar_ciao_19
+ %index <- 1
+ %index <- 1
+ br :header
+}
+
+define @checkMatrix (%m, %v) {
+ :NNNNNNNNNNNNN
+ br :new_label10
+ :leave
+ return %found
+ :setAndLeave
+ %found <- 3
+ br :leave
+ :endOuterBody
+ %newVar15 <- 1
+ %newVar15 <- %index
+ %newVar15 <- %newVar15 >> 1
+ %newVar16 <- 1
+ %newVar16 <- 3
+ %newVar16 <- %newVar16 >> 1
+ %index <- %newVar15 + %newVar16
+ %index <- %index << 1
+ %index <- %index + 1
+ br :header
+ :header
+ %check <- 1
+ %newVar0 <- 1
+ %newVar0 <- %index
+ %newVar0 <- %newVar0 >> 1
+ %newVar1 <- 1
+ %newVar1 <- %l1
+ %newVar1 <- %newVar1 >> 1
+ %check <- %newVar0 < %newVar1
+ %check <- %check << 1
+ %check <- %check + 1
+ %newVar2 <- 1
+ %newVar2 <- %check
+ %newVar2 <- %newVar2 >> 1
+ br %newVar2 :outerBody 
+ br :leave
+ :outerBody
+ %index2 <- 1
+ %index2 <- 1
+ br :header2
+ :header2
+ %check2 <- 1
+ %newVar3 <- 1
+ %newVar3 <- %index2
+ %newVar3 <- %newVar3 >> 1
+ %newVar4 <- 1
+ %newVar4 <- %l2
+ %newVar4 <- %newVar4 >> 1
+ %check2 <- %newVar3 < %newVar4
+ %check2 <- %check2 << 1
+ %check2 <- %check2 + 1
+ %newVar5 <- 1
+ %newVar5 <- %check2
+ %newVar5 <- %newVar5 >> 1
+ br %newVar5 :innerBody 
+ br :endOuterBody
+ :innerBody
+ %e <- 1
+ %sameE <- 1
+ %newVar6 <- 1
+ %newVar7 <- 1
+ %newVar7 <- %index
+ %newVar7 <- %newVar7 >> 1
+ %newVar8 <- 1
+ %newVar9 <- 1
+ %newVar9 <- %index2
+ %newVar9 <- %newVar9 >> 1
+ %newVar17 <- 221
+ %newVar18 <- 1
+ %newVar19 <- 1
+ %newVar20 <- 1
+ %newVar21 <- %m = 0
+ br %newVar21 :new_label0 
+ br :new_label4
+ :new_label4
+ %newVar19 <- 1
+ %newVar_ciao_0 <- 0 * 8
+ %newVar_ciao_1 <- %newVar_ciao_0 + 8
+ %newVar_ciao_2 <- %m + %newVar_ciao_1
+ %newVar22 <- load %newVar_ciao_2
+ %newVar18 <- %newVar22
+ %newVar22 <- %newVar22 >> 1
+ %newVar20 <- %newVar7
+ %newVar20 <- %newVar20 << 1
+ %newVar20 <- %newVar20 + 1
+ %newVar23 <- %newVar7 >= 0
+ br %newVar23 :new_label5 
+ br :new_label2
+ :new_label5
+ %newVar24 <- %newVar7 < %newVar22
+ br %newVar24 :new_label6 
+ br :new_label2
+ :new_label6
+ %newVar19 <- 3
+ %newVar_ciao_3 <- 1 * 8
+ %newVar_ciao_4 <- %newVar_ciao_3 + 8
+ %newVar_ciao_5 <- %m + %newVar_ciao_4
+ %newVar25 <- load %newVar_ciao_5
+ %newVar18 <- %newVar25
+ %newVar25 <- %newVar25 >> 1
+ %newVar20 <- %newVar9
+ %newVar20 <- %newVar20 << 1
+ %newVar20 <- %newVar20 + 1
+ %newVar26 <- %newVar9 >= 0
+ br %newVar26 :new_label7 
+ br :new_label2
+ :new_label7
+ %newVar27 <- %newVar9 < %newVar25
+ br %newVar27 :new_label8 
+ br :new_label2
+ :new_label8
+ br :new_label9
+ :new_label9
+ %newVar_ciao_7 <- 0
+ %newVar_ciao_8 <- %m + 16
+ %newVar_ciao_9 <- load %newVar_ciao_8
+ %newVar_ciao_10 <- %newVar_ciao_9 >> 1
+ %newVar_ciao_11 <- 1
+ %newVar_ciao_11 <- %newVar_ciao_10 * %newVar_ciao_11
+ %newVar_ciao_12 <- %newVar7 * %newVar_ciao_11
+ %newVar_ciao_7 <- %newVar_ciao_12 + %newVar_ciao_7
+ %newVar_ciao_7 <- %newVar_ciao_7 + %newVar9
+ %newVar_ciao_6 <- %newVar_ciao_7 * 8
+ %newVar_ciao_6 <- %newVar_ciao_6 + 24
+ %newVar_ciao_13 <- %m + %newVar_ciao_6
+ %e <- load %newVar_ciao_13
+ %newVar10 <- 1
+ %newVar10 <- %e
+ %newVar10 <- %newVar10 >> 1
+ %newVar11 <- 1
+ %newVar11 <- %v
+ %newVar11 <- %newVar11 >> 1
+ %sameE <- %newVar10 = %newVar11
+ %sameE <- %sameE << 1
+ %sameE <- %sameE + 1
+ %newVar12 <- 1
+ %newVar12 <- %sameE
+ %newVar12 <- %newVar12 >> 1
+ br %newVar12 :setAndLeave 
+ br :endInnerBody
+ :endInnerBody
+ %newVar13 <- 1
+ %newVar13 <- %index2
+ %newVar13 <- %newVar13 >> 1
+ %newVar14 <- 1
+ %newVar14 <- 3
+ %newVar14 <- %newVar14 >> 1
+ %index2 <- %newVar13 + %newVar14
+ %index2 <- %index2 << 1
+ %index2 <- %index2 + 1
+ br :header2
+ :new_label2
+ call tensor-error (%newVar17, %newVar19, %newVar18, %newVar20)
+ br :new_label9
+ :new_label3
+ call tuple-error (%newVar17, %newVar18, %newVar20)
+ br :new_label2
+ :new_label1
+ call tensor-error (%newVar17, %newVar18, %newVar20)
+ br :new_label3
+ :new_label0
+ call tensor-error (%newVar17)
+ br :new_label1
+ :new_label10
+ %l1 <- 1
+ %l2 <- 1
+ %newVar_ciao_14 <- 0 * 8
+ %newVar_ciao_15 <- %newVar_ciao_14 + 8
+ %newVar_ciao_16 <- %m + %newVar_ciao_15
+ %l1 <- load %newVar_ciao_16
+ %newVar_ciao_17 <- 1 * 8
+ %newVar_ciao_18 <- %newVar_ciao_17 + 8
+ %newVar_ciao_19 <- %m + %newVar_ciao_18
+ %l2 <- load %newVar_ciao_19
+ %index <- 1
+ %found <- 1
+ %found <- 1
+ %index <- 1
+ call print (%m)
+ call print (%v)
+ br :header
+}
+

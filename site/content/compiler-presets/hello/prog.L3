@@ -1,0 +1,9 @@
+define @main () {
+ :NNNNNNNNNNN
+ br :new_label0
+ :new_label1
+ return 
+ :new_label0
+ return 
+}
+
