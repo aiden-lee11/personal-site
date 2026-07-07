@@ -8,6 +8,8 @@ export type Project = {
   links?: { label: string; href: string }[];
   featured?: boolean;
   href?: string;
+  // Side projects — smaller than the resume-tier work, but shown to convey range.
+  side?: boolean;
 };
 
 export const projects: Project[] = [
@@ -70,6 +72,69 @@ export const projects: Project[] = [
     ],
     links: [
       { label: "YouTube", href: "https://www.youtube.com/@aiden-lee11" },
+    ],
+  },
+
+  // — side projects, smaller in scope but real —
+
+  {
+    slug: "lit",
+    title: "lit",
+    tagline: "A from-scratch reimplementation of git in C++",
+    stack: ["C++", "SHA-1", "Zlib"],
+    period: "2025",
+    side: true,
+    bullets: [
+      "`lit init / hash-object / add / commit / status / log` implemented against the real .git object-store layout — SHA-1-addressed blobs, trees, commits.",
+      "Written to internalize how git actually stores content, not to be a drop-in replacement.",
+    ],
+    links: [{ label: "GitHub", href: "https://github.com/aiden-lee11/lit" }],
+  },
+  {
+    slug: "baby-docker",
+    title: "baby-docker",
+    tagline: "A minimal Linux container runtime in C++",
+    stack: ["C++", "Linux syscalls", "clone()", "namespaces"],
+    period: "2025",
+    side: true,
+    bullets: [
+      "Uses raw `clone()` with `CLONE_NEWPID/UTS/NS` flags to isolate a child process into its own namespaces — the same primitive Docker uses under the hood.",
+      "Built to demystify what a container actually is: a normal process with unshared kernel namespaces.",
+    ],
+    links: [
+      { label: "GitHub", href: "https://github.com/aiden-lee11/baby-docker" },
+    ],
+  },
+  {
+    slug: "poker",
+    title: "Go Poker",
+    tagline: "Real-time multiplayer poker over WebSockets",
+    stack: ["Go", "WebSockets", "Monte Carlo"],
+    period: "Jan 2025 – Mar 2025",
+    side: true,
+    bullets: [
+      "Concurrent Go backend serving live game state to browsers over a single WebSocket per player.",
+      "Monte Carlo hand evaluator running 10K+ win-probability simulations per hand in real time.",
+      "Modular room/table/hand model with unit-tested evaluator on top.",
+    ],
+    links: [
+      { label: "GitHub", href: "https://github.com/aiden-lee11/poker" },
+    ],
+  },
+  {
+    slug: "regex-lab",
+    title: "regex-lab",
+    tagline: "An interactive playground for regex — see matches highlighted as you type",
+    stack: ["TypeScript", "Next.js", "React"],
+    period: "2025",
+    side: true,
+    bullets: [
+      "Live matching + capture-group inspection with the pattern and test text side by side.",
+      "Same shape as this site's compiler visualizer — small, interactive, teaches one concept.",
+    ],
+    links: [
+      { label: "Live", href: "https://regex-lab.vercel.app" },
+      { label: "GitHub", href: "https://github.com/aiden-lee11/regex-lab" },
     ],
   },
 ];
