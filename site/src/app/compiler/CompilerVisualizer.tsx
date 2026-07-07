@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { diffArrays } from "diff";
 import type { Layer, PresetLayers, PresetMeta } from "@/lib/loadPresets";
 import type { OptExample } from "@/data/compiler";
 import { PASS_DEMOS, type PassDemoId } from "@/data/passDemos";
@@ -697,37 +698,64 @@ function ComparisonPane({
   pending: boolean;
   baselinePending: boolean;
 }) {
-  const optLines = useMemo(() => (optimized || "").split("\n"), [optimized]);
-  const baseLines = useMemo(() => (baseline || "").split("\n"), [baseline]);
-  const optSet = useMemo(() => new Set(optLines), [optLines]);
-  const baseSet = useMemo(() => new Set(baseLines), [baseLines]);
+  type Row = { kind: "same" | "add" | "del" | "gap"; text: string };
+  const { left, right, added, removed } = useMemo(() => {
+    if (!optimized || !baseline) {
+      return { left: [] as Row[], right: [] as Row[], added: 0, removed: 0 };
+    }
+    const bl = baseline.split("\n");
+    const ol = optimized.split("\n");
+    const chunks = diffArrays(bl, ol);
+    const l: Row[] = [];
+    const r: Row[] = [];
+    let addN = 0;
+    let delN = 0;
+    for (const c of chunks) {
+      const lines = c.value;
+      if (c.added) {
+        addN += lines.length;
+        for (const t of lines) {
+          l.push({ kind: "gap", text: "" });
+          r.push({ kind: "add", text: t });
+        }
+      } else if (c.removed) {
+        delN += lines.length;
+        for (const t of lines) {
+          l.push({ kind: "del", text: t });
+          r.push({ kind: "gap", text: "" });
+        }
+      } else {
+        for (const t of lines) {
+          l.push({ kind: "same", text: t });
+          r.push({ kind: "same", text: t });
+        }
+      }
+    }
+    return { left: l, right: r, added: addN, removed: delN };
+  }, [optimized, baseline]);
 
-  const stats = {
-    optLen: optimized.length,
-    baseLen: baseline.length,
-    savings:
-      baseline.length > 0
-        ? Math.round(((baseline.length - optimized.length) / baseline.length) * 100)
-        : 0,
-    optOnly: optLines.filter((l) => l && !baseSet.has(l)).length,
-    baseOnly: baseLines.filter((l) => l && !optSet.has(l)).length,
+  const savings =
+    baseline.length > 0
+      ? Math.round(((baseline.length - optimized.length) / baseline.length) * 100)
+      : 0;
+
+  const rowCls = (kind: Row["kind"], side: "opt" | "base") => {
+    if (kind === "gap") return "bg-[color:var(--subtle)]/40 opacity-40";
+    if (kind === "same") return "opacity-55";
+    if (kind === "add" && side === "opt")
+      return "bg-[color:var(--accent)]/15 border-l-2 border-[color:var(--accent)]";
+    if (kind === "del" && side === "base")
+      return "bg-[color:var(--muted)]/15 border-l-2 border-[color:var(--muted)]";
+    return "";
   };
 
-  const renderLines = (lines: string[], other: Set<string>, side: "opt" | "base") => (
-    <div className="font-mono text-[0.8rem] leading-6 whitespace-pre overflow-x-auto">
-      {lines.map((line, i) => {
-        const same = other.has(line);
-        const isEmpty = line.trim() === "";
-        const cls = isEmpty
-          ? ""
-          : same
-            ? "opacity-45"
-            : side === "opt"
-              ? "bg-[color:var(--accent)]/10 border-l-2 border-[color:var(--accent)] pl-2 -ml-2"
-              : "bg-[color:var(--muted)]/10 border-l-2 border-[color:var(--muted)] pl-2 -ml-2";
+  const renderCol = (rows: Row[], side: "opt" | "base") => (
+    <div className="font-mono text-[0.8rem] leading-6 whitespace-pre">
+      {rows.map((row, i) => {
+        const cls = `px-2 -mx-2 ${rowCls(row.kind, side)}`;
         return (
           <div key={i} className={cls}>
-            {line || " "}
+            {row.text || " "}
           </div>
         );
       })}
@@ -744,13 +772,13 @@ function ComparisonPane({
               <span className="text-[color:var(--muted)]"> · prog.{layer}</span>
             </span>
             <span className="font-mono text-xs text-[color:var(--muted)] tabular">
-              {optLines.length} lines
+              +{added}
               {pending && " · running…"}
             </span>
           </div>
           <div className="p-4 max-h-[70vh] overflow-auto">
             {optimized ? (
-              renderLines(optLines, baseSet, "opt")
+              renderCol(right, "opt")
             ) : (
               <p className="font-mono text-xs text-[color:var(--muted)]">
                 {pending ? "compiling…" : "no output for this layer"}
@@ -766,13 +794,13 @@ function ComparisonPane({
               <span className="text-[color:var(--muted)]"> · prog.{layer}</span>
             </span>
             <span className="font-mono text-xs text-[color:var(--muted)] tabular">
-              {baseLines.length} lines
+              −{removed}
               {baselinePending && " · running…"}
             </span>
           </div>
           <div className="p-4 max-h-[70vh] overflow-auto">
             {baseline ? (
-              renderLines(baseLines, optSet, "base")
+              renderCol(left, "base")
             ) : (
               <p className="font-mono text-xs text-[color:var(--muted)]">
                 {baselinePending
@@ -789,32 +817,28 @@ function ComparisonPane({
           <span className="text-[color:var(--muted)]">
             optimized:{" "}
             <span className="text-[color:var(--accent)] tabular">
-              {stats.optLen.toLocaleString()}
+              {optimized.length.toLocaleString()}
             </span>{" "}
             chars
           </span>
           <span className="text-[color:var(--muted)]">
             unoptimized:{" "}
             <span className="text-[color:var(--fg)] tabular">
-              {stats.baseLen.toLocaleString()}
+              {baseline.length.toLocaleString()}
             </span>{" "}
             chars
           </span>
           <span className="text-[color:var(--muted)]">
             savings:{" "}
             <span className="text-[color:var(--accent)] tabular">
-              {stats.savings}%
+              {savings}%
             </span>
           </span>
           <span className="text-[color:var(--muted)]">
-            unique-to-optimized:{" "}
-            <span className="text-[color:var(--fg)] tabular">{stats.optOnly}</span>{" "}
-            lines
-          </span>
-          <span className="text-[color:var(--muted)]">
-            eliminated:{" "}
-            <span className="text-[color:var(--fg)] tabular">{stats.baseOnly}</span>{" "}
-            lines
+            <span className="text-[color:var(--accent)] tabular">+{added}</span>
+            {" "}added ·{" "}
+            <span className="text-[color:var(--fg)] tabular">−{removed}</span>
+            {" "}removed lines
           </span>
         </div>
       )}

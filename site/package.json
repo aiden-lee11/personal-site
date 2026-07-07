@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@types/diff": "^7.0.2",
+    "diff": "^9.0.0",
     "framer-motion": "^12.23.12",
     "gray-matter": "^4.0.3",
     "next": "15.5.3",
