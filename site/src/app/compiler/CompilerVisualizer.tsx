@@ -534,7 +534,6 @@ export default function CompilerVisualizer({
             onKeyDown={handleKey}
             spellCheck={false}
             className="code-pane w-full block resize-y min-h-[14rem] max-h-[24rem] outline-none border-0 rounded-none"
-            style={{ background: "var(--code-bg)" }}
           />
         </div>
 

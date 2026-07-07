@@ -40,6 +40,10 @@ export const metadata: Metadata = {
     siteName: "Aiden Lee",
     type: "website",
   },
+  // Tell the Dark Reader browser extension to skip this site — we already
+  // ship our own dark theme via prefers-color-scheme, so its DOM mutations
+  // are redundant and cause hydration warnings.
+  other: { "darkreader-lock": "true" },
 };
 
 const NAV_LINKS = [
