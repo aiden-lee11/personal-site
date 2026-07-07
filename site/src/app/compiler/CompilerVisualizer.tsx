@@ -129,11 +129,12 @@ export default function CompilerVisualizer({
     [fromLayer, layers, optFlags, source, selectedLayer],
   );
 
-  // Auto-compile the default preset once on mount so the page never looks empty.
+  // Auto-compile + run the default preset once on mount so the first paint is
+  // already showing the program output, not an empty panel.
   useEffect(() => {
     if (initialTried) return;
     setInitialTried(true);
-    compile({ source: initialPreset.layers.LA, fromLayer: "LA" });
+    compile({ source: initialPreset.layers.LA, fromLayer: "LA", run: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -143,7 +144,7 @@ export default function CompilerVisualizer({
       setActivePresetSlug(slug);
       setSource(p.layers.LA);
       setFromLayer("LA");
-      compile({ source: p.layers.LA, fromLayer: "LA" });
+      compile({ source: p.layers.LA, fromLayer: "LA", run: true });
     },
     [presets, initialPreset, compile],
   );
@@ -527,7 +528,9 @@ export default function CompilerVisualizer({
                     {layerLabel[L]}
                   </span>
                   <span className="font-mono text-[10px] text-[color:var(--muted)] mt-0.5 tabular">
-                    {L === "S" ? "final" : produced ? "ready" : "—"}
+                    {produced
+                      ? `${(result?.layers?.[L] ?? "").split("\n").length} lines`
+                      : "—"}
                   </span>
                 </button>
               );
