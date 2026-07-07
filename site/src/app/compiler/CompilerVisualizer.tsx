@@ -83,6 +83,7 @@ export default function CompilerVisualizer({
       fromLayer?: Layer;
       optFlags?: OptFlags;
       preserveLayer?: boolean;
+      selectLayer?: Layer;
     }) => {
       const reqId = ++activeReq.current;
       setPending(true);
@@ -104,6 +105,8 @@ export default function CompilerVisualizer({
         if (!data.ok) {
           setError(data.error ?? "compilation failed");
           setSelectedLayer(opts?.fromLayer ?? fromLayer);
+        } else if (opts?.selectLayer && data.layers[opts.selectLayer]) {
+          setSelectedLayer(opts.selectLayer);
         } else if (opts?.preserveLayer && data.layers[prevLayer]) {
           setSelectedLayer(prevLayer);
         } else {
@@ -231,12 +234,21 @@ export default function CompilerVisualizer({
         next.dce = true;
         next.licm = true;
       }
+      // Each demo has a "best view" layer where its transformation is most legible.
+      // IR passes are visible at L3 (the first layer emitted post-SSA); low-level
+      // idioms like cmov synthesis and peephole are easier to see on final x86.
+      const preferred: Record<PassDemoId, Layer> = {
+        sccp: "L3", dce: "L3", licm: "L3", gvn: "L3", "copy-prop": "L3",
+        algebra: "L3", peephole: "S", "vra-bce": "L3",
+        "simplify-cfg": "L3", "cmov-synth": "S", "loop-dse": "L3",
+        combo: "L3",
+      };
       setActivePresetSlug(null);
       setSource(src);
       setFromLayer("LA");
       setOptFlags(next);
       setCompareMode(true);
-      compile({ source: src, fromLayer: "LA", optFlags: next });
+      compile({ source: src, fromLayer: "LA", optFlags: next, selectLayer: preferred[id] });
       compileBaseline({ source: src, fromLayer: "LA" });
     },
     [compile, compileBaseline],
