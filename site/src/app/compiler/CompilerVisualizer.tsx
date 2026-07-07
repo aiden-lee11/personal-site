@@ -23,6 +23,9 @@ type CompileResult = {
   errors?: Partial<Record<Layer, string>>;
   error?: string;
   totalMs?: number;
+  programOutput?: string;
+  runExit?: number;
+  linkError?: string;
 };
 
 // The compiler doesn't emit S itself — you can only pick a `from` up to L1.
@@ -84,6 +87,7 @@ export default function CompilerVisualizer({
       optFlags?: OptFlags;
       preserveLayer?: boolean;
       selectLayer?: Layer;
+      run?: boolean;
     }) => {
       const reqId = ++activeReq.current;
       setPending(true);
@@ -97,6 +101,7 @@ export default function CompilerVisualizer({
             source: opts?.source ?? source,
             fromLayer: opts?.fromLayer ?? fromLayer,
             optFlags: opts?.optFlags ?? optFlags,
+            run: opts?.run ?? false,
           }),
         });
         const data: CompileResult = await res.json();
@@ -398,6 +403,14 @@ export default function CompilerVisualizer({
             >
               {pending ? "compiling…" : "▸ compile"}
             </button>
+            <button
+              onClick={() => compile({ run: true })}
+              disabled={pending}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-[color:var(--accent)] text-[color:var(--accent)] hover:bg-[color:var(--accent)] hover:text-[color:var(--bg)] transition-colors disabled:opacity-50"
+              title="Compile all the way to x86, link with C runtime, and run"
+            >
+              ▸▸ run
+            </button>
           </div>
         </div>
 
@@ -656,6 +669,30 @@ export default function CompilerVisualizer({
                 code change live.
               </p>
             </div>
+
+            {(result?.programOutput !== undefined || result?.linkError) && (
+              <div className="rounded-lg border border-[color:var(--accent)] bg-[color:var(--subtle)] p-4">
+                <div className="flex items-baseline justify-between mb-2">
+                  <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--accent)]">
+                    program output
+                  </p>
+                  {result.runExit !== undefined && (
+                    <p className="font-mono text-[10px] text-[color:var(--muted)] tabular">
+                      exit {result.runExit}
+                    </p>
+                  )}
+                </div>
+                {result.linkError ? (
+                  <pre className="font-mono text-xs whitespace-pre-wrap break-words text-[color:var(--accent)]">
+                    {result.linkError}
+                  </pre>
+                ) : (
+                  <pre className="font-mono text-xs whitespace-pre-wrap break-words max-h-64 overflow-auto">
+                    {result.programOutput || "(no output)"}
+                  </pre>
+                )}
+              </div>
+            )}
 
             <div className="rounded-lg border border-[color:var(--border)] p-4 text-xs text-[color:var(--muted)] leading-relaxed">
               <p>

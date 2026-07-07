@@ -22,6 +22,8 @@ const WARM_NAME = "aiden-compiler-warm";
 
 const MAX_SOURCE_BYTES = 128 * 1024;
 const COMPILE_TIMEOUT_MS = 20_000;
+const RUN_TIMEOUT_MS = 5_000;
+const MAX_RUN_OUTPUT_BYTES = 32 * 1024;
 
 // Every IR pass with an --no-<slug> flag exposed by compiler-src/IR/src/compiler.cpp
 const IR_PASSES = [
@@ -43,6 +45,9 @@ type Body = {
   source: string;
   fromLayer: Layer;
   optFlags?: Partial<Record<IrPass, boolean>>;
+  // If true, link the produced x86 with the C runtime and actually execute it
+  // (bounded by RUN_TIMEOUT_MS). Response includes programOutput/runMs/runExit.
+  run?: boolean;
 };
 
 function isLayer(x: unknown): x is Layer {
@@ -190,6 +195,26 @@ export async function POST(req: Request) {
 
   const srcB64 = Buffer.from(body.source, "utf8").toString("base64");
 
+  const runBlock = body.run
+    ? `
+if [ -f prog.S ]; then
+  gcc -O2 -c -g -o runtime.o /fork/lib/runtime.c > gcc.err 2>&1
+  gcc -no-pie -o prog_exec prog.S runtime.o >> gcc.err 2>&1
+  if [ -x prog_exec ]; then
+    echo "___RUN_START___go___"
+    timeout ${Math.ceil(RUN_TIMEOUT_MS / 1000)}s ./prog_exec 2>&1 | head -c ${MAX_RUN_OUTPUT_BYTES}
+    echo
+    echo "___RUN_EXIT___go___$?___"
+    echo "___RUN_END___go___"
+  else
+    echo "___LINK_ERROR_START___go___"
+    cat gcc.err
+    echo "___LINK_ERROR_END___go___"
+  fi
+fi
+`
+    : "";
+
   const script = `
 set +e
 D=${JSON.stringify(workDir)}
@@ -213,6 +238,7 @@ for L in LA IR L3 L2 L1; do
     echo "___ERROR_END___${"${L}"}___"
   fi
 done
+${runBlock}
 cd /
 rm -rf "$D"
 exit 0
@@ -224,6 +250,24 @@ exit 0
 
   const layers = parseBlocks(res.stdout, "LAYER");
   const errors = parseBlocks(res.stdout, "ERROR");
+
+  // Extract the runtime output if body.run was set. Also captures link errors
+  // (uncompilable assembly, missing runtime symbols) and the program exit code.
+  let programOutput: string | undefined;
+  let runExit: number | undefined;
+  let linkError: string | undefined;
+  const runMatch = res.stdout.match(
+    /___RUN_START___go___\n([\s\S]*?)\n___RUN_EXIT___go___(\d+)___\n___RUN_END___go___/,
+  );
+  if (runMatch) {
+    programOutput = runMatch[1];
+    runExit = parseInt(runMatch[2], 10);
+  } else {
+    const linkMatch = res.stdout.match(
+      /___LINK_ERROR_START___go___\n([\s\S]*?)\n___LINK_ERROR_END___go___/,
+    );
+    if (linkMatch) linkError = linkMatch[1];
+  }
 
   const producedBeyond = CHAIN.slice(fromIdx + 1).some((L) => layers[L]);
   if (!producedBeyond) {
@@ -239,5 +283,13 @@ exit 0
     });
   }
 
-  return NextResponse.json({ ok: true, layers, errors, totalMs });
+  return NextResponse.json({
+    ok: true,
+    layers,
+    errors,
+    totalMs,
+    programOutput,
+    runExit,
+    linkError,
+  });
 }
