@@ -147,14 +147,46 @@ export default function CompilerVisualizer({
     [fromLayer, layers, optFlags, source, selectedLayer, compareMode],
   );
 
-  // Rehydrate any previously edited source from localStorage, then kick off
-  // the initial compile+run so the first paint isn't an empty panel.
+  // Rehydrate: URL hash (share link) takes priority over localStorage. Then
+  // kick off the initial compile+run so the first paint isn't an empty panel.
   useEffect(() => {
     if (initialTried) return;
     setInitialTried(true);
     let src = initialPreset.layers.LA;
     let from: Layer = "LA";
+    let flags: OptFlags | undefined;
+    let hydratedFromUrl = false;
+
+    // URL hash — format: #s=<base64-source>&f=<layer>&o=<11-char-bitmask>
     try {
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      if (hash.startsWith("#s=")) {
+        const params = new URLSearchParams(hash.slice(1));
+        const s = params.get("s");
+        const f = params.get("f") as Layer | null;
+        const o = params.get("o");
+        if (s) {
+          src = decodeURIComponent(escape(atob(s)));
+          setSource(src);
+          setActivePresetSlug(null);
+          hydratedFromUrl = true;
+        }
+        if (f && (["LA","IR","L3","L2","L1"] as string[]).includes(f)) {
+          from = f;
+          setFromLayer(f);
+        }
+        if (o && o.length === IR_PASSES.length) {
+          const next: OptFlags = {};
+          for (let i = 0; i < IR_PASSES.length; i++) {
+            next[IR_PASSES[i].id] = o[i] !== "0";
+          }
+          flags = next;
+          setOptFlags(next);
+        }
+      }
+    } catch { /* malformed — fall through to localStorage */ }
+
+    if (!hydratedFromUrl) try {
       const saved = localStorage.getItem("aiden-compiler:source");
       const savedFrom = localStorage.getItem("aiden-compiler:from") as Layer | null;
       if (saved) {
@@ -167,7 +199,7 @@ export default function CompilerVisualizer({
         setFromLayer(savedFrom);
       }
     } catch { /* ignore */ }
-    compile({ source: src, fromLayer: from, run: true });
+    compile({ source: src, fromLayer: from, optFlags: flags, run: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -298,6 +330,26 @@ export default function CompilerVisualizer({
     },
     [compile, compileBaseline],
   );
+
+  const [justCopied, setJustCopied] = useState(false);
+  const copyShareUrl = useCallback(async () => {
+    try {
+      const s = btoa(unescape(encodeURIComponent(source)));
+      const o = IR_PASSES.map((p) => (optFlags[p.id] ?? true) ? "1" : "0").join("");
+      const params = new URLSearchParams();
+      params.set("s", s);
+      params.set("f", fromLayer);
+      params.set("o", o);
+      const url = `${window.location.origin}${window.location.pathname}#${params.toString()}`;
+      // Persist locally too so refresh stays on the shared state.
+      window.location.hash = `#${params.toString()}`;
+      await navigator.clipboard.writeText(url);
+      setJustCopied(true);
+      setTimeout(() => setJustCopied(false), 1800);
+    } catch {
+      /* clipboard blocked — silently ignore */
+    }
+  }, [source, fromLayer, optFlags]);
 
   const toggleCompareMode = useCallback(() => {
     const next = !compareMode;
@@ -450,6 +502,13 @@ export default function CompilerVisualizer({
               title="Compile all the way to x86, link with C runtime, and run"
             >
               ▸▸ run
+            </button>
+            <button
+              onClick={copyShareUrl}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-[color:var(--border)] text-[color:var(--muted)] hover:border-[color:var(--fg)] hover:text-[color:var(--fg)] transition-colors"
+              title="Copy a shareable URL that reproduces this exact source, start-layer, and pass toggles"
+            >
+              {justCopied ? "copied ✓" : "share"}
             </button>
           </div>
         </div>
