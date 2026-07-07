@@ -1,0 +1,27 @@
+# Node / Next.js
+node_modules/
+site/.next/
+site/out/
+site/.turbo/
+site/next-env.d.ts
+
+# Compiler build artifacts (only the source belongs in git)
+compiler-src/**/obj/
+compiler-src/**/build/
+compiler-src/**/*.o
+compiler-src/**/*.a
+compiler-src/**/prog.*
+
+# But do keep the built IR binary — that's the fork with per-pass flags.
+!compiler-src/IR/bin/
+compiler-src/**/bin/*.tmp
+
+# OS / editor
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# tmp
+scratchpad/
+tmp/
