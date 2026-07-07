@@ -125,8 +125,17 @@ export default function CompilerVisualizer({
       } finally {
         if (activeReq.current === reqId) setPending(false);
       }
+      // Keep the baseline in sync when compare mode is active, so switching
+      // opts or hitting Compile refreshes the side-by-side without a click.
+      if (compareMode) {
+        compileBaseline({
+          source: opts?.source ?? source,
+          fromLayer: opts?.fromLayer ?? fromLayer,
+        });
+      }
     },
-    [fromLayer, layers, optFlags, source, selectedLayer],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fromLayer, layers, optFlags, source, selectedLayer, compareMode],
   );
 
   // Auto-compile + run the default preset once on mount so the first paint is
@@ -254,7 +263,13 @@ export default function CompilerVisualizer({
       setFromLayer("LA");
       setOptFlags(next);
       setCompareMode(true);
-      compile({ source: src, fromLayer: "LA", optFlags: next, selectLayer: preferred[id] });
+      compile({
+        source: src,
+        fromLayer: "LA",
+        optFlags: next,
+        selectLayer: preferred[id],
+        run: true,
+      });
       compileBaseline({ source: src, fromLayer: "LA" });
     },
     [compile, compileBaseline],
