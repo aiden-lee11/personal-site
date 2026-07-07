@@ -68,6 +68,14 @@ export default function CompilerVisualizer({
   const [activePresetSlug, setActivePresetSlug] = useState<string | null>(
     initialPreset.meta.slug,
   );
+
+  // Persist current source + fromLayer on every change so refresh preserves work.
+  useEffect(() => {
+    try {
+      localStorage.setItem("aiden-compiler:source", source);
+      localStorage.setItem("aiden-compiler:from", fromLayer);
+    } catch { /* SSR / private mode / quota — ignore */ }
+  }, [source, fromLayer]);
   const [optFlags, setOptFlags] = useState<OptFlags>(defaultOptFlags);
   const [result, setResult] = useState<CompileResult | null>(null);
   const [baseline, setBaseline] = useState<CompileResult | null>(null); // all-opts-off compile
@@ -138,12 +146,27 @@ export default function CompilerVisualizer({
     [fromLayer, layers, optFlags, source, selectedLayer, compareMode],
   );
 
-  // Auto-compile + run the default preset once on mount so the first paint is
-  // already showing the program output, not an empty panel.
+  // Rehydrate any previously edited source from localStorage, then kick off
+  // the initial compile+run so the first paint isn't an empty panel.
   useEffect(() => {
     if (initialTried) return;
     setInitialTried(true);
-    compile({ source: initialPreset.layers.LA, fromLayer: "LA", run: true });
+    let src = initialPreset.layers.LA;
+    let from: Layer = "LA";
+    try {
+      const saved = localStorage.getItem("aiden-compiler:source");
+      const savedFrom = localStorage.getItem("aiden-compiler:from") as Layer | null;
+      if (saved) {
+        src = saved;
+        setSource(saved);
+        if (saved !== initialPreset.layers.LA) setActivePresetSlug(null);
+      }
+      if (savedFrom && (["LA","IR","L3","L2","L1"] as string[]).includes(savedFrom)) {
+        from = savedFrom;
+        setFromLayer(savedFrom);
+      }
+    } catch { /* ignore */ }
+    compile({ source: src, fromLayer: from, run: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
