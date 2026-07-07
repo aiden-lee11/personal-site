@@ -61,7 +61,7 @@ export default function RootLayout({
           <nav className="mx-auto max-w-5xl px-6 h-14 flex items-center gap-6">
             <Link
               href="/"
-              className="font-mono text-sm tracking-tight hover:text-[color:var(--accent)] transition-colors"
+              className="font-mono text-sm tracking-tight hover:text-[color:var(--accent)] transition-colors whitespace-nowrap"
             >
               aiden lee
             </Link>

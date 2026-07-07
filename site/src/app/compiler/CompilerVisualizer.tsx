@@ -36,6 +36,9 @@ export default function CompilerVisualizer({
   const initialPreset = presets[2] ?? presets[0]; // default fib
   const [source, setSource] = useState(initialPreset.layers.LA);
   const [fromLayer, setFromLayer] = useState<Layer>("LA");
+  const [activePresetSlug, setActivePresetSlug] = useState<string | null>(
+    initialPreset.meta.slug,
+  );
   const [result, setResult] = useState<CompileResult | null>(null);
   const [selectedLayer, setSelectedLayer] = useState<Layer>("LA");
   const [pending, setPending] = useState(false);
@@ -89,11 +92,30 @@ export default function CompilerVisualizer({
   const loadPreset = useCallback(
     (slug: string) => {
       const p = presets.find((x) => x.meta.slug === slug) ?? initialPreset;
+      setActivePresetSlug(slug);
       setSource(p.layers.LA);
       setFromLayer("LA");
       compile({ source: p.layers.LA, fromLayer: "LA" });
     },
     [presets, initialPreset, compile],
+  );
+
+  // When the user changes "start at" — if a preset is loaded, swap the editor to
+  // that preset's source at the chosen layer. If they'd edited into custom code,
+  // preset is cleared so we don't clobber their work.
+  const setFromLayerAndSwap = useCallback(
+    (L: Layer) => {
+      setFromLayer(L);
+      if (activePresetSlug) {
+        const p = presets.find((x) => x.meta.slug === activePresetSlug);
+        const next = p?.layers[L];
+        if (next) {
+          setSource(next);
+          compile({ source: next, fromLayer: L });
+        }
+      }
+    },
+    [activePresetSlug, presets, compile],
   );
 
   const handleKey = useCallback(
@@ -134,18 +156,34 @@ export default function CompilerVisualizer({
           </span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {presets.map((p) => (
-            <button
-              key={p.meta.slug}
-              onClick={() => loadPreset(p.meta.slug)}
-              className="text-left rounded-lg border p-4 border-[color:var(--border)] hover:border-[color:var(--fg)] transition-all"
-            >
-              <div className="font-mono text-xs mb-1">→ {p.meta.title}</div>
-              <div className="text-xs text-[color:var(--muted)] leading-snug">
-                {p.meta.blurb}
-              </div>
-            </button>
-          ))}
+          {presets.map((p) => {
+            const active = activePresetSlug === p.meta.slug;
+            return (
+              <button
+                key={p.meta.slug}
+                onClick={() => loadPreset(p.meta.slug)}
+                className={`text-left rounded-lg border p-4 transition-all ${
+                  active
+                    ? "border-[color:var(--accent)] bg-[color:var(--subtle)]"
+                    : "border-[color:var(--border)] hover:border-[color:var(--fg)]"
+                }`}
+              >
+                <div className="font-mono text-xs mb-1 flex items-center gap-2">
+                  <span
+                    className={`inline-block w-1.5 h-1.5 rounded-full ${
+                      active
+                        ? "bg-[color:var(--accent)]"
+                        : "bg-[color:var(--border)]"
+                    }`}
+                  />
+                  {p.meta.title}
+                </div>
+                <div className="text-xs text-[color:var(--muted)] leading-snug">
+                  {p.meta.blurb}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -159,7 +197,7 @@ export default function CompilerVisualizer({
             <label className="text-[color:var(--muted)]">start at</label>
             <select
               value={fromLayer}
-              onChange={(e) => setFromLayer(e.target.value as Layer)}
+              onChange={(e) => setFromLayerAndSwap(e.target.value as Layer)}
               className="rounded border border-[color:var(--border)] bg-[color:var(--bg)] px-2 py-1 hover:border-[color:var(--fg)] focus:border-[color:var(--accent)]"
             >
               {FROM_LAYERS.map((L) => (
@@ -192,7 +230,10 @@ export default function CompilerVisualizer({
           </div>
           <textarea
             value={source}
-            onChange={(e) => setSource(e.target.value)}
+            onChange={(e) => {
+              setSource(e.target.value);
+              setActivePresetSlug(null); // any manual edit disowns the preset
+            }}
             onKeyDown={handleKey}
             spellCheck={false}
             className="code-pane w-full block resize-y min-h-[14rem] max-h-[24rem] outline-none border-0 rounded-none"
@@ -201,7 +242,13 @@ export default function CompilerVisualizer({
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-xs">
-          {result?.totalMs != null && !error && (
+          {pending && (
+            <span className="text-[color:var(--muted)] inline-flex items-center gap-2">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[color:var(--accent)] animate-pulse" />
+              running compiler…
+            </span>
+          )}
+          {!pending && result?.totalMs != null && !error && (
             <span className="text-[color:var(--muted)]">
               ✓ compiled in{" "}
               <span className="text-[color:var(--accent)] tabular">
@@ -210,15 +257,20 @@ export default function CompilerVisualizer({
               ms
             </span>
           )}
-          {error && (
-            <span className="text-[color:var(--accent)] max-w-full break-words">
-              ✗ {error.split("\n")[0]}
-            </span>
-          )}
-          {pending && (
-            <span className="text-[color:var(--muted)]">running compiler…</span>
+          {!activePresetSlug && !pending && !error && result?.ok && (
+            <span className="text-[color:var(--muted)]">· custom source</span>
           )}
         </div>
+        {error && !pending && (
+          <div className="mt-3 rounded-lg border border-[color:var(--accent)] bg-[color:var(--subtle)] p-3">
+            <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--accent)] mb-1">
+              Compilation error
+            </p>
+            <pre className="font-mono text-xs whitespace-pre-wrap break-words leading-relaxed">
+              {error}
+            </pre>
+          </div>
+        )}
       </section>
 
       {/* Pipeline */}
