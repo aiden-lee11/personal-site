@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+/* Typography tweaks for prose */
+.prose :where(pre):not(:where([class~="not-prose"] *)) {
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+.prose :where(code):not(:where([class~="not-prose"] *)) {
+  background: color-mix(in oklab, currentColor 8%, transparent);
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+}
+
+/* rehype-pretty-code theming tweaks */
+:not(pre) > code[class*="language-"] {
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+}
+pre > code {
+  display: grid;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+pre {
+  background: color-mix(in oklab, canvasText 6%, transparent);
+  border: 1px solid color-mix(in oklab, canvasText 12%, transparent);
+  overflow-x: auto;
+}
+.highlighted, .line--highlighted {
+  background-color: color-mix(in oklab, canvasText 12%, transparent);
+}
+
+/* Ensure wrapped lines inside rehype-pretty-code stay readable */
+pre code .line {
+  white-space: pre-wrap;
+}
+
+@media (max-width: 640px) {
+  .prose pre code {
+    font-size: 0.9em;
+    line-height: 1.4;
+  }
+}
+
+/* Retro theme utilities */
+.font-press { font-family: var(--font-press-start), ui-monospace, monospace; }
+.font-vt { font-family: var(--font-vt323), ui-monospace, monospace; }
+.pixel-border {
+  box-shadow:
+    0 0 0 2px oklch(0.9 0 0 / 0.9) inset,
+    0 0 0 4px oklch(0.2 0 0 / 0.6) inset;
+}
+.retro-bg {
+  background-image:
+    linear-gradient(0deg, rgba(0,0,0,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px),
+    linear-gradient(180deg, #fff 0%, #f7f7f7 40%, #efefef 100%);
+  background-size: 16px 16px, 16px 16px, 100% 100%;
+}
+.pixel-card {
+  border: 2px solid oklch(0.85 0 0);
+  background: #fff;
+  box-shadow: 0 0 0 4px #111 inset, 0 6px 0 0 #111;
+}
+.pixel-card-dark {
+  border-color: oklch(0.3 0 0);
+  background: #0b0b0b;
+  box-shadow: 0 0 0 4px #f0f0f0 inset, 0 6px 0 0 #f0f0f0;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
