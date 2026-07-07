@@ -23,6 +23,7 @@ type CompileResult = {
   errors?: Partial<Record<Layer, string>>;
   error?: string;
   totalMs?: number;
+  layerMs?: Partial<Record<Layer, number>>;
   programOutput?: string;
   runExit?: number;
   linkError?: string;
@@ -735,6 +736,16 @@ export default function CompilerVisualizer({
               </div>
             )}
 
+            {result?.layerMs &&
+              Object.values(result.layerMs).some((v) => (v ?? 0) > 0) && (
+                <div className="rounded-lg border border-[color:var(--border)] p-4">
+                  <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--muted)] mb-3">
+                    Per-layer wall time
+                  </p>
+                  <TimingBars layerMs={result.layerMs} layers={["LA", "IR", "L3", "L2", "L1"]} />
+                </div>
+              )}
+
             <div className="rounded-lg border border-[color:var(--border)] p-4 text-xs text-[color:var(--muted)] leading-relaxed">
               <p>
                 Every layer is <em>real output</em> from the compiler binary running
@@ -769,11 +780,46 @@ export default function CompilerVisualizer({
   );
 }
 
+/** Tiny in-line bar chart: one row per source-layer stage with time in ms. */
+function TimingBars({
+  layerMs,
+  layers,
+}: {
+  layerMs: Partial<Record<Layer, number>>;
+  layers: Layer[];
+}) {
+  const max = Math.max(1, ...layers.map((L) => layerMs[L] ?? 0));
+  return (
+    <ul className="space-y-2">
+      {layers.map((L) => {
+        const ms = layerMs[L];
+        const pct = ms ? Math.max(4, Math.round((ms / max) * 100)) : 0;
+        return (
+          <li key={L} className="flex items-center gap-2">
+            <span className="font-mono text-[10px] w-8 text-[color:var(--muted)] tabular">
+              {L}
+            </span>
+            <div className="flex-1 h-1.5 rounded bg-[color:var(--subtle)] overflow-hidden">
+              {ms !== undefined && (
+                <div
+                  className="h-full bg-[color:var(--accent)] transition-all"
+                  style={{ width: `${pct}%` }}
+                />
+              )}
+            </div>
+            <span className="font-mono text-[10px] w-12 text-right tabular text-[color:var(--fg)]">
+              {ms !== undefined ? `${ms} ms` : "—"}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 /**
  * Side-by-side pane showing the same layer's output with the user's opt
- * selections vs the same source compiled with every pass turned off. Lines
- * present only on the optimized side get a green rail; lines present only on
- * baseline get an amber rail. Same lines are dimmed to draw the eye to diffs.
+ * selections vs the same source compiled with every pass turned off.
  */
 function ComparisonPane({
   layer,

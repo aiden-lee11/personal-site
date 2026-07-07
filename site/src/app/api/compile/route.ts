@@ -179,17 +179,17 @@ export async function POST(req: Request) {
   }
   const irExtra = irFlags.join(" ");
 
-  // Per-layer commands. Errors go to $D/<layer>.err so we can surface them.
+  // Per-layer commands. Errors go to $D/<layer>.err. Wall-clock for each layer
+  // gets echoed to $D/<layer>.ms so we can surface a timing breakdown.
   const steps: string[] = [];
   for (let i = fromIdx; i < CHAIN.length - 1; i++) {
     const cur = CHAIN[i];
-    const nxt = CHAIN[i + 1];
     if (cur === "S") continue;
     const bin =
       cur === "IR" ? `/fork/IR/bin/IR` : `/workspace/${cur}/bin/${cur}`;
     const extra = cur === "IR" ? ` ${irExtra}` : "";
     steps.push(
-      `[ -f prog.${cur} ] && ${bin} prog.${cur} -g 1 -O0${extra} > /dev/null 2> ${cur}.err`,
+      `if [ -f prog.${cur} ]; then T0=$(date +%s%3N); ${bin} prog.${cur} -g 1 -O0${extra} > /dev/null 2> ${cur}.err; echo $(( $(date +%s%3N) - T0 )) > ${cur}.ms; fi`,
     );
   }
 
@@ -238,6 +238,11 @@ for L in LA IR L3 L2 L1; do
     echo "___ERROR_END___${"${L}"}___"
   fi
 done
+for L in LA IR L3 L2 L1; do
+  if [ -f "$L.ms" ]; then
+    echo "___MS___${"${L}"}___$(cat "$L.ms")___"
+  fi
+done
 ${runBlock}
 cd /
 rm -rf "$D"
@@ -250,6 +255,14 @@ exit 0
 
   const layers = parseBlocks(res.stdout, "LAYER");
   const errors = parseBlocks(res.stdout, "ERROR");
+
+  // Per-layer wall-clock, keyed by the SOURCE layer (LA→IR is keyed under LA).
+  const layerMs: Partial<Record<Layer, number>> = {};
+  const msRe = /___MS___(LA|IR|L3|L2|L1)___(\d+)___/g;
+  let mm: RegExpExecArray | null;
+  while ((mm = msRe.exec(res.stdout)) !== null) {
+    layerMs[mm[1] as Layer] = parseInt(mm[2], 10);
+  }
 
   // Extract the runtime output if body.run was set. Also captures link errors
   // (uncompilable assembly, missing runtime symbols) and the program exit code.
@@ -288,6 +301,7 @@ exit 0
     layers,
     errors,
     totalMs,
+    layerMs,
     programOutput,
     runExit,
     linkError,
