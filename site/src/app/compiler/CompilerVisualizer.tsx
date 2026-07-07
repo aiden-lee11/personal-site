@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Layer, PresetLayers, PresetMeta } from "@/lib/loadPresets";
 import type { OptExample } from "@/data/compiler";
@@ -26,6 +26,30 @@ type CompileResult = {
 // The compiler doesn't emit S itself — you can only pick a `from` up to L1.
 const FROM_LAYERS: Layer[] = ["LA", "IR", "L3", "L2", "L1"];
 
+// Every IR pass with a --no-<slug> flag exposed by compiler-src/IR/src/compiler.cpp
+const IR_PASSES = [
+  { id: "sccp",        name: "SCCP",        full: "Sparse Conditional Constant Propagation" },
+  { id: "dce",         name: "DCE",         full: "Dead Code Elimination" },
+  { id: "licm",        name: "LICM",        full: "Loop-Invariant Code Motion" },
+  { id: "gvn",         name: "GVN",         full: "Global Value Numbering" },
+  { id: "copy-prop",   name: "CopyProp",    full: "Copy Propagation" },
+  { id: "algebra",     name: "AlgSimp",     full: "Algebraic Simplification" },
+  { id: "peephole",    name: "Peephole",    full: "Peephole" },
+  { id: "vra-bce",     name: "VRA/BCE",     full: "Value Range Analysis / Branch-Check Elim." },
+  { id: "simplify-cfg",name: "CFGSimp",     full: "CFG Simplification" },
+  { id: "cmov-synth",  name: "CMovSynth",   full: "Conditional-Move Synthesis" },
+  { id: "loop-dse",    name: "LoopDSE",     full: "Loop Dead-Store Elim." },
+] as const;
+type IrPassId = (typeof IR_PASSES)[number]["id"];
+
+type OptFlags = Partial<Record<IrPassId, boolean>>;
+
+function defaultOptFlags(): OptFlags {
+  const o: OptFlags = {};
+  for (const p of IR_PASSES) o[p.id] = true;
+  return o;
+}
+
 export default function CompilerVisualizer({
   presets,
   layers,
@@ -39,6 +63,7 @@ export default function CompilerVisualizer({
   const [activePresetSlug, setActivePresetSlug] = useState<string | null>(
     initialPreset.meta.slug,
   );
+  const [optFlags, setOptFlags] = useState<OptFlags>(defaultOptFlags);
   const [result, setResult] = useState<CompileResult | null>(null);
   const [selectedLayer, setSelectedLayer] = useState<Layer>("LA");
   const [pending, setPending] = useState(false);
@@ -47,10 +72,16 @@ export default function CompilerVisualizer({
   const activeReq = useRef(0);
 
   const compile = useCallback(
-    async (opts?: { source?: string; fromLayer?: Layer }) => {
+    async (opts?: {
+      source?: string;
+      fromLayer?: Layer;
+      optFlags?: OptFlags;
+      preserveLayer?: boolean;
+    }) => {
       const reqId = ++activeReq.current;
       setPending(true);
       setError(null);
+      const prevLayer = selectedLayer;
       try {
         const res = await fetch("/api/compile", {
           method: "POST",
@@ -58,6 +89,7 @@ export default function CompilerVisualizer({
           body: JSON.stringify({
             source: opts?.source ?? source,
             fromLayer: opts?.fromLayer ?? fromLayer,
+            optFlags: opts?.optFlags ?? optFlags,
           }),
         });
         const data: CompileResult = await res.json();
@@ -66,6 +98,8 @@ export default function CompilerVisualizer({
         if (!data.ok) {
           setError(data.error ?? "compilation failed");
           setSelectedLayer(opts?.fromLayer ?? fromLayer);
+        } else if (opts?.preserveLayer && data.layers[prevLayer]) {
+          setSelectedLayer(prevLayer);
         } else {
           // Jump to the deepest produced layer so the "wow" moment lands.
           const produced = layers.filter((L) => data.layers[L]);
@@ -78,7 +112,7 @@ export default function CompilerVisualizer({
         if (activeReq.current === reqId) setPending(false);
       }
     },
-    [fromLayer, layers, source],
+    [fromLayer, layers, optFlags, source, selectedLayer],
   );
 
   // Auto-compile the default preset once on mount so the page never looks empty.
@@ -116,6 +150,34 @@ export default function CompilerVisualizer({
       }
     },
     [activePresetSlug, presets, compile],
+  );
+
+  // Debounced auto-recompile when the user flips a pass toggle. Keeps the
+  // currently-viewed layer selected so the diff feels live.
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRecompile = useCallback(
+    (nextFlags: OptFlags) => {
+      setOptFlags(nextFlags);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        compile({ optFlags: nextFlags, preserveLayer: true });
+      }, 220);
+    },
+    [compile],
+  );
+  const toggleOpt = useCallback(
+    (id: IrPassId) => {
+      scheduleRecompile({ ...optFlags, [id]: !(optFlags[id] ?? true) });
+    },
+    [optFlags, scheduleRecompile],
+  );
+  const setAllOpts = useCallback(
+    (on: boolean) => {
+      const next: OptFlags = {};
+      for (const p of IR_PASSES) next[p.id] = on;
+      scheduleRecompile(next);
+    },
+    [scheduleRecompile],
   );
 
   const handleKey = useCallback(
@@ -374,6 +436,80 @@ export default function CompilerVisualizer({
                 {layerTagline[selectedLayer]}
               </p>
             </div>
+
+            <div className="rounded-lg border border-[color:var(--border)] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--muted)]">
+                  IR passes
+                </p>
+                <div className="flex gap-1 font-mono text-[10px]">
+                  <button
+                    onClick={() => setAllOpts(true)}
+                    className="px-2 py-0.5 rounded border border-[color:var(--border)] hover:border-[color:var(--fg)] transition-colors"
+                  >
+                    all
+                  </button>
+                  <button
+                    onClick={() => setAllOpts(false)}
+                    className="px-2 py-0.5 rounded border border-[color:var(--border)] hover:border-[color:var(--fg)] transition-colors"
+                  >
+                    none
+                  </button>
+                </div>
+              </div>
+              <ul className="space-y-1.5">
+                {IR_PASSES.map((p) => {
+                  const on = optFlags[p.id] ?? true;
+                  return (
+                    <li key={p.id}>
+                      <button
+                        onClick={() => toggleOpt(p.id)}
+                        className="w-full text-left group flex items-start gap-2"
+                        title={p.full}
+                      >
+                        <span
+                          className={`mt-[3px] inline-block w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center transition-colors ${
+                            on
+                              ? "border-[color:var(--accent)] bg-[color:var(--accent)]"
+                              : "border-[color:var(--border)] group-hover:border-[color:var(--fg)]"
+                          }`}
+                        >
+                          {on && (
+                            <svg
+                              viewBox="0 0 12 12"
+                              className="w-2.5 h-2.5 text-[color:var(--bg)]"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                            >
+                              <path d="M2 6.5 L5 9 L10 3" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </span>
+                        <span className="text-xs leading-tight flex-1 min-w-0">
+                          <span
+                            className={`font-mono ${
+                              on ? "text-[color:var(--fg)]" : "text-[color:var(--muted)]"
+                            }`}
+                          >
+                            {p.name}
+                          </span>
+                          <span className="block text-[color:var(--muted)] text-[10px] leading-snug">
+                            {p.full}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="mt-3 text-[10px] text-[color:var(--muted)] leading-snug border-t border-[color:var(--border)] pt-2">
+                Flags plumbed through <code className="font-mono">--no-&lt;pass&gt;</code>{" "}
+                to the IR binary (compiler-src fork). Toggle any to see the emitted
+                code change live.
+              </p>
+            </div>
+
             <div className="rounded-lg border border-[color:var(--border)] p-4 text-xs text-[color:var(--muted)] leading-relaxed">
               <p>
                 Every layer is <em>real output</em> from the compiler binary running
@@ -390,17 +526,17 @@ export default function CompilerVisualizer({
         </div>
       </section>
 
-      {/* IR optimizations */}
+      {/* IR optimizations — pedagogical */}
       <section>
         <div className="flex items-baseline justify-between mb-4">
           <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
-            04 · IR optimizations
+            04 · What each pass does
           </h2>
         </div>
         <p className="text-[color:var(--muted)] max-w-2xl mb-8">
-          The IR stage is where every optimization pass lives. Below are canonical
-          illustrations of three of them — the same transformations my compiler
-          performs on the real IR you saw above. Toggle each to see before / after.
+          Canonical illustrations of three passes, at the scale of a single
+          transformation. Flip the toggles in the sidebar above to see the same
+          passes running on your actual code — this is just the explainer.
         </p>
         <OptGallery examples={optExamples} />
       </section>

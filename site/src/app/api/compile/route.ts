@@ -10,14 +10,37 @@ type Layer = (typeof CHAIN)[number];
 
 // Docker image built from the compiler's own docker-compose.
 const IMAGE = "322-cs322";
-// Where the compiler binaries live on the host — read-only mount inside container.
+// Untouched original binaries — read-only mount inside container.
 const COMPILER_HOST_DIR =
   process.env.COMPILER_HOST_DIR || `${os.homedir()}/Desktop/northwestern/322`;
+// Fork with per-pass flags baked in. Only IR is customized right now.
+const COMPILER_FORK_DIR = path.resolve(process.cwd(), "..", "compiler-src");
 
 const MAX_SOURCE_BYTES = 128 * 1024;
 const COMPILE_TIMEOUT_MS = 20_000;
 
-type Body = { source: string; fromLayer: Layer };
+// Every IR pass with an --no-<slug> flag exposed by compiler-src/IR/src/compiler.cpp
+const IR_PASSES = [
+  "licm",
+  "dce",
+  "sccp",
+  "gvn",
+  "copy-prop",
+  "peephole",
+  "vra-bce",
+  "simplify-cfg",
+  "algebra",
+  "cmov-synth",
+  "loop-dse",
+] as const;
+type IrPass = (typeof IR_PASSES)[number];
+
+type Body = {
+  source: string;
+  fromLayer: Layer;
+  // When a pass is present with value `false`, we pass --no-<pass> to the IR compiler.
+  optFlags?: Partial<Record<IrPass, boolean>>;
+};
 
 function isLayer(x: unknown): x is Layer {
   return typeof x === "string" && (CHAIN as readonly string[]).includes(x);
@@ -72,16 +95,29 @@ export async function POST(req: Request) {
   const srcName = `prog.${body.fromLayer}`;
   await fs.writeFile(path.join(work, srcName), body.source);
 
+  // Build the CLI flag suffix for the IR compiler based on requested opt toggles.
+  const irFlags: string[] = [];
+  for (const p of IR_PASSES) {
+    if (body.optFlags && body.optFlags[p] === false) {
+      irFlags.push(`--no-${p}`);
+    }
+  }
+  const irExtra = irFlags.join(" ");
+
   // Build a shell script the container runs. Each layer picks up prog.<PREV> and
   // writes prog.<NEXT>; after each step we copy that output into /out for us to
   // read back before the next layer overwrites `prog.<X>` naming again.
+  // The IR layer uses our fork binary so per-pass flags (--no-licm, …) work.
   const steps: string[] = [];
   for (let i = fromIdx; i < CHAIN.length - 1; i++) {
     const cur = CHAIN[i];
     const nxt = CHAIN[i + 1];
-    const bin = cur === "S" ? "" : `/workspace/${cur}/bin/${cur}`;
+    if (cur === "S") continue;
+    const bin =
+      cur === "IR" ? `/fork/IR/bin/IR` : `/workspace/${cur}/bin/${cur}`;
+    const extra = cur === "IR" ? ` ${irExtra}` : "";
     steps.push(
-      `if [ -f prog.${cur} ]; then ${bin} prog.${cur} -g 1 -O0 2> /out/${cur}.err && [ -f prog.${nxt} ] && cp prog.${nxt} /out/prog.${nxt}; fi`,
+      `if [ -f prog.${cur} ]; then ${bin} prog.${cur} -g 1 -O0${extra} 2> /out/${cur}.err && [ -f prog.${nxt} ] && cp prog.${nxt} /out/prog.${nxt}; fi`,
     );
   }
   // Always echo the input layer to /out as well.
@@ -105,6 +141,8 @@ export async function POST(req: Request) {
     "linux/amd64",
     "-v",
     `${COMPILER_HOST_DIR}:/workspace:ro`,
+    "-v",
+    `${COMPILER_FORK_DIR}:/fork:ro`,
     "-v",
     `${work}:/pgen`,
     "-v",
