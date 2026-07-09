@@ -4,9 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { diffArrays } from "diff";
 import type { Layer, PresetLayers, PresetMeta } from "@/lib/loadPresets";
-import type { OptExample } from "@/data/compiler";
 import { PASS_DEMOS, type PassDemoId } from "@/data/passDemos";
-import { runTransform } from "./wasm/client";
+import { runTransform } from "../wasm/client";
 
 type PresetBundle = { meta: PresetMeta; layers: PresetLayers };
 
@@ -15,7 +14,6 @@ type Props = {
   layers: Layer[];
   layerLabel: Record<Layer, string>;
   layerTagline: Record<Layer, string>;
-  optExamples: OptExample[];
 };
 
 type CompileResult = {
@@ -111,7 +109,6 @@ export default function CompilerVisualizer({
   layers,
   layerLabel,
   layerTagline,
-  optExamples,
 }: Props) {
   const initialPreset = presets[2] ?? presets[0]; // default fib
   const [source, setSource] = useState(initialPreset.layers.LA);
@@ -240,62 +237,6 @@ export default function CompilerVisualizer({
     [fromLayer, layers, optFlags, source, selectedLayer, compareMode, compareRuntime],
   );
 
-  // Rehydrate: URL hash (share link) takes priority over localStorage. Then
-  // kick off the initial compile+run so the first paint isn't an empty panel.
-  useEffect(() => {
-    if (initialTried) return;
-    setInitialTried(true);
-    let src = initialPreset.layers.LA;
-    let from: Layer = "LA";
-    let flags: OptFlags | undefined;
-    let hydratedFromUrl = false;
-
-    // URL hash — format: #s=<base64-source>&f=<layer>&o=<11-char-bitmask>
-    try {
-      const hash = typeof window !== "undefined" ? window.location.hash : "";
-      if (hash.startsWith("#s=")) {
-        const params = new URLSearchParams(hash.slice(1));
-        const s = params.get("s");
-        const f = params.get("f") as Layer | null;
-        const o = params.get("o");
-        if (s) {
-          src = decodeURIComponent(escape(atob(s)));
-          setSource(src);
-          setActivePresetSlug(null);
-          hydratedFromUrl = true;
-        }
-        if (f && (["LA","IR","L3","L2","L1"] as string[]).includes(f)) {
-          from = f;
-          setFromLayer(f);
-        }
-        if (o && o.length === IR_PASSES.length) {
-          const next: OptFlags = {};
-          for (let i = 0; i < IR_PASSES.length; i++) {
-            next[IR_PASSES[i].id] = o[i] !== "0";
-          }
-          flags = next;
-          setOptFlags(next);
-        }
-      }
-    } catch { /* malformed — fall through to localStorage */ }
-
-    if (!hydratedFromUrl) try {
-      const saved = localStorage.getItem("aiden-compiler:source");
-      const savedFrom = localStorage.getItem("aiden-compiler:from") as Layer | null;
-      if (saved) {
-        src = saved;
-        setSource(saved);
-        if (saved !== initialPreset.layers.LA) setActivePresetSlug(null);
-      }
-      if (savedFrom && (["LA","IR","L3","L2","L1"] as string[]).includes(savedFrom)) {
-        from = savedFrom;
-        setFromLayer(savedFrom);
-      }
-    } catch { /* ignore */ }
-    compile({ source: src, fromLayer: from, optFlags: flags, run: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const loadPreset = useCallback(
     (slug: string) => {
       const p = presets.find((x) => x.meta.slug === slug) ?? initialPreset;
@@ -420,6 +361,74 @@ export default function CompilerVisualizer({
     [compile, compileBaseline],
   );
 
+  // Rehydrate on mount: ?demo= (from the Passes page) wins, then the URL hash
+  // (share link), then localStorage. Finishes with the initial compile+run so
+  // the first paint isn't an empty panel.
+  useEffect(() => {
+    if (initialTried) return;
+    setInitialTried(true);
+
+    try {
+      const demo = new URLSearchParams(window.location.search).get(
+        "demo",
+      ) as PassDemoId | null;
+      if (demo && PASS_DEMOS[demo]) {
+        loadDemo(demo);
+        return;
+      }
+    } catch { /* malformed query — fall through */ }
+
+    let src = initialPreset.layers.LA;
+    let from: Layer = "LA";
+    let flags: OptFlags | undefined;
+    let hydratedFromUrl = false;
+
+    // URL hash — format: #s=<base64-source>&f=<layer>&o=<11-char-bitmask>
+    try {
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      if (hash.startsWith("#s=")) {
+        const params = new URLSearchParams(hash.slice(1));
+        const s = params.get("s");
+        const f = params.get("f") as Layer | null;
+        const o = params.get("o");
+        if (s) {
+          src = decodeURIComponent(escape(atob(s)));
+          setSource(src);
+          setActivePresetSlug(null);
+          hydratedFromUrl = true;
+        }
+        if (f && (["LA","IR","L3","L2","L1"] as string[]).includes(f)) {
+          from = f;
+          setFromLayer(f);
+        }
+        if (o && o.length === IR_PASSES.length) {
+          const next: OptFlags = {};
+          for (let i = 0; i < IR_PASSES.length; i++) {
+            next[IR_PASSES[i].id] = o[i] !== "0";
+          }
+          flags = next;
+          setOptFlags(next);
+        }
+      }
+    } catch { /* malformed — fall through to localStorage */ }
+
+    if (!hydratedFromUrl) try {
+      const saved = localStorage.getItem("aiden-compiler:source");
+      const savedFrom = localStorage.getItem("aiden-compiler:from") as Layer | null;
+      if (saved) {
+        src = saved;
+        setSource(saved);
+        if (saved !== initialPreset.layers.LA) setActivePresetSlug(null);
+      }
+      if (savedFrom && (["LA","IR","L3","L2","L1"] as string[]).includes(savedFrom)) {
+        from = savedFrom;
+        setFromLayer(savedFrom);
+      }
+    } catch { /* ignore */ }
+    compile({ source: src, fromLayer: from, optFlags: flags, run: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [justCopied, setJustCopied] = useState(false);
   const copyShareUrl = useCallback(async () => {
     try {
@@ -515,53 +524,11 @@ export default function CompilerVisualizer({
         </div>
       </section>
 
-      {/* Pass demos — one-click showcase for each optimization */}
-      <section>
-        <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
-          <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
-            02 · Pass showcase
-          </h2>
-          <span className="font-mono text-xs text-[color:var(--muted)]">
-            each button loads code + isolates that pass
-          </span>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-          {(
-            [
-              { id: "sccp", label: "SCCP", hint: "prunes unreachable branches, folds constants" },
-              { id: "dce", label: "DCE", hint: "removes unused computations" },
-              { id: "licm", label: "LICM", hint: "hoists loop-invariant work" },
-              { id: "gvn", label: "GVN", hint: "dedupes identical expressions" },
-              { id: "copy-prop", label: "CopyProp", hint: "chases copy chains" },
-              { id: "algebra", label: "AlgSimp", hint: "x*1 → x, y+0 → y" },
-              { id: "cmov-synth", label: "CMovSynth", hint: "branch → cmov" },
-              { id: "combo", label: "Combo (SCCP+DCE+LICM)", hint: "three passes at once" },
-            ] as { id: PassDemoId; label: string; hint: string }[]
-          ).map((d) => (
-            <button
-              key={d.id}
-              onClick={() => loadDemo(d.id)}
-              className="text-left rounded-lg border border-[color:var(--border)] hover:border-[color:var(--accent)] p-3 transition-all group"
-            >
-              <div className="font-mono text-xs mb-1 flex items-center gap-2">
-                <span className="text-[color:var(--accent)] opacity-60 group-hover:opacity-100">
-                  ▸
-                </span>
-                {d.label}
-              </div>
-              <div className="text-xs text-[color:var(--muted)] leading-snug">
-                {d.hint}
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
       {/* Editor */}
       <section>
         <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
           <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
-            03 · Write code · compile
+            02 · Write code · compile
           </h2>
           <div className="flex items-center gap-2 font-mono text-xs">
             <label className="text-[color:var(--muted)]">start at</label>
@@ -691,7 +658,7 @@ export default function CompilerVisualizer({
       <section>
         <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
           <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
-            04 · Step through the pipeline
+            03 · Step through the pipeline
           </h2>
           <button
             onClick={toggleCompareMode}
@@ -1001,20 +968,6 @@ export default function CompilerVisualizer({
         </div>
       </section>
 
-      {/* IR optimizations — pedagogical */}
-      <section>
-        <div className="flex items-baseline justify-between mb-4">
-          <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
-            05 · What each pass does
-          </h2>
-        </div>
-        <p className="text-[color:var(--muted)] max-w-2xl mb-8">
-          Canonical illustrations of every IR pass, at the scale of a single
-          transformation. Flip the toggles in the sidebar above to see the same
-          passes running on your actual code — this is just the explainer.
-        </p>
-        <OptGallery examples={optExamples} />
-      </section>
     </div>
   );
 }
@@ -1217,131 +1170,6 @@ function ComparisonPane({
           </span>
         </div>
       )}
-    </div>
-  );
-}
-
-function OptGallery({ examples }: { examples: OptExample[] }) {
-  const [activeId, setActiveId] = useState<OptExample["id"]>(examples[0]?.id ?? "licm");
-  const [showAfter, setShowAfter] = useState(false);
-  const active = examples.find((e) => e.id === activeId) ?? examples[0];
-
-  return (
-    <div className="grid lg:grid-cols-[16rem_1fr] gap-6">
-      <nav className="space-y-2">
-        {examples.map((e) => {
-          const isActive = e.id === activeId;
-          return (
-            <button
-              key={e.id}
-              onClick={() => {
-                setActiveId(e.id);
-                setShowAfter(false);
-              }}
-              className={`w-full text-left rounded-lg border p-3 transition-all ${
-                isActive
-                  ? "border-[color:var(--accent)] bg-[color:var(--subtle)]"
-                  : "border-[color:var(--border)] hover:border-[color:var(--fg)]"
-              }`}
-            >
-              <div className="flex items-baseline gap-2 mb-1">
-                <span
-                  className={`font-mono text-xs ${
-                    isActive ? "text-[color:var(--accent)]" : "text-[color:var(--muted)]"
-                  }`}
-                >
-                  {e.name}
-                </span>
-                <span className="font-mono text-[10px] text-[color:var(--muted)]">
-                  · pass
-                </span>
-              </div>
-              <div className="text-sm">{e.fullName}</div>
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="min-w-0">
-        <div className="flex items-start justify-between gap-6 mb-4 flex-wrap">
-          <div className="flex-1 min-w-0">
-            <p className="font-serif text-2xl leading-tight">{active.fullName}</p>
-            <p className="text-[color:var(--muted)] mt-1">{active.tagline}</p>
-          </div>
-          {/* Mobile-only: desktop already shows both panes side-by-side */}
-          <div
-            className="inline-flex md:hidden items-center rounded-full border border-[color:var(--border)] p-0.5 font-mono text-xs"
-            role="tablist"
-            aria-label="Before/After toggle"
-          >
-            <button
-              role="tab"
-              aria-selected={!showAfter}
-              onClick={() => setShowAfter(false)}
-              className={`px-3 py-1.5 rounded-full transition-colors ${
-                !showAfter
-                  ? "bg-[color:var(--fg)] text-[color:var(--bg)]"
-                  : "text-[color:var(--muted)]"
-              }`}
-            >
-              before
-            </button>
-            <button
-              role="tab"
-              aria-selected={showAfter}
-              onClick={() => setShowAfter(true)}
-              className={`px-3 py-1.5 rounded-full transition-colors ${
-                showAfter
-                  ? "bg-[color:var(--accent)] text-[color:var(--bg)]"
-                  : "text-[color:var(--muted)]"
-              }`}
-            >
-              after
-            </button>
-          </div>
-        </div>
-
-        <p className="text-sm text-[color:var(--muted)] leading-relaxed mb-4 max-w-2xl">
-          {active.what}
-        </p>
-
-        <div className="hidden md:grid md:grid-cols-2 gap-4 min-w-0">
-          <div className="min-w-0">
-            <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--muted)] mb-2">
-              Before
-            </p>
-            <pre className="code-pane max-h-[60vh]">
-              <code>{active.before}</code>
-            </pre>
-          </div>
-          <div className="min-w-0">
-            <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--accent)] mb-2">
-              After · {active.name}
-            </p>
-            <pre className="code-pane max-h-[60vh]">
-              <code>{active.after}</code>
-            </pre>
-          </div>
-        </div>
-        <div className="md:hidden">
-          <AnimatePresence mode="wait">
-            <motion.pre
-              key={showAfter ? "after" : "before"}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.15 }}
-              className="code-pane max-h-[60vh]"
-            >
-              <code>{showAfter ? active.after : active.before}</code>
-            </motion.pre>
-          </AnimatePresence>
-        </div>
-
-        <p className="mt-6 font-mono text-xs text-[color:var(--muted)]">
-          Source: <code className="text-[color:var(--fg)]">{active.sourceFile}</code>
-        </p>
-      </div>
     </div>
   );
 }

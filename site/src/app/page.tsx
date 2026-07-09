@@ -43,10 +43,10 @@ export default function Home() {
         </p>
         <div className="mt-10 flex flex-wrap gap-3 font-mono text-sm">
           <Link
-            href="/compiler"
+            href="/compiler/playground"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[color:var(--fg)] text-[color:var(--bg)] hover:bg-[color:var(--accent)] transition-colors"
           >
-            <span>Try the compiler visualizer</span>
+            <span>Try the compiler playground</span>
             <span aria-hidden>→</span>
           </Link>
           <Link
