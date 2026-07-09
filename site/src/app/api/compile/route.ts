@@ -21,9 +21,16 @@ const COMPILER_FORK_DIR = path.resolve(process.cwd(), "..", "compiler-src");
 const WARM_NAME = "aiden-compiler-warm";
 
 const MAX_SOURCE_BYTES = 128 * 1024;
-const COMPILE_TIMEOUT_MS = 20_000;
-const RUN_TIMEOUT_MS = 5_000;
+// Outer Docker kill — must cover compile + one capture run (+ optional timing).
+const COMPILE_TIMEOUT_MS = 90_000;
+// Per-exec wall for the linked program. Needs headroom so unoptimized builds
+// can finish and show a real slowdown vs opt (5s was killing that comparison).
+const RUN_TIMEOUT_MS = 30_000;
 const MAX_RUN_OUTPUT_BYTES = 32 * 1024;
+// After a discarded warmup, if one timed iter is below this, average more
+// iters for a stable runMs; otherwise reuse that single post-warmup sample
+// so a multi-second program isn't timed 25×.
+const FAST_RUN_US = 100_000;
 
 // Every IR pass with an --no-<slug> flag exposed by compiler-src/IR/src/compiler.cpp
 const IR_PASSES = [
@@ -195,6 +202,13 @@ export async function POST(req: Request) {
 
   const srcB64 = Buffer.from(body.source, "utf8").toString("base64");
 
+  // Timed execution: capture stdout once, then measure runtime fairly.
+  // Always discard one warmup exec before timing — otherwise the first (opt)
+  // request looks slower than a follow-up unopt request on a warm container,
+  // which falsely reports "unopt faster". Fast programs then get a multi-iter
+  // average; slow ones reuse one post-warmup sample.
+  const runIters = 25;
+  const runSecs = Math.ceil(RUN_TIMEOUT_MS / 1000);
   const runBlock = body.run
     ? `
 if [ -f prog.S ]; then
@@ -202,10 +216,32 @@ if [ -f prog.S ]; then
   gcc -no-pie -o prog_exec prog.S runtime.o >> gcc.err 2>&1
   if [ -x prog_exec ]; then
     echo "___RUN_START___go___"
-    timeout ${Math.ceil(RUN_TIMEOUT_MS / 1000)}s ./prog_exec 2>&1 | head -c ${MAX_RUN_OUTPUT_BYTES}
+    timeout ${runSecs}s ./prog_exec 2>&1 | head -c ${MAX_RUN_OUTPUT_BYTES}
+    RUN_EC=\${PIPESTATUS[0]}
     echo
-    echo "___RUN_EXIT___go___$?___"
+    echo "___RUN_EXIT___go___\${RUN_EC}___"
     echo "___RUN_END___go___"
+    if [ "\$RUN_EC" -ne 124 ]; then
+      # Warm caches / QEMU; not included in runMs.
+      timeout ${runSecs}s ./prog_exec >/dev/null 2>&1
+      START_NS=$(date +%s%N)
+      timeout ${runSecs}s ./prog_exec >/dev/null 2>&1
+      TIMED_EC=\$?
+      END_NS=$(date +%s%N)
+      if [ "\$TIMED_EC" -ne 124 ]; then
+        ONE_US=$(( (END_NS - START_NS) / 1000 ))
+        if [ "\$ONE_US" -lt ${FAST_RUN_US} ]; then
+          START_NS=$(date +%s%N)
+          for _i in $(seq 1 ${runIters}); do
+            timeout ${runSecs}s ./prog_exec >/dev/null 2>&1 || break
+          done
+          END_NS=$(date +%s%N)
+          echo "___RUN_US___go___$(( (END_NS - START_NS) / ${runIters} / 1000 ))___"
+        else
+          echo "___RUN_US___go___\${ONE_US}___"
+        fi
+      fi
+    fi
   else
     echo "___LINK_ERROR_START___go___"
     cat gcc.err
@@ -265,9 +301,11 @@ exit 0
   }
 
   // Extract the runtime output if body.run was set. Also captures link errors
-  // (uncompilable assembly, missing runtime symbols) and the program exit code.
+  // (uncompilable assembly, missing runtime symbols), exit code, and averaged
+  // program wall-clock (runMs) — distinct from compile totalMs above.
   let programOutput: string | undefined;
   let runExit: number | undefined;
+  let runMs: number | undefined;
   let linkError: string | undefined;
   const runMatch = res.stdout.match(
     /___RUN_START___go___\n([\s\S]*?)\n___RUN_EXIT___go___(\d+)___\n___RUN_END___go___/,
@@ -280,6 +318,10 @@ exit 0
       /___LINK_ERROR_START___go___\n([\s\S]*?)\n___LINK_ERROR_END___go___/,
     );
     if (linkMatch) linkError = linkMatch[1];
+  }
+  const runUsMatch = res.stdout.match(/___RUN_US___go___(\d+)___/);
+  if (runUsMatch) {
+    runMs = parseInt(runUsMatch[1], 10) / 1000; // µs → ms (fractional)
   }
 
   const producedBeyond = CHAIN.slice(fromIdx + 1).some((L) => layers[L]);
@@ -304,6 +346,7 @@ exit 0
     layerMs,
     programOutput,
     runExit,
+    runMs,
     linkError,
   });
 }

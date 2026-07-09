@@ -45,7 +45,7 @@ export const PRESETS: PresetMeta[] = [
   {
     slug: "fib",
     title: "fib (iterative)",
-    blurb: "Textbook iterative Fibonacci — the canonical loop for LICM / DCE demos.",
+    blurb: "fib(20) → 6765, repeated 5M× so opt vs unopt runtime is visible.",
   },
   {
     slug: "matrix",

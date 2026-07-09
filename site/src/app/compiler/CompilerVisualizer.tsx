@@ -6,6 +6,7 @@ import { diffArrays } from "diff";
 import type { Layer, PresetLayers, PresetMeta } from "@/lib/loadPresets";
 import type { OptExample } from "@/data/compiler";
 import { PASS_DEMOS, type PassDemoId } from "@/data/passDemos";
+import { runTransform } from "./wasm/client";
 
 type PresetBundle = { meta: PresetMeta; layers: PresetLayers };
 
@@ -22,10 +23,15 @@ type CompileResult = {
   layers: Partial<Record<Layer, string>>;
   errors?: Partial<Record<Layer, string>>;
   error?: string;
+  /** Wall time to transform source → x86 (wasm pipeline). Not program runtime. */
   totalMs?: number;
   layerMs?: Partial<Record<Layer, number>>;
   programOutput?: string;
   runExit?: number;
+  /** Averaged wall time of the linked program (ms). Distinct from totalMs. */
+  runMs?: number;
+  /** Same measurement with all IR opts off — for speedup comparison. */
+  baselineRunMs?: number;
   linkError?: string;
 };
 
@@ -56,6 +62,50 @@ function defaultOptFlags(): OptFlags {
   return o;
 }
 
+/** Format program runtime for display (sub-ms programs are common). */
+function formatRunMs(ms: number): string {
+  if (ms < 0.001) return "<0.001 ms";
+  if (ms < 1) return `${ms.toFixed(3)} ms`;
+  if (ms < 100) return `${ms.toFixed(2)} ms`;
+  return `${Math.round(ms)} ms`;
+}
+
+type RunPayload = {
+  programOutput?: string;
+  runExit?: number;
+  runMs?: number;
+  linkError?: string;
+  ok?: boolean;
+};
+
+/** Link + execute via the server runtime. Returns timing + stdout when Docker is up. */
+async function fetchRun(input: {
+  source: string;
+  fromLayer: Layer;
+  optFlags: OptFlags;
+}): Promise<RunPayload> {
+  try {
+    const res = await fetch("/api/compile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        source: input.source,
+        fromLayer: input.fromLayer,
+        optFlags: input.optFlags,
+        run: true,
+      }),
+    });
+    const data = (await res.json()) as RunPayload;
+    if (data.linkError) return data;
+    if (data.programOutput === undefined && data.runMs === undefined) {
+      return { linkError: "program execution requires the server runtime" };
+    }
+    return data;
+  } catch {
+    return { linkError: "program execution requires the server runtime" };
+  }
+}
+
 export default function CompilerVisualizer({
   presets,
   layers,
@@ -81,6 +131,8 @@ export default function CompilerVisualizer({
   const [result, setResult] = useState<CompileResult | null>(null);
   const [baseline, setBaseline] = useState<CompileResult | null>(null); // all-opts-off compile
   const [compareMode, setCompareMode] = useState(false);
+  // Also time an all-opts-off binary on ▸▸ run (noticeable on heavy presets like fib).
+  const [compareRuntime, setCompareRuntime] = useState(true);
   const [selectedLayer, setSelectedLayer] = useState<Layer>("LA");
   const [pending, setPending] = useState(false);
   const [baselinePending, setBaselinePending] = useState(false);
@@ -102,23 +154,21 @@ export default function CompilerVisualizer({
       setPending(true);
       setError(null);
       const prevLayer = selectedLayer;
+      const reqSource = opts?.source ?? source;
+      const reqFrom = opts?.fromLayer ?? fromLayer;
+      const reqFlags = opts?.optFlags ?? optFlags;
       try {
-        const res = await fetch("/api/compile", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            source: opts?.source ?? source,
-            fromLayer: opts?.fromLayer ?? fromLayer,
-            optFlags: opts?.optFlags ?? optFlags,
-            run: opts?.run ?? false,
-          }),
+        // The transform pipeline runs entirely in the browser (wasm) — no network.
+        const data: CompileResult = await runTransform({
+          source: reqSource,
+          fromLayer: reqFrom,
+          optFlags: reqFlags,
         });
-        const data: CompileResult = await res.json();
         if (activeReq.current !== reqId) return; // stale
         setResult(data);
         if (!data.ok) {
           setError(data.error ?? "compilation failed");
-          setSelectedLayer(opts?.fromLayer ?? fromLayer);
+          setSelectedLayer(reqFrom);
         } else if (opts?.selectLayer && data.layers[opts.selectLayer]) {
           setSelectedLayer(opts.selectLayer);
         } else if (opts?.preserveLayer && data.layers[prevLayer]) {
@@ -127,6 +177,49 @@ export default function CompilerVisualizer({
           // Jump to the deepest produced layer so the "wow" moment lands.
           const produced = layers.filter((L) => data.layers[L]);
           setSelectedLayer(produced[produced.length - 1] ?? "LA");
+        }
+
+        // Running the produced x86 can't happen in-browser — that still needs
+        // the server runtime (gcc link + execute). Best-effort; a failure here
+        // (static deploy, no Docker) must not break the transform display.
+        // Optionally also time an all-opts-off build when compareRuntime is on.
+        if (opts?.run && data.ok) {
+          const runData = await fetchRun({
+            source: reqSource,
+            fromLayer: reqFrom,
+            optFlags: reqFlags,
+          });
+          let baselineRunMs: number | undefined;
+          if (compareRuntime) {
+            const alreadyUnopt = IR_PASSES.every(
+              (p) => reqFlags[p.id] === false,
+            );
+            if (alreadyUnopt) {
+              baselineRunMs = runData.runMs;
+            } else {
+              const noOpts: OptFlags = {};
+              for (const p of IR_PASSES) noOpts[p.id] = false;
+              const baselineRun = await fetchRun({
+                source: reqSource,
+                fromLayer: reqFrom,
+                optFlags: noOpts,
+              });
+              baselineRunMs = baselineRun.runMs;
+            }
+          }
+          if (activeReq.current !== reqId) return;
+          setResult((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  programOutput: runData.programOutput,
+                  runExit: runData.runExit,
+                  runMs: runData.runMs,
+                  baselineRunMs,
+                  linkError: runData.linkError,
+                }
+              : prev,
+          );
         }
       } catch (e) {
         if (activeReq.current !== reqId) return;
@@ -144,7 +237,7 @@ export default function CompilerVisualizer({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fromLayer, layers, optFlags, source, selectedLayer, compareMode],
+    [fromLayer, layers, optFlags, source, selectedLayer, compareMode, compareRuntime],
   );
 
   // Rehydrate: URL hash (share link) takes priority over localStorage. Then
@@ -269,16 +362,12 @@ export default function CompilerVisualizer({
       try {
         const noOpts: OptFlags = {};
         for (const p of IR_PASSES) noOpts[p.id] = false;
-        const res = await fetch("/api/compile", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            source: opts?.source ?? source,
-            fromLayer: opts?.fromLayer ?? fromLayer,
-            optFlags: noOpts,
-          }),
+        // Baseline is a pure transform — runs in the browser wasm worker.
+        const data: CompileResult = await runTransform({
+          source: opts?.source ?? source,
+          fromLayer: opts?.fromLayer ?? fromLayer,
+          optFlags: noOpts,
         });
-        const data: CompileResult = await res.json();
         if (baselineReq.current !== reqId) return;
         setBaseline(data);
       } catch {
@@ -503,6 +592,18 @@ export default function CompilerVisualizer({
             >
               ▸▸ run
             </button>
+            <label
+              className="inline-flex items-center gap-1.5 text-[color:var(--muted)] hover:text-[color:var(--fg)] cursor-pointer select-none"
+              title="Also time the same program with all IR opts off (second server run)"
+            >
+              <input
+                type="checkbox"
+                checked={compareRuntime}
+                onChange={(e) => setCompareRuntime(e.target.checked)}
+                className="accent-[color:var(--accent)]"
+              />
+              vs unopt
+            </label>
             <button
               onClick={copyShareUrl}
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-[color:var(--border)] text-[color:var(--muted)] hover:border-[color:var(--fg)] hover:text-[color:var(--fg)] transition-colors"
@@ -546,11 +647,28 @@ export default function CompilerVisualizer({
           )}
           {!pending && result?.totalMs != null && !error && (
             <span className="text-[color:var(--muted)]">
-              ✓ compiled in{" "}
-              <span className="text-[color:var(--accent)] tabular">
+              ✓ compile{" "}
+              <span className="text-[color:var(--fg)] tabular">
                 {result.totalMs}
               </span>{" "}
               ms
+            </span>
+          )}
+          {!pending && result?.runMs != null && !error && (
+            <span className="text-[color:var(--muted)]">
+              · program runtime{" "}
+              <span className="text-[color:var(--accent)] tabular">
+                {formatRunMs(result.runMs)}
+              </span>
+              {result.baselineRunMs != null &&
+                result.baselineRunMs > 0 &&
+                result.runMs > 0 &&
+                result.baselineRunMs / result.runMs >= 1.05 && (
+                  <span className="text-[color:var(--accent)]">
+                    {" "}
+                    ({(result.baselineRunMs / result.runMs).toFixed(2)}× vs unopt)
+                  </span>
+                )}
             </span>
           )}
           {!activePresetSlug && !pending && !error && result?.ok && (
@@ -770,35 +888,90 @@ export default function CompilerVisualizer({
               </p>
             </div>
 
-            {(result?.programOutput !== undefined || result?.linkError) && (
+            {(result?.programOutput !== undefined ||
+              result?.linkError ||
+              result?.runMs != null) && (
               <div className="rounded-lg border border-[color:var(--accent)] bg-[color:var(--subtle)] p-4">
-                <div className="flex items-baseline justify-between mb-2">
+                <div className="flex items-baseline justify-between mb-2 gap-2 flex-wrap">
                   <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--accent)]">
                     program output
                   </p>
-                  {result.runExit !== undefined && (
-                    <p className="font-mono text-[10px] text-[color:var(--muted)] tabular">
-                      exit {result.runExit}
-                    </p>
-                  )}
+                  <div className="flex items-baseline gap-3 font-mono text-[10px] text-[color:var(--muted)] tabular">
+                    {result.runExit !== undefined && (
+                      <span>exit {result.runExit}</span>
+                    )}
+                  </div>
                 </div>
+
+                {result.runMs != null && (
+                  <div className="mb-3 rounded border border-[color:var(--border)] bg-[color:var(--bg)] px-3 py-2">
+                    <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--muted)] mb-1.5">
+                      program runtime
+                      <span className="normal-case tracking-normal ml-1.5 opacity-70">
+                        — how long the binary ran
+                      </span>
+                    </p>
+                    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                      <p className="font-mono text-sm text-[color:var(--fg)] tabular">
+                        <span className="text-[color:var(--accent)]">
+                          {formatRunMs(result.runMs)}
+                        </span>
+                        <span className="text-[10px] text-[color:var(--muted)] ml-1.5">
+                          with current opts
+                        </span>
+                      </p>
+                      {result.baselineRunMs != null && (
+                        <p className="font-mono text-xs text-[color:var(--muted)] tabular">
+                          {formatRunMs(result.baselineRunMs)}
+                          <span className="text-[10px] ml-1.5">unoptimized</span>
+                        </p>
+                      )}
+                      {result.baselineRunMs != null &&
+                        result.baselineRunMs > 0 &&
+                        result.runMs > 0 && (
+                          <p className="font-mono text-xs tabular">
+                            {result.baselineRunMs / result.runMs >= 1.05 ? (
+                              <span className="text-[color:var(--accent)]">
+                                {(result.baselineRunMs / result.runMs).toFixed(2)}×
+                                faster
+                              </span>
+                            ) : result.runMs / result.baselineRunMs >= 1.05 ? (
+                              <span className="text-[color:var(--muted)]">
+                                {(result.runMs / result.baselineRunMs).toFixed(2)}×
+                                slower
+                              </span>
+                            ) : (
+                              <span className="text-[color:var(--muted)]">
+                                ≈ same as unopt
+                              </span>
+                            )}
+                          </p>
+                        )}
+                    </div>
+                  </div>
+                )}
+
                 {result.linkError ? (
                   <pre className="font-mono text-xs whitespace-pre-wrap break-words text-[color:var(--accent)]">
                     {result.linkError}
                   </pre>
-                ) : (
+                ) : result.programOutput !== undefined ? (
                   <pre className="font-mono text-xs whitespace-pre-wrap break-words max-h-64 overflow-auto">
                     {result.programOutput || "(no output)"}
                   </pre>
-                )}
+                ) : null}
               </div>
             )}
 
             {result?.layerMs &&
               Object.values(result.layerMs).some((v) => (v ?? 0) > 0) && (
                 <div className="rounded-lg border border-[color:var(--border)] p-4">
-                  <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--muted)] mb-3">
-                    Per-layer wall time
+                  <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--muted)] mb-1">
+                    Compile time
+                  </p>
+                  <p className="text-[10px] text-[color:var(--muted)] mb-3 leading-snug">
+                    How long the compiler took to emit each layer — not how fast
+                    the program runs.
                   </p>
                   <TimingBars layerMs={result.layerMs} layers={["LA", "IR", "L3", "L2", "L1"]} />
                 </div>
@@ -806,13 +979,21 @@ export default function CompilerVisualizer({
 
             <div className="rounded-lg border border-[color:var(--border)] p-4 text-xs text-[color:var(--muted)] leading-relaxed">
               <p>
-                Every layer is <em>real output</em> from the compiler binary running
-                on your input inside a Linux sandbox — same code that won the class
-                competition.
+                Transforms run in-browser via WebAssembly.{" "}
+                <span className="text-[color:var(--fg)]">▸▸ run</span> links the
+                x86 and times the binary on the server. Check{" "}
+                <span className="text-[color:var(--fg)]">vs unopt</span> to also
+                time an all-opts-off build for a speedup comparison.
               </p>
               {result?.totalMs != null && (
                 <p className="mt-2 font-mono tabular text-[color:var(--fg)]">
-                  round-trip: {result.totalMs} ms
+                  compile: {result.totalMs} ms
+                  {result.runMs != null && (
+                    <span className="text-[color:var(--muted)]">
+                      {" "}
+                      · program: {formatRunMs(result.runMs)}
+                    </span>
+                  )}
                 </p>
               )}
             </div>
@@ -828,7 +1009,7 @@ export default function CompilerVisualizer({
           </h2>
         </div>
         <p className="text-[color:var(--muted)] max-w-2xl mb-8">
-          Canonical illustrations of three passes, at the scale of a single
+          Canonical illustrations of every IR pass, at the scale of a single
           transformation. Flip the toggles in the sidebar above to see the same
           passes running on your actual code — this is just the explainer.
         </p>
@@ -1087,8 +1268,9 @@ function OptGallery({ examples }: { examples: OptExample[] }) {
             <p className="font-serif text-2xl leading-tight">{active.fullName}</p>
             <p className="text-[color:var(--muted)] mt-1">{active.tagline}</p>
           </div>
+          {/* Mobile-only: desktop already shows both panes side-by-side */}
           <div
-            className="inline-flex items-center rounded-full border border-[color:var(--border)] p-0.5 font-mono text-xs"
+            className="inline-flex md:hidden items-center rounded-full border border-[color:var(--border)] p-0.5 font-mono text-xs"
             role="tablist"
             aria-label="Before/After toggle"
           >

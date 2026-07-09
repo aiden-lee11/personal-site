@@ -1,15 +1,28 @@
 // fibonacci
-// iterative approach
+// iterative approach — fib(20) is 6765 (fits in int64); outer loop
+// repeats it enough that opt vs unopt runtime is measurable
 
 void main() {
     int64 res
-    res <- fibonacci(20)
+    int64 i
+    int64 n
+    int64 if
+    n <- 5000000
+    i <- 0
+    res <- 0
 
-    // 6765
-    print(res) 
+    :outer
+        if <- i < n
+        br if :outerBody :outerDone
+        :outerDone
+        // 6765
+        print(res)
+        return
 
-    // finally no encoding
-    return
+        :outerBody
+        res <- fibonacci(20)
+        i <- i + 1
+        br :outer
 }
 
 int64 fibonacci(int64 k) {
