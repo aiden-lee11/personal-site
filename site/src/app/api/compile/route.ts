@@ -36,7 +36,7 @@ import { spawn } from "node:child_process";
 // x86 that opens a socket) and reach the network from inside the container.
 // The mitigation is: (a) strict CPU/mem/time/pid caps below, (b) the per-IP
 // rate limit, (c) the source-size cap, and (d) Railway's container isolation
-// keeping this off the host and off other tenants. See DEPLOY.md.
+// keeping this off the host and off other tenants.
 // ---------------------------------------------------------------------------
 
 // Every layer in the pipeline. Order matters — index defines fan-out from
@@ -66,7 +66,7 @@ function stageBin(layer: Exclude<Layer, "S">): string {
 
 const MAX_SOURCE_BYTES = 128 * 1024;
 // Outer wall-clock ceiling for the whole compile chain. Railway's edge proxy
-// must comfortably exceed this (see DEPLOY.md); keep programs fast.
+// must comfortably exceed this; keep programs fast.
 const COMPILE_TIMEOUT_MS = 90_000;
 // Per-exec wall for the linked program. Needs headroom so unoptimized builds
 // can finish and show a real slowdown vs opt.
