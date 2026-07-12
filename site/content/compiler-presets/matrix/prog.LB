@@ -1,0 +1,133 @@
+
+void main ()
+{
+  int64[][] m
+  int64 v
+  int64 r
+  v <- 21
+  m <- new Array (4, 4)
+  initMatrix(m, 0)
+  r <- checkMatrix(m, v)
+  print(r)
+  initMatrix(m, 0)
+  m[0][0] <- v
+  r <- checkMatrix(m, v)
+  print(r)
+  initMatrix(m, 0)
+  m[0][1] <- v
+  r <- checkMatrix(m, v)
+  print(r)
+  initMatrix(m, 0)
+  m[1][0] <- v
+  r <- checkMatrix(m, v)
+  print(r)
+  initMatrix(m, 0)
+  m[3][0] <- v
+  r <- checkMatrix(m, v)
+  print(r)
+  initMatrix(m, 0)
+  m[3][1] <- v
+  r <- checkMatrix(m, v)
+  print(r)
+  initMatrix(m, 0)
+  m[3][3] <- v
+  r <- checkMatrix(m, v)
+  print(r)
+  return 
+}
+
+
+
+
+
+void initMatrix (int64[][] m, int64 initValue)
+{
+  int64 index
+  int64 l2
+  int64 l1
+  l1 <- length m 0
+  l2 <- length m 1
+  index <- 0
+  while (index < l1) :new_label0 :new_label3 
+  :new_label0
+  {
+  int64 index2
+  index2 <- 0
+  while (index2 < l2) :new_label1 :new_label2 
+  :new_label1
+  {
+  m[index][index2] <- initValue
+  index2 <- index2 + 1
+}
+
+
+  continue
+  :new_label2
+  index <- index + 1
+}
+
+
+  continue
+  :new_label3
+  return 
+}
+
+
+
+
+
+int64 checkMatrix (int64[][] m, int64 v)
+{
+  int64 found
+  int64 index
+  int64 l2
+  int64 l1
+  l1 <- length m 0
+  l2 <- length m 1
+  found <- 0
+  index <- 0
+  print(m)
+  print(v)
+  while (index < l1) :new_label0 :new_label6 
+  :new_label0
+  {
+  int64 index2
+  index2 <- 0
+  while (index2 < l2) :new_label1 :new_label5 
+  :new_label1
+  {
+  int64 e
+  e <- m[index][index2]
+  if (e = v) :new_label2 :new_label3 
+  :new_label2
+  {
+  found <- 1
+  break
+}
+
+
+  goto :new_label4
+  :new_label3
+  {
+}
+
+
+  :new_label4
+  index2 <- index2 + 1
+}
+
+
+  continue
+  :new_label5
+  index <- index + 1
+}
+
+
+  continue
+  :new_label6
+  return found
+}
+
+
+
+

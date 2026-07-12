@@ -1,0 +1,10 @@
+// a branch whose condition is constant-false, so the true arm is dead
+// code the optimizer can prune; only the else arm ever runs -> prints 3
+void main () {
+  if (1 < 0) {
+    print(1)
+  } else {
+    print(3)
+  }
+  return
+}

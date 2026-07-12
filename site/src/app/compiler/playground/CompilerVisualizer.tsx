@@ -31,10 +31,22 @@ type CompileResult = {
   /** Same measurement with all IR opts off — for speedup comparison. */
   baselineRunMs?: number;
   linkError?: string;
+  /** LC/LB server runtime unreachable/absent — NOT a real compile error. */
+  serverUnavailable?: boolean;
 };
 
-// The compiler doesn't emit S itself — you can only pick a `from` up to L1.
-const FROM_LAYERS: Layer[] = ["LA", "IR", "L3", "L2", "L1"];
+// Pickable start layers, top of the tower first. S is a sink (never a source),
+// so the list stops at L1. LC/LB lower server-side (instructor binaries); LA
+// and below transform in-browser.
+const FROM_LAYERS: Layer[] = ["LC", "LB", "LA", "IR", "L3", "L2", "L1"];
+
+// A preset's preferred entry point: its LC source (top of the tower) when the
+// LC file exists, else fall back to LA. Presets may not yet ship a prog.LC
+// (loadPreset returns "" for a missing layer file).
+function preferredStart(p: PresetBundle): { source: string; from: Layer } {
+  if (p.layers.LC && p.layers.LC.trim()) return { source: p.layers.LC, from: "LC" };
+  return { source: p.layers.LA, from: "LA" };
+}
 
 // Every IR pass with a --no-<slug> flag exposed by compiler-src/IR/src/compiler.cpp
 const IR_PASSES = [
@@ -53,6 +65,19 @@ const IR_PASSES = [
 type IrPassId = (typeof IR_PASSES)[number]["id"];
 
 type OptFlags = Partial<Record<IrPassId, boolean>>;
+
+// Passes enabled per demo. Most isolate their own pass; loop-dse needs two
+// enablers to expose the pattern (it only sees the fill loop once sccp folds
+// the stored constant and vra-bce strips the in-loop bounds checks), and
+// combo deliberately stacks three.
+const DEMO_PASSES: Record<PassDemoId, IrPassId[]> = {
+  dce: ["dce"], licm: ["licm"], sccp: ["sccp"], gvn: ["gvn"],
+  "copy-prop": ["copy-prop"], algebra: ["algebra"], peephole: ["peephole"],
+  "vra-bce": ["vra-bce"], "simplify-cfg": ["simplify-cfg"],
+  "cmov-synth": ["cmov-synth"],
+  "loop-dse": ["loop-dse", "sccp", "vra-bce"],
+  combo: ["sccp", "dce", "licm"],
+};
 
 function defaultOptFlags(): OptFlags {
   const o: OptFlags = {};
@@ -111,17 +136,23 @@ export default function CompilerVisualizer({
   layerTagline,
 }: Props) {
   const initialPreset = presets[2] ?? presets[0]; // default fib
-  const [source, setSource] = useState(initialPreset.layers.LA);
-  const [fromLayer, setFromLayer] = useState<Layer>("LA");
+  const initialStart = preferredStart(initialPreset);
+  const [source, setSource] = useState(initialStart.source);
+  const [fromLayer, setFromLayer] = useState<Layer>(initialStart.from);
   const [activePresetSlug, setActivePresetSlug] = useState<string | null>(
     initialPreset.meta.slug,
   );
 
-  // Persist current source + fromLayer on every change so refresh preserves work.
+  // Persist current source + fromLayer on every change so refresh preserves
+  // work. Keys are versioned: v2 marks the LC-era chain. Pre-LC sessions
+  // under the unversioned keys are ignored on rehydrate and deleted here, so
+  // returning visitors land on the LC-first default instead of a stale LA one.
   useEffect(() => {
     try {
-      localStorage.setItem("aiden-compiler:source", source);
-      localStorage.setItem("aiden-compiler:from", fromLayer);
+      localStorage.setItem("aiden-compiler:v2:source", source);
+      localStorage.setItem("aiden-compiler:v2:from", fromLayer);
+      localStorage.removeItem("aiden-compiler:source");
+      localStorage.removeItem("aiden-compiler:from");
     } catch { /* SSR / private mode / quota — ignore */ }
   }, [source, fromLayer]);
   const [optFlags, setOptFlags] = useState<OptFlags>(defaultOptFlags);
@@ -134,6 +165,9 @@ export default function CompilerVisualizer({
   const [pending, setPending] = useState(false);
   const [baselinePending, setBaselinePending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Non-alarming note shown when a preset silently fell back from LC to LA
+  // because the LC/LB server runtime isn't available (e.g. local dev).
+  const [fallbackNote, setFallbackNote] = useState<string | null>(null);
   const [initialTried, setInitialTried] = useState(false);
   const activeReq = useRef(0);
   const baselineReq = useRef(0);
@@ -146,22 +180,48 @@ export default function CompilerVisualizer({
       preserveLayer?: boolean;
       selectLayer?: Layer;
       run?: boolean;
+      /** Internal: this call IS the LA fallback — never fall back again. */
+      _laFallback?: boolean;
     }) => {
       const reqId = ++activeReq.current;
       setPending(true);
       setError(null);
+      if (!opts?._laFallback) setFallbackNote(null);
       const prevLayer = selectedLayer;
       const reqSource = opts?.source ?? source;
       const reqFrom = opts?.fromLayer ?? fromLayer;
       const reqFlags = opts?.optFlags ?? optFlags;
       try {
-        // The transform pipeline runs entirely in the browser (wasm) — no network.
+        // LA and below transform in the browser (wasm); LC/LB delegate to the
+        // server runtime inside runTransform.
         const data: CompileResult = await runTransform({
           source: reqSource,
           fromLayer: reqFrom,
           optFlags: reqFlags,
         });
         if (activeReq.current !== reqId) return; // stale
+        // One-shot LA fallback: the LC/LB server runtime is absent (local
+        // dev, static deploy) and the source is an untouched preset layer —
+        // reload that preset from LA so the page opens on working output
+        // instead of an error. Matching the exact preset text means custom
+        // user code is never clobbered.
+        if (
+          !data.ok &&
+          data.serverUnavailable &&
+          !opts?._laFallback &&
+          (reqFrom === "LC" || reqFrom === "LB")
+        ) {
+          const p = presets.find((x) => x.layers[reqFrom] === reqSource);
+          if (p?.layers.LA) {
+            setSource(p.layers.LA);
+            setFromLayer("LA");
+            setFallbackNote(
+              "LC/LB lower server-side — not available here, so this preset loaded from LA (fully in-browser)",
+            );
+            compile({ ...opts, source: p.layers.LA, fromLayer: "LA", _laFallback: true });
+            return;
+          }
+        }
         setResult(data);
         if (!data.ok) {
           setError(data.error ?? "compilation failed");
@@ -234,36 +294,40 @@ export default function CompilerVisualizer({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fromLayer, layers, optFlags, source, selectedLayer, compareMode, compareRuntime],
+    [fromLayer, layers, optFlags, source, selectedLayer, compareMode, compareRuntime, presets],
   );
 
   const loadPreset = useCallback(
     (slug: string) => {
       const p = presets.find((x) => x.meta.slug === slug) ?? initialPreset;
+      const start = preferredStart(p);
       setActivePresetSlug(slug);
-      setSource(p.layers.LA);
-      setFromLayer("LA");
-      compile({ source: p.layers.LA, fromLayer: "LA", run: true });
+      setSource(start.source);
+      setFromLayer(start.from);
+      compile({ source: start.source, fromLayer: start.from, run: true });
     },
     [presets, initialPreset, compile],
   );
 
-  // When the user changes "start at" — if a preset is loaded, swap the editor to
-  // that preset's source at the chosen layer. If they'd edited into custom code,
-  // preset is cleared so we don't clobber their work.
+  // When the user changes "start at" — if a preset is loaded (or the editor
+  // still holds a preset layer verbatim, e.g. after a localStorage rehydrate
+  // cleared the slug), swap the editor to that preset's source at the chosen
+  // layer. Truly custom code is left alone so we don't clobber their work.
   const setFromLayerAndSwap = useCallback(
     (L: Layer) => {
       setFromLayer(L);
-      if (activePresetSlug) {
-        const p = presets.find((x) => x.meta.slug === activePresetSlug);
-        const next = p?.layers[L];
-        if (next) {
-          setSource(next);
-          compile({ source: next, fromLayer: L });
-        }
+      const p = activePresetSlug
+        ? presets.find((x) => x.meta.slug === activePresetSlug)
+        : presets.find((x) =>
+            Object.values(x.layers).some((txt) => txt && txt === source),
+          );
+      const next = p?.layers[L];
+      if (next) {
+        setSource(next);
+        compile({ source: next, fromLayer: L });
       }
     },
-    [activePresetSlug, presets, compile],
+    [activePresetSlug, presets, source, compile],
   );
 
   // Debounced auto-recompile when the user flips a pass toggle. Keeps the
@@ -320,21 +384,17 @@ export default function CompilerVisualizer({
     [source, fromLayer],
   );
 
-  // Load a per-pass demo — sets source, enables *only* that pass so the diff
-  // isolates its effect, and (if in compare mode) refreshes the baseline.
+  // Load a per-pass demo — drops straight into the IR (it's where the passes
+  // live, so the stepper shows IR → L3 → L2 → L1 → S), enables the demo's
+  // pass set (see DEMO_PASSES) so the diff isolates its effect, and refreshes
+  // the baseline. IR and below run fully in-browser — no server needed.
   const loadDemo = useCallback(
     (id: PassDemoId) => {
       const src = PASS_DEMOS[id];
       if (!src) return;
       const next: OptFlags = {};
       for (const p of IR_PASSES) next[p.id] = false;
-      if (id !== "combo" && (IR_PASSES as ReadonlyArray<{ id: string }>).some((p) => p.id === id)) {
-        next[id as IrPassId] = true;
-      } else if (id === "combo") {
-        next.sccp = true;
-        next.dce = true;
-        next.licm = true;
-      }
+      for (const on of DEMO_PASSES[id]) next[on] = true;
       // Each demo has a "best view" layer where its transformation is most legible.
       // IR passes are visible at L3 (the first layer emitted post-SSA); low-level
       // idioms like cmov synthesis and peephole are easier to see on final x86.
@@ -346,17 +406,17 @@ export default function CompilerVisualizer({
       };
       setActivePresetSlug(null);
       setSource(src);
-      setFromLayer("LA");
+      setFromLayer("IR");
       setOptFlags(next);
       setCompareMode(true);
       compile({
         source: src,
-        fromLayer: "LA",
+        fromLayer: "IR",
         optFlags: next,
         selectLayer: preferred[id],
         run: true,
       });
-      compileBaseline({ source: src, fromLayer: "LA" });
+      compileBaseline({ source: src, fromLayer: "IR" });
     },
     [compile, compileBaseline],
   );
@@ -378,8 +438,8 @@ export default function CompilerVisualizer({
       }
     } catch { /* malformed query — fall through */ }
 
-    let src = initialPreset.layers.LA;
-    let from: Layer = "LA";
+    let src = initialStart.source;
+    let from: Layer = initialStart.from;
     let flags: OptFlags | undefined;
     let hydratedFromUrl = false;
 
@@ -397,7 +457,7 @@ export default function CompilerVisualizer({
           setActivePresetSlug(null);
           hydratedFromUrl = true;
         }
-        if (f && (["LA","IR","L3","L2","L1"] as string[]).includes(f)) {
+        if (f && (["LC","LB","LA","IR","L3","L2","L1"] as string[]).includes(f)) {
           from = f;
           setFromLayer(f);
         }
@@ -413,14 +473,14 @@ export default function CompilerVisualizer({
     } catch { /* malformed — fall through to localStorage */ }
 
     if (!hydratedFromUrl) try {
-      const saved = localStorage.getItem("aiden-compiler:source");
-      const savedFrom = localStorage.getItem("aiden-compiler:from") as Layer | null;
+      const saved = localStorage.getItem("aiden-compiler:v2:source");
+      const savedFrom = localStorage.getItem("aiden-compiler:v2:from") as Layer | null;
       if (saved) {
         src = saved;
         setSource(saved);
-        if (saved !== initialPreset.layers.LA) setActivePresetSlug(null);
+        if (saved !== initialStart.source) setActivePresetSlug(null);
       }
-      if (savedFrom && (["LA","IR","L3","L2","L1"] as string[]).includes(savedFrom)) {
+      if (savedFrom && (["LC","LB","LA","IR","L3","L2","L1"] as string[]).includes(savedFrom)) {
         from = savedFrom;
         setFromLayer(savedFrom);
       }
@@ -636,6 +696,9 @@ export default function CompilerVisualizer({
           {!activePresetSlug && !pending && !error && result?.ok && (
             <span className="text-[color:var(--muted)]">· custom source</span>
           )}
+          {fallbackNote && !pending && !error && (
+            <span className="text-[color:var(--muted)]">· {fallbackNote}</span>
+          )}
         </div>
         {error && !pending && (
           <div className="mt-3 rounded-lg border border-[color:var(--accent)] bg-[color:var(--subtle)] p-3">
@@ -671,7 +734,7 @@ export default function CompilerVisualizer({
 
         {/* Layer stepper */}
         <div className="mb-6">
-          <div className="grid grid-cols-6 gap-1">
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-1">
             {layers.map((L) => {
               const active = L === selectedLayer;
               const produced = !!result?.layers?.[L];
@@ -940,13 +1003,16 @@ export default function CompilerVisualizer({
                     How long the compiler took to emit each layer — not how fast
                     the program runs.
                   </p>
-                  <TimingBars layerMs={result.layerMs} layers={["LA", "IR", "L3", "L2", "L1"]} />
+                  <TimingBars layerMs={result.layerMs} layers={["LC", "LB", "LA", "IR", "L3", "L2", "L1"]} />
                 </div>
               )}
 
             <div className="rounded-lg border border-[color:var(--border)] p-4 text-xs text-[color:var(--muted)] leading-relaxed">
               <p>
-                Transforms run in-browser via WebAssembly.{" "}
+                LA and below transform in-browser via WebAssembly; the LC and
+                LB stages lower server-side via the CS 322 instructor&apos;s
+                reference binaries (LA → x86-64 is my code; the LC/LB binaries
+                are the same ones I used during the class competition).{" "}
                 <span className="text-[color:var(--fg)]">▸▸ run</span> links the
                 x86 and times the binary on the server. Check{" "}
                 <span className="text-[color:var(--fg)]">vs unopt</span> to also

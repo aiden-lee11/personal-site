@@ -1,0 +1,4 @@
+// the smallest program that compiles: an empty entry point
+void main () {
+  return
+}

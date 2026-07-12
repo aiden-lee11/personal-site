@@ -1,0 +1,46 @@
+// fibonacci
+// iterative approach — fib(20) is 6765 (fits in int); the outer loop
+// repeats the computation 5,000,000 times so opt vs unopt runtime is
+// measurable
+void main () {
+  int res, i, n
+  n <- 5000000
+  i <- 0
+  res <- 0
+
+  while (i < n) {
+    res <- fibonacci(20)
+    i <- i + 1
+  }
+
+  // 6765
+  print(res)
+  return
+}
+
+int fibonacci (int k) {
+  // early-outs for the two base cases
+  if (k = 1) {
+    return 1
+  } else {
+    if (k = 2) {
+      return 1
+    } else {
+      int a, b, i, res
+      a <- 1
+      b <- 1
+      i <- 3
+      res <- 0
+
+      while (i <= k) {
+        res <- a
+        res <- res + b
+        a <- b
+        b <- res
+        i <- i + 1
+      }
+
+      return res
+    }
+  }
+}

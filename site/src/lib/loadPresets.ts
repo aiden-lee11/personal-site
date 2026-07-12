@@ -1,10 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export const LAYERS = ["LA", "IR", "L3", "L2", "L1", "S"] as const;
+export const LAYERS = ["LC", "LB", "LA", "IR", "L3", "L2", "L1", "S"] as const;
 export type Layer = (typeof LAYERS)[number];
 
+// LC and LB are lowered by the CS 322 instructor reference binaries (I built
+// LA and below); they only run server-side — see /api/compile.
+export const SERVER_ONLY_LAYERS: readonly Layer[] = ["LC", "LB"];
+
 export const LAYER_LABEL: Record<Layer, string> = {
+  LC: "LC",
+  LB: "LB",
   LA: "LA",
   IR: "IR",
   L3: "L3",
@@ -14,7 +20,9 @@ export const LAYER_LABEL: Record<Layer, string> = {
 };
 
 export const LAYER_TAGLINE: Record<Layer, string> = {
-  LA: "Source — a small C-like language with 1-D and n-D array primitives",
+  LC: "Top of the tower — the most C-like layer: if/else, while, do-while, for, break/continue, nested scopes",
+  LB: "Control flow starts naming its targets — if and while jump to explicit labels; scopes and loops remain",
+  LA: "Scopes and loops lowered away — straight-line code with conditional br to labels, plus 1-D and n-D array primitives",
   IR: "SSA intermediate representation — φ-nodes, cleaned CFG, where all the optimization passes live",
   L3: "Post-SSA linear IR — three-address ops, calls, memory as loads/stores",
   L2: "Register-abstract IR — infinite virtual regs, right before register allocation",

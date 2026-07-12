@@ -2,13 +2,21 @@
 // (LA -> IR -> L3 -> L2 -> L1, where L1 emits x86-64 "S" text) entirely
 // client-side, mirroring the shape the /api/compile route returns for
 // transforms. Designed to run inside a Web Worker.
+//
+// LC and LB are in the Layer union (so types line up with the rest of the UI)
+// but have NO wasm module — they are instructor reference binaries that only
+// run server-side. client.ts delegates fromLayer LC/LB to /api/compile and
+// never posts them here; runPipeline guards against it defensively anyway.
 
 import type { LayerFactory, LayerModule } from "./layer-modules";
 
-export const CHAIN = ["LA", "IR", "L3", "L2", "L1", "S"] as const;
+// Full pipeline, matching loadPresets' LAYERS. Only LA and below have wasm
+// modules (see NEXT below); LC/LB are server-only.
+export const CHAIN = ["LC", "LB", "LA", "IR", "L3", "L2", "L1", "S"] as const;
 export type Layer = (typeof CHAIN)[number];
 
-// The layer each step produces (source layer -> output file layer).
+// The layer each step produces (source layer -> output file layer). Only the
+// wasm-capable stages appear here — LC/LB are handled server-side.
 const NEXT: Record<string, Layer> = {
   LA: "IR",
   IR: "L3",
@@ -48,6 +56,10 @@ export type PipelineResult = {
   layerMs: Partial<Record<Layer, number>>;
   totalMs: number;
   error?: string;
+  // True only when the LC/LB server runtime was unreachable or absent (503,
+  // network failure, non-JSON reply) — never for a genuine compile error.
+  // Lets the UI fall back to a preset's LA layer instead of showing an error.
+  serverUnavailable?: boolean;
 };
 
 // Base URL for the emitted wasm assets in /public/wasm.
@@ -138,6 +150,20 @@ export async function runPipeline(
   const layers: Partial<Record<Layer, string>> = {};
   const errors: Partial<Record<Layer, string>> = {};
   const layerMs: Partial<Record<Layer, number>> = {};
+
+  // Defensive: LC/LB have no wasm module (server-only instructor binaries).
+  // client.ts routes these to /api/compile and must never post them here.
+  if (fromLayer === "LC" || fromLayer === "LB") {
+    return {
+      ok: false,
+      layers: { [fromLayer]: source },
+      errors: {},
+      layerMs: {},
+      totalMs: 0,
+      error:
+        "LC/LB lower server-side via the instructor reference binaries — the in-browser wasm pipeline starts at LA",
+    };
+  }
 
   // The route cats every prog.* including the input layer.
   layers[fromLayer] = source;

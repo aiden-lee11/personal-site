@@ -1,0 +1,93 @@
+// nested loops over a 2-D array: zero the matrix, plant a single value in
+// one cell, then scan the whole grid for it. each scan prints the matrix,
+// the value being searched for, and 1/0 for found/not-found.
+void main () {
+  int[][] m
+  int r, v
+  v <- 21
+  m <- new Array(4, 4)
+
+  // empty matrix — the value is absent, so found is 0
+  initMatrix(m, 0)
+  r <- checkMatrix(m, v)
+  print(r)
+
+  // plant the value in each corner/edge in turn; found is 1 every time
+  initMatrix(m, 0)
+  m[0][0] <- v
+  r <- checkMatrix(m, v)
+  print(r)
+
+  initMatrix(m, 0)
+  m[0][1] <- v
+  r <- checkMatrix(m, v)
+  print(r)
+
+  initMatrix(m, 0)
+  m[1][0] <- v
+  r <- checkMatrix(m, v)
+  print(r)
+
+  initMatrix(m, 0)
+  m[3][0] <- v
+  r <- checkMatrix(m, v)
+  print(r)
+
+  initMatrix(m, 0)
+  m[3][1] <- v
+  r <- checkMatrix(m, v)
+  print(r)
+
+  initMatrix(m, 0)
+  m[3][3] <- v
+  r <- checkMatrix(m, v)
+  print(r)
+  return
+}
+
+// fill every cell of the matrix with initValue
+void initMatrix (int[][] m, int initValue) {
+  int l1, l2, index
+  l1 <- length m 0
+  l2 <- length m 1
+  index <- 0
+
+  while (index < l1) {
+    int index2
+    index2 <- 0
+    while (index2 < l2) {
+      m[index][index2] <- initValue
+      index2 <- index2 + 1
+    }
+    index <- index + 1
+  }
+  return
+}
+
+// return 1 if v appears anywhere in m, 0 otherwise
+int checkMatrix (int[][] m, int v) {
+  int l1, l2, index, found
+  l1 <- length m 0
+  l2 <- length m 1
+  found <- 0
+  index <- 0
+  print(m)
+  print(v)
+
+  while (index < l1) {
+    int index2
+    index2 <- 0
+    while (index2 < l2) {
+      int e
+      e <- m[index][index2]
+      if (e = v) {
+        found <- 1
+        break
+      } else {
+      }
+      index2 <- index2 + 1
+    }
+    index <- index + 1
+  }
+  return found
+}
