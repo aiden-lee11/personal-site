@@ -2,279 +2,225 @@ import Link from "next/link";
 import { profile } from "@/data/profile";
 import { projects } from "@/data/projects";
 import { experience } from "@/data/experience";
-import { getAllPosts } from "@/lib/posts";
+
+const STATUS = [
+  ["Work", "Pinterest", "SWE intern"],
+  ["Focus", "On-call agents", "Kafka / MCP"],
+  ["School", "Northwestern CS", "Class of 2027"],
+  ["Based", "Evanston", "Illinois"],
+];
+
+const STATS = [
+  ["536 ms", "winning benchmark"],
+  ["18×", "faster than GCC"],
+  ["21K+", "lines of C++"],
+  ["10+", "optimization passes"],
+];
+
+const PIPELINE = [
+  "LA · typed source",
+  "IR · control flow",
+  "L3 · instruction selection",
+  "L2 · register allocation",
+  "L1 · machine operations",
+  "x86-64 · assembly",
+];
+
+function Section({
+  label,
+  aside,
+  children,
+}: {
+  label: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border-t border-[color:var(--border)] py-14 sm:py-20">
+      <div className="grid gap-8 md:grid-cols-[12rem_1fr] md:gap-12 lg:gap-20">
+        <div className="flex items-baseline justify-between gap-4 md:block">
+          <p className="eyebrow md:sticky md:top-24">{label}</p>
+          {aside && <div className="md:mt-4">{aside}</div>}
+        </div>
+        <div>{children}</div>
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   const featuredProject = projects.find((p) => p.featured) ?? projects[0];
   const otherProjects = projects.filter((p) => p.slug !== featuredProject.slug).slice(0, 3);
-  const posts = getAllPosts().slice(0, 3);
   const featuredRole = experience.find((r) => r.featured) ?? experience[0];
+  const pastRoles = experience.filter((r) => !r.featured);
 
   return (
     <div className="mx-auto max-w-5xl px-6">
       {/* Hero */}
-      <section className="pt-20 pb-16 sm:pt-28 sm:pb-24">
-        <p className="font-mono text-xs text-[color:var(--muted)] mb-6 tracking-wide uppercase">
-          Northwestern CS · Spring 2027
+      <section className="grid gap-x-16 gap-y-12 pt-20 pb-16 sm:pt-28 lg:grid-cols-[1fr_15rem]">
+        <div>
+          <p className="eyebrow">Aiden Lee — Software engineer</p>
+          <h1 className="mt-8 text-[clamp(2.75rem,6vw,5rem)] font-semibold leading-[0.92] tracking-[-0.045em]">
+            Compilers.
+            <br />
+            Infrastructure.
+            <br />
+            <span className="text-[color:var(--accent)]">Developer tools.</span>
+          </h1>
+          <p className="mt-9 max-w-xl text-lg leading-relaxed text-[color:var(--muted)]">
+            I&apos;m a Northwestern CS student, currently at Pinterest. I like
+            making people&apos;s lives easier, and I like code that runs fast.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center gap-3">
+            <Link href="/compiler" className="btn btn-primary">
+              Explore my compiler <span aria-hidden>↗</span>
+            </Link>
+            <Link href="/projects" className="btn btn-ghost">
+              View projects <span aria-hidden>→</span>
+            </Link>
+          </div>
+        </div>
+
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-8 self-end lg:grid-cols-1 lg:gap-y-7">
+          {STATUS.map(([label, value, detail]) => (
+            <div key={label}>
+              <dt className="eyebrow">{label}</dt>
+              <dd className="mt-2 text-sm font-medium">{value}</dd>
+              <dd className="mt-0.5 font-mono text-[11px] text-[color:var(--muted)]">
+                {detail}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      {/* Featured — the compiler */}
+      <Section label="Featured project">
+        <h2 className="text-4xl sm:text-5xl font-semibold tracking-[-0.035em]">
+          {featuredProject.title}
+        </h2>
+        <p className="mt-5 max-w-xl text-[color:var(--muted)] leading-relaxed">
+          A C-like language lowered through six intermediate layers to x86-64 —
+          the whole pipeline runs live in this site.
         </p>
-        <h1 className="font-serif text-[2.5rem] leading-[1.05] sm:text-6xl lg:text-7xl tracking-tight max-w-3xl">
-          Hi, I&apos;m Aiden.
-          <br />
-          <span className="text-[color:var(--muted)]">
-            I build{" "}
-            <span className="text-[color:var(--fg)] italic">compilers</span>,{" "}
-            <span className="text-[color:var(--fg)] italic">distributed systems</span>,
-            <br className="hidden sm:block" />
-            and interactive tools.
-          </span>
-        </h1>
-        <p className="mt-8 text-base sm:text-lg text-[color:var(--muted)] max-w-2xl leading-relaxed">
-          Currently interning at <span className="text-[color:var(--fg)]">Pinterest</span> on
-          agent tooling for oncall. I care about work that&apos;s fast enough to feel invisible
-          and clear enough to teach — the last one is why my compiler lives inside this
-          site as{" "}
-          <Link
-            href="/compiler"
-            className="text-[color:var(--accent)] underline underline-offset-4 decoration-1 hover:decoration-2"
-          >
-            an interactive visualizer
-          </Link>
-          .
-        </p>
-        <div className="mt-10 flex flex-wrap gap-3 font-mono text-sm">
-          <Link
-            href="/compiler/playground"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[color:var(--fg)] text-[color:var(--bg)] hover:bg-[color:var(--accent)] transition-colors"
-          >
-            <span>Try the compiler playground</span>
-            <span aria-hidden>→</span>
-          </Link>
+
+        <div className="mt-10 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
+          {STATS.map(([value, label]) => (
+            <div key={label}>
+              <p className="font-mono text-2xl tracking-tight text-[color:var(--accent)]">
+                {value}
+              </p>
+              <p className="mt-1.5 text-xs text-[color:var(--muted)]">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        <ol className="group mt-10 space-y-1 font-mono text-sm">
+          {PIPELINE.map((layer, i) => {
+            const isLast = i === PIPELINE.length - 1;
+            return (
+              <li
+                key={layer}
+                className={`flex items-center gap-3 transition-colors hover:text-[color:var(--fg)]! ${
+                  isLast
+                    ? "text-[color:var(--fg)] group-hover:text-[color:var(--muted)]"
+                    : "text-[color:var(--muted)]"
+                }`}
+              >
+                <span className="w-6 text-[11px] opacity-50">{String(i + 1).padStart(2, "0")}</span>
+                <span>{layer}</span>
+              </li>
+            );
+          })}
+        </ol>
+
+        <Link
+          href={featuredProject.href ?? "/projects"}
+          className="mt-9 inline-block font-mono text-sm link-underline"
+        >
+          Open the interactive compiler ↗
+        </Link>
+      </Section>
+
+      {/* Selected work */}
+      <Section
+        label="Selected work"
+        aside={
           <Link
             href="/projects"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[color:var(--border)] hover:border-[color:var(--fg)] transition-colors"
-          >
-            All projects
-          </Link>
-        </div>
-      </section>
-
-      <hr className="rule-accent" />
-
-      {/* Featured project */}
-      <section className="py-16 sm:py-20">
-        <div className="flex items-baseline justify-between mb-8">
-          <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
-            Featured
-          </h2>
-          <Link
-            href={featuredProject.href ?? "/projects"}
             className="font-mono text-xs text-[color:var(--muted)] hover:text-[color:var(--fg)]"
           >
-            open →
+            All projects →
           </Link>
-        </div>
-        <div className="grid lg:grid-cols-5 gap-8 items-start">
-          <div className="lg:col-span-3">
-            <h3 className="font-serif text-3xl sm:text-4xl tracking-tight leading-tight">
-              {featuredProject.title}
-            </h3>
-            <p className="mt-3 text-[color:var(--muted)] text-lg">
-              {featuredProject.tagline}
-            </p>
-            {/* Mini pipeline — same LA → x86-64 chain the visualizer walks. */}
-            <div className="mt-6 flex items-center gap-2 flex-wrap font-mono text-xs">
-              {["LA", "IR", "L3", "L2", "L1", "x86-64"].map((L, i) => (
-                <span key={L} className="flex items-center gap-2">
-                  <span className="px-2 py-1 rounded bg-[color:var(--subtle)] border border-[color:var(--border)]">
-                    {L}
-                  </span>
-                  {i < 5 && (
-                    <span className="text-[color:var(--accent)] opacity-70">→</span>
-                  )}
-                </span>
-              ))}
-            </div>
-            <ul className="mt-6 space-y-2 text-[15px] leading-relaxed">
-              {featuredProject.bullets.map((b) => (
-                <li key={b} className="flex gap-3">
-                  <span className="text-[color:var(--accent)] mt-[0.5em] shrink-0">▸</span>
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <aside className="lg:col-span-2 lg:pl-8 lg:border-l border-[color:var(--border)]">
-            <p className="font-mono text-xs text-[color:var(--muted)]">Stack</p>
-            <ul className="mt-2 flex flex-wrap gap-1.5">
-              {featuredProject.stack.map((s) => (
-                <li
-                  key={s}
-                  className="font-mono text-[11px] px-2 py-1 rounded bg-[color:var(--subtle)]"
-                >
-                  {s}
-                </li>
-              ))}
-            </ul>
-            <p className="font-mono text-xs text-[color:var(--muted)] mt-6">Period</p>
-            <p className="font-mono text-sm mt-2">{featuredProject.period}</p>
-          </aside>
-        </div>
-      </section>
-
-      <hr className="rule-accent" />
-
-      {/* Other projects */}
-      <section className="py-16 sm:py-20">
-        <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)] mb-8">
-          Selected work
-        </h2>
-        <div className="grid sm:grid-cols-2 gap-x-8 gap-y-10">
+        }
+      >
+        <ul className="space-y-8">
           {otherProjects.map((p) => (
-            <article key={p.slug} className="group">
-              <div className="flex items-baseline gap-3 mb-1">
-                <h3 className="font-serif text-2xl tracking-tight">
-                  {p.href ? (
-                    <Link
-                      href={p.href}
-                      className="group-hover:text-[color:var(--accent)] transition-colors"
-                    >
-                      {p.title}
-                    </Link>
-                  ) : (
-                    p.title
-                  )}
-                </h3>
-                <span className="font-mono text-xs text-[color:var(--muted)] tabular">
-                  {p.period.split(" – ")[0]}
-                </span>
-              </div>
-              <p className="text-[color:var(--muted)] text-sm mb-3">{p.tagline}</p>
-              <ul className="flex flex-wrap gap-1.5">
-                {p.stack.map((s) => (
-                  <li
-                    key={s}
-                    className="font-mono text-[11px] px-2 py-1 rounded bg-[color:var(--subtle)]"
-                  >
-                    {s}
-                  </li>
-                ))}
-              </ul>
-            </article>
+            <li key={p.slug}>
+              <Link href={p.href ?? "/projects"} className="group block">
+                <div className="flex items-baseline justify-between gap-4">
+                  <h3 className="text-xl font-semibold tracking-tight group-hover:text-[color:var(--accent)] transition-colors">
+                    {p.title}
+                  </h3>
+                  <span className="font-mono text-[11px] text-[color:var(--muted)] whitespace-nowrap">
+                    {p.period.split(" – ")[0]}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-sm text-[color:var(--muted)]">{p.tagline}</p>
+                <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[color:var(--muted)] opacity-70">
+                  {p.stack.join(" · ")}
+                </p>
+              </Link>
+            </li>
           ))}
-        </div>
-        <Link
-          href="/projects"
-          className="inline-block mt-10 font-mono text-sm text-[color:var(--muted)] hover:text-[color:var(--accent)]"
-        >
-          → All projects
-        </Link>
-      </section>
+        </ul>
+      </Section>
 
-      <hr className="rule-accent" />
-
-      {/* Now / Experience */}
-      <section className="py-16 sm:py-20">
-        <div className="grid lg:grid-cols-5 gap-8">
-          <div className="lg:col-span-2">
-            <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)] mb-4">
-              Now
-            </h2>
-            <p className="font-serif text-2xl leading-tight">
-              {featuredRole.title} at{" "}
-              <span className="italic">{featuredRole.company}</span>.
-            </p>
-            <p className="font-mono text-xs text-[color:var(--muted)] mt-2 tabular">
-              {featuredRole.start} → {featuredRole.end}
-            </p>
-          </div>
-          <ul className="lg:col-span-3 space-y-3 text-[15px] leading-relaxed">
-            {featuredRole.bullets.map((b) => (
-              <li key={b} className="flex gap-3">
-                <span className="text-[color:var(--accent)] mt-[0.5em] shrink-0">▸</span>
-                <span>{b}</span>
-              </li>
-            ))}
-          </ul>
+      {/* Experience */}
+      <Section label="Right now">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h3 className="text-xl font-semibold">
+            {featuredRole.company} · {featuredRole.title}
+          </h3>
+          <span className="font-mono text-[11px] text-[color:var(--muted)]">
+            {featuredRole.start} — {featuredRole.end}
+          </span>
         </div>
-        <div className="mt-10 pt-8 border-t border-[color:var(--border)] grid sm:grid-cols-2 gap-4">
-          {experience.filter((r) => !r.featured).map((r) => (
-            <div key={r.company} className="font-mono text-sm flex items-baseline gap-3">
-              <span className="text-[color:var(--muted)] tabular whitespace-nowrap">
-                {r.start.split(" ").pop()}
-              </span>
-              <span className="flex-1">
-                <span className="text-[color:var(--fg)]">{r.company}</span>{" "}
-                <span className="text-[color:var(--muted)]">— {r.title}</span>
-              </span>
+        <ul className="mt-5 space-y-3 text-[15px] leading-relaxed text-[color:var(--muted)]">
+          {featuredRole.bullets.map((bullet) => (
+            <li key={bullet} className="flex gap-3">
+              <span className="mt-[0.55em] h-1 w-1 shrink-0 rounded-full bg-[color:var(--accent)]" />
+              <span>{bullet}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-10 grid gap-8 sm:grid-cols-2">
+          {pastRoles.map((role) => (
+            <div key={role.company}>
+              <p className="font-semibold">{role.company}</p>
+              <p className="mt-1 text-sm text-[color:var(--muted)]">{role.title}</p>
+              <p className="mt-2 font-mono text-[10px] text-[color:var(--muted)]">
+                {role.start} — {role.end}
+              </p>
             </div>
           ))}
         </div>
-      </section>
+      </Section>
 
-      {posts.length > 0 && (
-        <>
-          <hr className="rule-accent" />
-          <section className="py-16 sm:py-20">
-            <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)] mb-8">
-              Writing
-            </h2>
-            <ul className="space-y-4">
-              {posts.map((p) => (
-                <li key={p.slug}>
-                  <Link
-                    href={`/writing/${p.slug}`}
-                    className="group flex items-baseline gap-4 py-3 border-b border-[color:var(--border)] hover:border-[color:var(--accent)] transition-colors"
-                  >
-                    <span className="font-mono text-xs text-[color:var(--muted)] tabular whitespace-nowrap">
-                      {p.date ?? ""}
-                    </span>
-                    <span className="font-serif text-xl group-hover:text-[color:var(--accent)] transition-colors">
-                      {p.title}
-                    </span>
-                    <span className="ml-auto font-mono text-xs text-[color:var(--muted)]">
-                      {p.readingTime}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </>
-      )}
+      {/* Writing — hidden for now (only one post). Route still at /writing. */}
 
-      <hr className="rule-accent" />
-
-      {/* Contact strip */}
-      <section className="py-16 sm:py-20">
-        <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)] mb-6">
-          Say hi
-        </h2>
-        <p className="font-serif text-2xl sm:text-3xl leading-tight max-w-2xl">
-          The best way to reach me is{" "}
-          <a
-            href={`mailto:${profile.email}`}
-            className="text-[color:var(--accent)] underline underline-offset-4 decoration-1 hover:decoration-2"
-          >
-            {profile.email}
-          </a>
-          .
+      {/* Contact */}
+      <Section label="Contact">
+        <p className="text-3xl sm:text-4xl font-semibold tracking-[-0.02em] leading-snug">
+          Let&apos;s talk.
         </p>
-        <p className="mt-4 text-[color:var(--muted)]">
-          Or find me on{" "}
-          <a href={profile.github} className="text-[color:var(--fg)] underline underline-offset-4">
-            GitHub
-          </a>
-          ,{" "}
-          <a href={profile.linkedin} className="text-[color:var(--fg)] underline underline-offset-4">
-            LinkedIn
-          </a>
-          , and{" "}
-          <a href={profile.youtube} className="text-[color:var(--fg)] underline underline-offset-4">
-            YouTube
-          </a>
-          .
-        </p>
-      </section>
+        <a
+          href={`mailto:${profile.email}`}
+          className="mt-4 inline-block text-lg link-underline break-all"
+        >
+          {profile.email}
+        </a>
+      </Section>
     </div>
   );
 }

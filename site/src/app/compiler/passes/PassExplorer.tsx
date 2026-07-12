@@ -38,9 +38,6 @@ export default function PassExplorer({ examples }: { examples: OptExample[] }) {
                 >
                   {e.name}
                 </span>
-                <span className="font-mono text-[10px] text-[color:var(--muted)]">
-                  · pass
-                </span>
               </div>
               <div className="text-sm">{e.fullName}</div>
             </button>
@@ -113,7 +110,7 @@ export default function PassExplorer({ examples }: { examples: OptExample[] }) {
           </div>
           <div className="min-w-0">
             <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--accent)] mb-2">
-              After · {active.name}
+              After
             </p>
             <pre className="code-pane max-h-[60vh]">
               <code>{active.after}</code>

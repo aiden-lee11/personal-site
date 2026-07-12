@@ -1,26 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #fafaf7;
-  --fg: #111114;
-  --muted: #6b6b6b;
-  --subtle: #ecebe6;
-  --border: #e6e4de;
-  --accent: #b3591c;
-  --accent-soft: #c5732b;
-  --code-bg: #f4f2ec;
+  --bg: #0b0a0f;
+  --fg: #ece9f2;
+  --muted: #837e91;
+  --subtle: #131118;
+  --border: #211d2a;
+  --accent: #a684f5;
+  --accent-soft: #c3aef8;
+  --code-bg: #100e16;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0d0d0e;
-    --fg: #f0efec;
-    --muted: #8b8a86;
-    --subtle: #1a1a1c;
-    --border: #26262a;
-    --accent: #e8a25e;
-    --accent-soft: #d6863d;
-    --code-bg: #131315;
+    --bg: #0b0a0f;
+    --fg: #ece9f2;
+    --muted: #837e91;
+    --subtle: #131118;
+    --border: #211d2a;
+    --accent: #a684f5;
+    --accent-soft: #c3aef8;
+    --code-bg: #100e16;
   }
 }
 
@@ -41,7 +41,7 @@
 html, body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-sans);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
@@ -53,6 +53,65 @@ html {
 
 body {
   font-feature-settings: "cv11", "ss01";
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Understated primary action — a calm pill, not a hard-edged box. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  line-height: 1;
+  transition:
+    color 200ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease,
+    opacity 200ms ease;
+}
+
+.btn-primary {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.btn-primary:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-ghost {
+  color: var(--muted);
+}
+
+.btn-ghost:hover {
+  color: var(--fg);
+}
+
+/* A quiet inline link with an accent underline that grows on hover. */
+.link-underline {
+  color: var(--fg);
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 1px;
+  padding-bottom: 2px;
+  transition: background-size 200ms ease, color 200ms ease;
+}
+
+.link-underline:hover {
+  color: var(--accent);
+  background-size: 100% 2px;
 }
 
 /* Selection */

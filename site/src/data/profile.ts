@@ -14,7 +14,7 @@ export const profile = {
   youtube: "https://www.youtube.com/@aiden-lee11",
   resumePdf: "/Aiden-Lee-Resume.pdf",
   intro:
-    "CS at Northwestern. I like compilers, distributed systems, and building tools that are fast enough to feel invisible.",
+    "Northwestern CS student working on compilers, distributed systems, and developer tools.",
   coursework: [
     "Compiler Construction",
     "Distributed Systems",

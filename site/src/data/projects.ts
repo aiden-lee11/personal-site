@@ -86,7 +86,7 @@ export const projects: Project[] = [
     side: true,
     bullets: [
       "`lit init / hash-object / add / commit / status / log` implemented against the real .git object-store layout — SHA-1-addressed blobs, trees, commits.",
-      "Written to internalize how git actually stores content, not to be a drop-in replacement.",
+      "Reads and writes Git's on-disk format directly instead of wrapping the git CLI.",
     ],
     links: [{ label: "GitHub", href: "https://github.com/aiden-lee11/lit" }],
   },
@@ -99,7 +99,7 @@ export const projects: Project[] = [
     side: true,
     bullets: [
       "Uses raw `clone()` with `CLONE_NEWPID/UTS/NS` flags to isolate a child process into its own namespaces — the same primitive Docker uses under the hood.",
-      "Built to demystify what a container actually is: a normal process with unshared kernel namespaces.",
+      "Runs isolated processes without a Docker daemon or container library.",
     ],
     links: [
       { label: "GitHub", href: "https://github.com/aiden-lee11/baby-docker" },

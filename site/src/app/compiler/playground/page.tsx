@@ -19,7 +19,7 @@ export default function CompilerPlaygroundPage() {
         </h1>
         <p className="mt-4 text-[color:var(--muted)] max-w-2xl leading-relaxed">
           Pick a preset or write your own code, then step through the pipeline.
-          Every layer is real output from the compiler, running in your browser
+          Every layer is real output from my compiler, running in your browser
           as WebAssembly. The final panel is the exact assembly your CPU would run.
         </p>
       </header>

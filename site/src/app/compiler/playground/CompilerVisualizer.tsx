@@ -488,9 +488,6 @@ export default function CompilerVisualizer({
           <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
             01 · Start from a preset (or write your own)
           </h2>
-          <span className="font-mono text-xs text-[color:var(--muted)]">
-            {presets.length} presets
-          </span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {presets.map((p) => {
@@ -585,8 +582,6 @@ export default function CompilerVisualizer({
           <div className="flex items-center justify-between border-b border-[color:var(--border)] bg-[color:var(--subtle)] px-4 py-2">
             <span className="font-mono text-xs text-[color:var(--muted)]">
               prog.{fromLayer}
-              <span className="mx-2">·</span>
-              editable
             </span>
             <span className="font-mono text-xs text-[color:var(--muted)] tabular">
               ⌘/Ctrl+Enter to compile
@@ -854,7 +849,12 @@ export default function CompilerVisualizer({
                 code change live.
               </p>
             </div>
+          </aside>
+        </div>
 
+        {/* Run + timing results — laid out horizontally under the code pane so
+            they don't run the sidebar far past the bottom of the viewer. */}
+        <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-start">
             {(result?.programOutput !== undefined ||
               result?.linkError ||
               result?.runMs != null) && (
@@ -964,7 +964,6 @@ export default function CompilerVisualizer({
                 </p>
               )}
             </div>
-          </aside>
         </div>
       </section>
 
@@ -1038,19 +1037,45 @@ function ComparisonPane({
     const r: Row[] = [];
     let addN = 0;
     let delN = 0;
-    for (const c of chunks) {
+    for (let i = 0; i < chunks.length; i++) {
+      const c = chunks[i];
       const lines = c.value;
-      if (c.added) {
+      if (c.removed) {
+        // A removed block directly followed by an added block is a *replacement*.
+        // Align the two side-by-side on shared rows instead of stacking them as
+        // two half-empty blocks — only the length difference becomes gap rows.
+        const next = chunks[i + 1];
+        if (next?.added) {
+          const del = lines;
+          const add = next.value;
+          delN += del.length;
+          addN += add.length;
+          const n = Math.max(del.length, add.length);
+          for (let k = 0; k < n; k++) {
+            l.push(
+              k < del.length
+                ? { kind: "del", text: del[k] }
+                : { kind: "gap", text: "" },
+            );
+            r.push(
+              k < add.length
+                ? { kind: "add", text: add[k] }
+                : { kind: "gap", text: "" },
+            );
+          }
+          i++; // consume the paired added chunk
+        } else {
+          delN += lines.length;
+          for (const t of lines) {
+            l.push({ kind: "del", text: t });
+            r.push({ kind: "gap", text: "" });
+          }
+        }
+      } else if (c.added) {
         addN += lines.length;
         for (const t of lines) {
           l.push({ kind: "gap", text: "" });
           r.push({ kind: "add", text: t });
-        }
-      } else if (c.removed) {
-        delN += lines.length;
-        for (const t of lines) {
-          l.push({ kind: "del", text: t });
-          r.push({ kind: "gap", text: "" });
         }
       } else {
         for (const t of lines) {

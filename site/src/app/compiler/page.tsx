@@ -21,46 +21,32 @@ export default function CompilerOverviewPage() {
     <div>
       <ShareLinkRedirect />
       <header className="mb-16">
-        <p className="font-mono text-xs text-[color:var(--muted)] uppercase tracking-wide mb-3">
-          Interactive · Aiden&apos;s Compiler
-        </p>
-        <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.05] max-w-3xl">
-          Watch a C-like program become x86-64,
+        <p className="eyebrow mb-5">Interactive / Compiler</p>
+        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-[-0.055em] leading-[0.95] max-w-4xl">
+          C-like source to x86-64,
           <br />
-          <span className="text-[color:var(--muted)]">
-            one intermediate at a time.
-          </span>
+          <span className="text-[color:var(--accent)]">in your browser.</span>
         </h1>
         <p className="mt-6 text-[color:var(--muted)] max-w-2xl leading-relaxed">
-          This is the compiler I wrote for Northwestern&apos;s CS 322 — the one that won
-          the class competition. It now runs inside this site as WebAssembly: you can
-          write code, step through every intermediate representation, and flip
-          individual optimization passes on and off to see exactly what they do.
+          I wrote this compiler for Northwestern&apos;s CS 322, where it won the
+          class competition. The WebAssembly build lets you write code, inspect
+          every intermediate representation, and toggle individual optimization passes.
         </p>
-        <div className="mt-8 flex flex-wrap gap-3 font-mono text-sm">
-          <Link
-            href="/compiler/playground"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[color:var(--fg)] text-[color:var(--bg)] hover:bg-[color:var(--accent)] transition-colors"
-          >
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <Link href="/compiler/playground" className="btn btn-primary">
             <span>Open the playground</span>
             <span aria-hidden>→</span>
           </Link>
-          <Link
-            href="/compiler/passes"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[color:var(--border)] hover:border-[color:var(--fg)] transition-colors"
-          >
+          <Link href="/compiler/passes" className="btn btn-ghost">
             Explore the passes
           </Link>
         </div>
       </header>
 
       {/* Stats */}
-      <section className="mb-16 grid sm:grid-cols-3 gap-4">
+      <section className="mb-16 grid gap-8 sm:grid-cols-3 border-t border-[color:var(--border)] pt-10">
         {STATS.map((s) => (
-          <div
-            key={s.label}
-            className="rounded-lg border border-[color:var(--border)] p-5"
-          >
+          <div key={s.label}>
             <p className="font-mono text-3xl text-[color:var(--accent)] tabular">
               {s.value}
             </p>
@@ -82,7 +68,7 @@ export default function CompilerOverviewPage() {
               {/* Rail */}
               <div className="flex flex-col items-center">
                 <span
-                  className={`flex-shrink-0 w-8 h-8 rounded-full border flex items-center justify-center font-mono text-[11px] ${
+                  className={`flex-shrink-0 w-8 h-8 border flex items-center justify-center font-mono text-[11px] ${
                     i === 0 || i === LAYERS.length - 1
                       ? "border-[color:var(--accent)] text-[color:var(--accent)]"
                       : "border-[color:var(--border)] text-[color:var(--muted)]"
@@ -115,9 +101,9 @@ export default function CompilerOverviewPage() {
         <div className="grid md:grid-cols-2 gap-4">
           <Link
             href="/compiler/playground"
-            className="group rounded-lg border border-[color:var(--border)] hover:border-[color:var(--accent)] p-6 transition-all"
+            className="group border border-[color:var(--border)] hover:border-[color:var(--accent)] p-6 transition-all"
           >
-            <p className="font-serif text-2xl leading-tight mb-2 group-hover:text-[color:var(--accent)] transition-colors">
+            <p className="text-2xl font-semibold tracking-tight leading-tight mb-2 group-hover:text-[color:var(--accent)] transition-colors">
               Playground
             </p>
             <p className="text-sm text-[color:var(--muted)] leading-relaxed">
@@ -132,9 +118,9 @@ export default function CompilerOverviewPage() {
           </Link>
           <Link
             href="/compiler/passes"
-            className="group rounded-lg border border-[color:var(--border)] hover:border-[color:var(--accent)] p-6 transition-all"
+            className="group border border-[color:var(--border)] hover:border-[color:var(--accent)] p-6 transition-all"
           >
-            <p className="font-serif text-2xl leading-tight mb-2 group-hover:text-[color:var(--accent)] transition-colors">
+            <p className="text-2xl font-semibold tracking-tight leading-tight mb-2 group-hover:text-[color:var(--accent)] transition-colors">
               Passes
             </p>
             <p className="text-sm text-[color:var(--muted)] leading-relaxed">

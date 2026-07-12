@@ -10,10 +10,11 @@
   },
   "dependencies": {
     "@types/diff": "^7.0.2",
+    "@vercel/blob": "^2.6.1",
     "diff": "^9.0.0",
     "framer-motion": "^12.23.12",
     "gray-matter": "^4.0.3",
-    "next": "15.5.3",
+    "next": "^15.5.20",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "reading-time": "^1.5.0",

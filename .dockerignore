@@ -1,0 +1,32 @@
+# Keep the build context small — the Dockerfile builds everything from source.
+**/node_modules
+**/.next
+**/.turbo
+**/out
+site/next-env.d.ts
+
+# Compiler build artifacts (rebuilt fresh inside the image; never ship host-arch)
+compiler-src/**/obj
+compiler-src/**/build
+compiler-src/**/*.o
+compiler-src/**/*.a
+compiler-src/**/bin
+compiler-src/**/.bin
+compiler-src/**/.cache
+compiler-src/**/prog.*
+compiler-src/**/*.ir
+
+# VCS / editor / OS
+.git
+.gitignore
+**/.DS_Store
+**/*.log
+.vscode
+.idea
+
+# Repo scaffolding not needed in the image
+.claude
+sandbox
+scratchpad
+tmp
+write-up.md

@@ -18,6 +18,10 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Emscripten-generated glue for the in-browser compiler — vendored build
+      // artifacts, not hand-authored source. Next's own build lint skips
+      // public/ already; keep the standalone `eslint` run consistent.
+      "public/**",
     ],
   },
 ];

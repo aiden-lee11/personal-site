@@ -49,7 +49,9 @@ export const metadata: Metadata = {
 const NAV_LINKS = [
   { href: "/compiler", label: "Compiler" },
   { href: "/projects", label: "Projects" },
-  { href: "/writing", label: "Writing" },
+  { href: "/gallery", label: "Gallery" },
+  // Writing hidden for now — only one post. Route still lives at /writing.
+  // { href: "/writing", label: "Writing" },
   { href: "/Aiden-Lee-Resume.pdf", label: "Résumé", external: true },
 ];
 
@@ -61,15 +63,15 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${serif.variable} ${mono.variable} min-h-screen flex flex-col`}
       >
-        <header className="border-b border-[color:var(--border)]">
-          <nav className="mx-auto max-w-5xl px-6 h-14 flex items-center gap-6">
+        <header>
+          <nav className="mx-auto max-w-5xl px-6 h-16 flex items-center gap-6">
             <Link
               href="/"
               className="font-mono text-sm tracking-tight hover:text-[color:var(--accent)] transition-colors whitespace-nowrap"
             >
-              aiden lee
+              aiden lee<span className="text-[color:var(--accent)]">.</span>
             </Link>
-            <ul className="ml-auto flex items-center gap-5 text-sm">
+            <ul className="ml-auto flex items-center gap-5 sm:gap-6 text-sm">
               {NAV_LINKS.map((l) =>
                 l.external ? (
                   <li key={l.href}>
@@ -97,10 +99,10 @@ export default function RootLayout({
           </nav>
         </header>
         <main className="flex-1">{children}</main>
-        <footer className="border-t border-[color:var(--border)] mt-24">
-          <div className="mx-auto max-w-5xl px-6 py-8 flex flex-wrap gap-4 items-center justify-between text-xs text-[color:var(--muted)] font-mono">
+        <footer className="mt-24 border-t border-[color:var(--border)]">
+          <div className="mx-auto max-w-5xl px-6 py-10 flex flex-wrap gap-4 items-center justify-between text-xs text-[color:var(--muted)] font-mono">
             <span>© {new Date().getFullYear()} Aiden Lee</span>
-            <div className="flex gap-4">
+            <div className="flex gap-5">
               <a
                 href="https://github.com/aiden-lee11"
                 target="_blank"
