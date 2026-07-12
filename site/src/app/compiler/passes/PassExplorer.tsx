@@ -131,10 +131,6 @@ export default function PassExplorer({ examples }: { examples: OptExample[] }) {
             </motion.pre>
           </AnimatePresence>
         </div>
-
-        <p className="mt-6 font-mono text-xs text-[color:var(--muted)]">
-          Source: <code className="text-[color:var(--fg)]">{active.sourceFile}</code>
-        </p>
       </div>
     </div>
   );

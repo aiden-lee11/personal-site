@@ -29,7 +29,6 @@ export type OptExample = {
   what: string;
   before: string;
   after: string;
-  sourceFile: string;
 };
 
 export const OPT_EXAMPLES: OptExample[] = [
@@ -40,7 +39,6 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Propagate constants through the SSA lattice and prune unreachable branches.",
     what:
       "SCCP tracks each variable's abstract value (top / constant / bottom) and simultaneously evaluates branch conditions. Because `%c` is known to be `1`, the false arm of `:maybe_taken` is unreachable and gets pruned along with the constant expressions folded into `%out`.",
-    sourceFile: "compiler-src/IR/src/sccp.cpp",
     before: `define void @g () {
 
   :entry
@@ -73,7 +71,6 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Remove instructions whose results are never used.",
     what:
       "`%unused` and `%also_unused` are computed but their results never leave the function. DCE walks def-use chains and drops any instruction with no live consumer (and no side effect).",
-    sourceFile: "compiler-src/IR/src/dce.cpp",
     before: `define void @f (%x) {
 
   :entry
@@ -100,7 +97,6 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Hoist computations whose inputs don't change inside the loop into the preheader.",
     what:
       "Every iteration of the loop was recomputing `n * 8` even though `n` never changes inside the loop. LICM moves it into a preheader block that runs once.",
-    sourceFile: "compiler-src/IR/src/licm.cpp",
     before: `define void @sum_offsets (%arr, %n) {
 
   :entry
@@ -156,7 +152,6 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Hash identical expressions to one value number and reuse the first result.",
     what:
       "`%a` and `%b` compute the same `x*x + 3`. GVN walks the dominator tree with expression hash maps and rewrites the second occurrence as a copy of the first, so the redundant arithmetic disappears.",
-    sourceFile: "compiler-src/IR/src/gvn.cpp",
     before: `define void @dup (%x) {
 
   :entry
@@ -184,7 +179,6 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Replace uses of a copied variable with the original source.",
     what:
       "A chain of pure assignments `%a ← 5; %b ← %a; %c ← %b` just renames the same value. Copy prop substitutes the source through the uses (and drops identity copies like `%x ← %x`), so later constant folding can chase the value all the way to the consumer.",
-    sourceFile: "compiler-src/IR/src/copy_prop.cpp",
     before: `define void @chain () {
 
   :entry
@@ -207,7 +201,6 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Rewrite trivial arithmetic identities into cheaper forms.",
     what:
       "Recognizes identities like `x * 1 → x`, `y + 0 → y`, `z << 0 → z`, `a - a → 0`, and `x & x → x`. Each match replaces the binary op with a copy or a constant so later DCE can finish the cleanup.",
-    sourceFile: "compiler-src/IR/src/algebra_simplify.cpp",
     before: `define void @idents (%x) {
 
   :entry
@@ -232,7 +225,6 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Local pattern rewrites that shrink instruction sequences in place.",
     what:
       "Scans short windows of SSA for idioms — chained `+ const` folds, compare-fed branches, redundant moves — and rewrites them into a tighter form without needing a full dataflow solve.",
-    sourceFile: "compiler-src/IR/src/peephole.cpp",
     before: `define void @window (%x) {
 
   :entry
@@ -255,7 +247,6 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Prove index ranges and strip redundant bounds checks.",
     what:
       "A lattice of integer ranges flows through the CFG. When the induction variable is proven to stay inside `[0, len)`, the per-access array bounds check is dead and gets deleted — the hot path no longer pays for a check the compiler already discharged.",
-    sourceFile: "compiler-src/IR/src/vra_bce.cpp",
     before: `define void @fill (%a, %len) {
 
   :entry
@@ -308,7 +299,6 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Collapse empty blocks, merge straight-line edges, and clean stale φs.",
     what:
       "Forwarding blocks (empty body, single unconditional branch) get spliced out, single-predecessor straight-line blocks merge into their pred, and conditional branches with identical targets become unconditional. φ-nodes are renormalized after the graph changes.",
-    sourceFile: "compiler-src/IR/src/simplify_cfg.cpp",
     before: `define void @straight () {
 
   :entry
@@ -341,7 +331,6 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Turn a branchy select into a single cmov, killing the mispredict.",
     what:
       "Matches a triangle CFG — conditional branch, a short side arm, and a join φ — and rewrites it as `cmov`. The side-arm instructions hoist into the entry block, the branch disappears, and the backend emits one predicated move instead of a pipeline hazard.",
-    sourceFile: "compiler-src/IR/src/cmov_synth.cpp",
     before: `define void @max (%a, %b) {
 
   :entry
@@ -373,7 +362,6 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Drop stores inside a loop that are overwritten before any read.",
     what:
       "For counted loops, if a store to `tmp[i]` is always killed by a later store to the same address before any load observes it, the first store is dead. Loop DSE removes it so the body only writes the value that actually escapes.",
-    sourceFile: "compiler-src/IR/src/loop_dse.cpp",
     before: `define void @kill_store (%tmp, %out, %n) {
 
   :entry

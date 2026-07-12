@@ -20,7 +20,7 @@ export default function CompilerPassesPage() {
           passes, each at the scale of a single transformation. These are
           hand-crafted minimal examples in the compiler&apos;s own SSA syntax —
           hit <span className="text-[color:var(--fg)]">run live</span> on any
-          pass to load a real program into the playground with only that pass
+          pass to drop a real IR program into the playground with that pass
           enabled and see it work on actual output.
         </p>
       </header>
