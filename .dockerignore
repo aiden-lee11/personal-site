@@ -12,6 +12,10 @@ compiler-src/**/*.o
 compiler-src/**/*.a
 compiler-src/**/bin
 compiler-src/**/.bin
+# …except LC/LB: instructor reference binaries (linux/amd64 ELF, no source to
+# build from) — the image ships these as-is.
+!compiler-src/LC/.bin/LC
+!compiler-src/LB/.bin/LB
 compiler-src/**/.cache
 compiler-src/**/prog.*
 compiler-src/**/*.ir

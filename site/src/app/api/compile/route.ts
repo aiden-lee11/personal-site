@@ -3,7 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 // ---------------------------------------------------------------------------
 // ISOLATION MODEL (read before touching this file — it runs untrusted code)
@@ -40,10 +40,19 @@ import { spawn } from "node:child_process";
 // ---------------------------------------------------------------------------
 
 // Every layer in the pipeline. Order matters — index defines fan-out from
-// `fromLayer`. Each stage binary reads prog.<cur> and writes prog.<next>:
+// `fromLayer`. Most stage binaries read prog.<cur> and write prog.<next>:
 //   LA -> prog.IR, IR -> prog.L3, L3 -> prog.L2, L2 -> prog.L1, L1 -> prog.S
-const CHAIN = ["LA", "IR", "L3", "L2", "L1", "S"] as const;
+// EXCEPTION: the LC/LB instructor binaries (see compiler-src/LC/README.md)
+// write SHORT extensions — LC emits prog.b (LB code) and LB emits prog.a (LA
+// code). We rename those to prog.LB / prog.LA right after each runs (see
+// SHORT_OUTPUT below) so the rest of the chain sees the expected names. The
+// rest of the stages are Aiden's compiler.
+const CHAIN = ["LC", "LB", "LA", "IR", "L3", "L2", "L1", "S"] as const;
 type Layer = (typeof CHAIN)[number];
+
+// Stages whose binary writes a short-extension file instead of prog.<next>.
+// Renamed to the canonical prog.<next> immediately after the stage runs.
+const SHORT_OUTPUT: Partial<Record<Layer, string>> = { LC: "prog.b", LB: "prog.a" };
 
 // Directory containing the built stage binaries in `<STAGE>/bin/<STAGE>` layout
 // and `lib/runtime.c`. Overridable so local dev works against the source tree
@@ -62,6 +71,71 @@ const GCC = process.env.COMPILER_GCC || "gcc";
 /** Absolute path to a stage's compiler binary. */
 function stageBin(layer: Exclude<Layer, "S">): string {
   return path.join(COMPILER_BIN_DIR, layer, "bin", layer);
+}
+
+// ---------------------------------------------------------------------------
+// Docker fallback (dev only). Every stage binary in the source tree —
+// including the LC/LB instructor binaries — is a linux/amd64 ELF, so on a
+// dev machine (e.g. macOS) none of them exec natively. When the native
+// stageBin() can't run on this host and Docker is available, run the stage
+// inside an ubuntu container instead (qemu emulation — a few seconds per
+// stage, fine for local dev). The production image always ships runnable
+// native binaries at stageBin(), so this path never triggers there.
+// ---------------------------------------------------------------------------
+
+/** The checked-in linux binary for a stage: bin/<L> if present, else .bin/<L>
+ *  (where the prebuilt LC/LB instructor ELFs live). */
+function checkedInBin(layer: Exclude<Layer, "S">): string | null {
+  const built = stageBin(layer);
+  if (fs.existsSync(built)) return built;
+  const prebuilt = path.join(COMPILER_BIN_DIR, layer, ".bin", layer);
+  return fs.existsSync(prebuilt) ? prebuilt : null;
+}
+
+/** Can stageBin() exec on THIS host? X_OK alone lies on macOS — a checked-in
+ *  linux ELF has +x bits but can't run — so on non-linux hosts an ELF magic
+ *  number disqualifies the binary. */
+function nativeStageUsable(layer: Exclude<Layer, "S">): boolean {
+  const bin = stageBin(layer);
+  try {
+    fs.accessSync(bin, fs.constants.X_OK);
+  } catch {
+    return false;
+  }
+  if (process.platform === "linux") return true;
+  try {
+    const fd = fs.openSync(bin, "r");
+    const magic = Buffer.alloc(4);
+    fs.readSync(fd, magic, 0, 4, 0);
+    fs.closeSync(fd);
+    return !(magic[0] === 0x7f && magic[1] === 0x45 && magic[2] === 0x4c && magic[3] === 0x46);
+  } catch {
+    return false;
+  }
+}
+
+// One-time cached `docker version` probe (also fails when the daemon is down).
+let dockerOk: boolean | null = null;
+function dockerAvailable(): boolean {
+  if (dockerOk === null) {
+    try {
+      dockerOk =
+        spawnSync("docker", ["version"], { stdio: "ignore", timeout: 10_000 })
+          .status === 0;
+    } catch {
+      dockerOk = false;
+    }
+  }
+  return dockerOk;
+}
+
+/** True when the stage should run via docker on this host. */
+function dockerStageUsable(layer: Exclude<Layer, "S">): boolean {
+  return (
+    !nativeStageUsable(layer) &&
+    checkedInBin(layer) !== null &&
+    dockerAvailable()
+  );
 }
 
 const MAX_SOURCE_BYTES = 128 * 1024;
@@ -217,12 +291,13 @@ function sh(
   });
 }
 
-/** True if the toolchain + all stage binaries needed from `fromIdx` exist. */
+/** True if the toolchain + all stage binaries needed from `fromIdx` can run —
+ *  natively, or (dev only) via the docker fallback. */
 function runtimeAvailable(fromIdx: number): boolean {
   if (!fs.existsSync(RUNTIME_C)) return false;
   for (let i = fromIdx; i < CHAIN.length - 1; i++) {
     const cur = CHAIN[i] as Exclude<Layer, "S">;
-    if (!fs.existsSync(stageBin(cur))) return false;
+    if (!nativeStageUsable(cur) && !dockerStageUsable(cur)) return false;
   }
   return true;
 }
@@ -299,10 +374,30 @@ export async function POST(req: Request) {
       const cur = CHAIN[i] as Exclude<Layer, "S">;
       if (!fs.existsSync(path.join(workDir, `prog.${cur}`))) continue;
       const extra = cur === "IR" && irExtra ? ` ${irExtra}` : "";
-      const cmd = `${COMPILE_LIMITS}; exec '${stageBin(cur)}' 'prog.${cur}' -g 1 -O0${extra} > /dev/null 2> '${cur}.err'`;
+      // Dev-only docker path (see dockerStageUsable above). The container
+      // mounts workDir as /w, so outputs (including LC/LB's prog.b / prog.a)
+      // land in workDir and the SHORT_OUTPUT rename below applies unchanged.
+      // No ulimit prefix — the container bounds the process, and this path
+      // never runs in production. realpathSync because macOS mkdtemp dirs
+      // live under symlinked /var/folders → /private/var/folders.
+      const dockerBin = dockerStageUsable(cur) ? checkedInBin(cur) : null;
+      const cmd = dockerBin
+        ? `docker run --rm --platform linux/amd64 -v '${fs.realpathSync(workDir)}':/w -v '${COMPILER_BIN_DIR}':/cs -w /w ubuntu:24.04 '/cs/${path.relative(COMPILER_BIN_DIR, dockerBin)}' 'prog.${cur}' -g 1 -O0${extra} > /dev/null 2> '${cur}.err'`
+        : `${COMPILE_LIMITS}; exec '${stageBin(cur)}' 'prog.${cur}' -g 1 -O0${extra} > /dev/null 2> '${cur}.err'`;
       const remaining = Math.max(1, deadline - Date.now());
       const r = await sh(cmd, workDir, remaining);
       layerMs[cur] = Math.round(r.wallUs / 1000);
+
+      // LC/LB write a short-extension file — rename it to the canonical
+      // prog.<next> the next stage (and the collection loop below) expects.
+      const short = SHORT_OUTPUT[cur];
+      if (short) {
+        const shortPath = path.join(workDir, short);
+        const next = CHAIN[i + 1];
+        if (fs.existsSync(shortPath)) {
+          await fsp.rename(shortPath, path.join(workDir, `prog.${next}`));
+        }
+      }
     }
 
     // Collect produced layer files + per-layer error output.

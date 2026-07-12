@@ -3,7 +3,8 @@
 # Single Railway-deployable image for the personal site + compiler live-run.
 #
 #   Stage A (compiler): Ubuntu 24.04 (amd64), build the five compiler stage
-#                       binaries from compiler-src with make + g++.
+#                       binaries from compiler-src with make + g++, plus the
+#                       prebuilt LC/LB instructor reference binaries.
 #   Stage B (web):      Node 22, build the Next.js app (standalone output).
 #   Final (runtime):    Ubuntu 24.04 + Node 22 + gcc + libc dev + the built
 #                       stage binaries + runtime.c + the Next server. Runs as a
@@ -40,6 +41,23 @@ RUN set -eux; \
       cp "compiler-src/$d/bin/$d" "/opt/compiler/$d/bin/$d"; \
     done; \
     cp compiler-src/lib/runtime.c /opt/compiler/lib/runtime.c
+
+# LC and LB are instructor reference binaries (prebuilt linux/amd64 ELF — no
+# source to build). Copy them in and smoke-test the LC -> LB -> LA prefix on a
+# trivial program so a broken/missing binary fails the build, not a request.
+# NOTE: unlike the other stages, these emit SHORT extensions — LC writes prog.b
+# (LB code) and LB writes prog.a (LA code); the /api/compile route renames them.
+RUN set -eux; \
+    for d in LC LB; do \
+      mkdir -p "/opt/compiler/$d/bin"; \
+      cp "compiler-src/$d/.bin/$d" "/opt/compiler/$d/bin/$d"; \
+      chmod +x "/opt/compiler/$d/bin/$d"; \
+    done; \
+    mkdir -p /tmp/lc-smoke; cd /tmp/lc-smoke; \
+    printf 'void main ( ) {\n  int x\n  x <- 1\n  print(x)\n  return\n}\n' > prog.LC; \
+    /opt/compiler/LC/bin/LC prog.LC -g 1 -O0; test -s prog.b; \
+    /opt/compiler/LB/bin/LB prog.b -g 1 -O0; test -s prog.a; \
+    cd /; rm -rf /tmp/lc-smoke
 
 ##########################  Stage B: Next.js build  ##########################
 FROM node:22-slim AS web
