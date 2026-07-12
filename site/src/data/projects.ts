@@ -12,6 +12,45 @@ export type Project = {
   side?: boolean;
 };
 
+export type LiveThing = {
+  title: string;
+  blurb: string;
+  href: string;
+  cta: string;
+  external?: boolean;
+};
+
+// Things a visitor can try right now — no cloning, no setup.
+export const LIVE: LiveThing[] = [
+  {
+    title: "Compiler",
+    blurb: "write C-like code, watch it lower to x86-64, run it — in your browser",
+    href: "/compiler",
+    cta: "open the playground",
+  },
+  {
+    title: "NUFood",
+    blurb: "live dining-hall menus for Northwestern",
+    href: "https://nufood.me",
+    cta: "visit nufood.me",
+    external: true,
+  },
+  {
+    title: "Panopto Summarizer",
+    blurb: "one-click lecture summaries in your browser",
+    href: "https://chromewebstore.google.com/detail/panopto-summarizer/cpeanbbcgghgjbpjpkgidndkmhgoplob?hl=en",
+    cta: "install from the web store",
+    external: true,
+  },
+  {
+    title: "YouTube",
+    blurb: "builds and demos in video form",
+    href: "https://www.youtube.com/@aiden-lee11",
+    cta: "watch on YouTube",
+    external: true,
+  },
+];
+
 export const projects: Project[] = [
   {
     slug: "compiler",
@@ -59,6 +98,7 @@ export const projects: Project[] = [
     ],
     links: [
       { label: "GitHub", href: "https://github.com/aiden-lee11/nufood" },
+      { label: "nufood.me", href: "https://nufood.me" },
     ],
   },
   {
@@ -147,6 +187,7 @@ export const projects: Project[] = [
     ],
     links: [
       { label: "GitHub", href: "https://github.com/aiden-lee11/panopto-summaries" },
+      { label: "Chrome Web Store", href: "https://chromewebstore.google.com/detail/panopto-summarizer/cpeanbbcgghgjbpjpkgidndkmhgoplob?hl=en" },
     ],
   },
 ];

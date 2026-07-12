@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { projects, type Project } from "@/data/projects";
+import { projects, LIVE, type Project } from "@/data/projects";
 
 export const metadata: Metadata = {
   title: "Projects · Aiden Lee",
@@ -72,6 +72,49 @@ export default function ProjectsPage() {
           Compilers, production systems, and tools with real users.
         </p>
       </header>
+
+      <section className="pb-16">
+        <div className="grid gap-4 md:grid-cols-[12rem_1fr] md:gap-12 lg:gap-20">
+          <p className="eyebrow">Live &amp; usable</p>
+          <p className="text-[color:var(--muted)] max-w-xl">
+            Things you can try right now.
+          </p>
+        </div>
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {LIVE.map((t) => {
+            const inner = (
+              <>
+                <p className="text-xl font-semibold tracking-tight leading-tight mb-2 group-hover:text-[color:var(--accent)] transition-colors">
+                  {t.title}
+                </p>
+                <p className="text-sm text-[color:var(--muted)] leading-relaxed">
+                  {t.blurb}
+                </p>
+                <p className="mt-4 font-mono text-xs text-[color:var(--accent)]">
+                  {t.cta} →
+                </p>
+              </>
+            );
+            const className =
+              "group flex flex-col border border-[color:var(--border)] hover:border-[color:var(--accent)] p-6 transition-all";
+            return t.external ? (
+              <a
+                key={t.href}
+                href={t.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={className}
+              >
+                {inner}
+              </a>
+            ) : (
+              <Link key={t.href} href={t.href} className={className}>
+                {inner}
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
       <ol>
         {main.map((p) => (
