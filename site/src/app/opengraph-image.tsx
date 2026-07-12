@@ -46,16 +46,21 @@ export default function OG() {
             and interactive tools.
           </div>
         </div>
+        {/* Full 8-layer tower — font/gap tuned so LC → … → x86-64 stays on one line. */}
         <div
           style={{
             fontFamily: "monospace",
-            fontSize: 20,
+            fontSize: 19,
             color: "#e8a25e",
             display: "flex",
             alignItems: "center",
-            gap: 16,
+            gap: 13,
           }}
         >
+          <span>LC</span>
+          <span style={{ opacity: 0.5 }}>→</span>
+          <span>LB</span>
+          <span style={{ opacity: 0.5 }}>→</span>
           <span>LA</span>
           <span style={{ opacity: 0.5 }}>→</span>
           <span>IR</span>

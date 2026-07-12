@@ -7,6 +7,7 @@ const TABS = [
   { href: "/compiler", label: "Overview" },
   { href: "/compiler/playground", label: "Playground" },
   { href: "/compiler/passes", label: "Passes" },
+  { href: "/compiler/grammar", label: "Language" },
 ];
 
 export default function CompilerNav() {

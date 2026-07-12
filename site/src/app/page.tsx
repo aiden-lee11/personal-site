@@ -18,7 +18,9 @@ const STATS = [
 ];
 
 const PIPELINE = [
-  "LA · typed source",
+  "LC · C-like source",
+  "LB · scoped control flow",
+  "LA · flat branches",
   "IR · control flow",
   "L3 · instruction selection",
   "L2 · register allocation",
