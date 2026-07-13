@@ -19,6 +19,8 @@ export type GalleryItem = {
   /** Natural pixel dimensions, sent by the client, used to avoid layout shift. */
   w?: number;
   h?: number;
+  /** Free-form tags for filtering the feed. Normalized (see normalizeTags). */
+  tags?: string[];
   /** When it was uploaded (ISO timestamp) — tiebreaker for same-day photos. */
   uploadedAt: string;
 };
@@ -34,6 +36,24 @@ export const PHOTOS_PREFIX = "gallery/photos/";
 /** Buckets are private — the UI reads photos through this proxy route by id. */
 export function photoUrl(id: string): string {
   return `/api/gallery/photo/${id}`;
+}
+
+/**
+ * Canonicalize tags from a form field (comma-separated string) or an array.
+ * Per tag: trim, collapse inner whitespace, lowercase, cap 24 chars; drop
+ * empties; dedupe; cap at 8 tags. Shared by POST/PATCH so the two paths agree.
+ */
+export function normalizeTags(input: string | string[] | undefined): string[] {
+  if (input === undefined) return [];
+  const raw = Array.isArray(input) ? input : input.split(",");
+  const out: string[] = [];
+  for (const t of raw) {
+    const tag = String(t).trim().replace(/\s+/g, " ").toLowerCase().slice(0, 24).trim();
+    if (!tag || out.includes(tag)) continue;
+    out.push(tag);
+    if (out.length >= 8) break;
+  }
+  return out;
 }
 
 // Railway's "Add to Service" injects the bucket credentials under these
@@ -103,7 +123,12 @@ export async function readManifest(): Promise<GalleryItem[]> {
     if (!body) return [];
     const data = JSON.parse(body) as unknown;
     if (!Array.isArray(data)) return [];
-    return (data as StoredItem[]).map((it) => ({ ...it, url: photoUrl(it.id) }));
+    // Old manifests predate tags — hydrate the field so the UI never sees undefined.
+    return (data as StoredItem[]).map((it) => ({
+      ...it,
+      url: photoUrl(it.id),
+      tags: it.tags ?? [],
+    }));
   } catch {
     return [];
   }

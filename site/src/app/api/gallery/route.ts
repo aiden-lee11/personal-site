@@ -8,6 +8,7 @@ import {
   MANIFEST_KEY,
   PHOTOS_PREFIX,
   bucketName,
+  normalizeTags,
   photoUrl,
   readManifest,
   s3,
@@ -96,6 +97,7 @@ export async function POST(req: Request) {
     : new Date().toISOString().slice(0, 10);
   const w = Number(form.get("w")) || undefined;
   const h = Number(form.get("h")) || undefined;
+  const tags = normalizeTags(String(form.get("tags") ?? ""));
 
   const id = crypto.randomUUID();
   const key = `${PHOTOS_PREFIX}${id}.${extFor(file.type)}`;
@@ -116,6 +118,7 @@ export async function POST(req: Request) {
     date,
     w,
     h,
+    tags,
     uploadedAt: new Date().toISOString(),
   };
 
@@ -134,13 +137,20 @@ export async function PATCH(req: Request) {
     );
   }
 
-  let body: { id?: string; password?: string; caption?: string; date?: string };
+  let body: {
+    id?: string;
+    password?: string;
+    caption?: string;
+    date?: string;
+    tags?: string[] | string;
+  };
   try {
     body = (await req.json()) as {
       id?: string;
       password?: string;
       caption?: string;
       date?: string;
+      tags?: string[] | string;
     };
   } catch {
     return NextResponse.json({ error: "Expected JSON." }, { status: 400 });
@@ -167,6 +177,10 @@ export async function PATCH(req: Request) {
   const rawDate = String(body.date ?? "").slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
     target.date = rawDate;
+  }
+  // Tags: supplied (even "" or []) replaces the set; absent leaves it untouched.
+  if (body.tags !== undefined) {
+    target.tags = normalizeTags(body.tags);
   }
   await writeManifest(items);
 
@@ -227,6 +241,7 @@ async function writeManifest(items: GalleryItem[]) {
     date: i.date,
     w: i.w,
     h: i.h,
+    tags: i.tags ?? [],
     uploadedAt: i.uploadedAt,
   }));
   await s3().send(

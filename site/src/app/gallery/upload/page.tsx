@@ -48,13 +48,14 @@ export default function GalleryUploadPage() {
   const [file, setFile] = useState<Compressed | null>(null);
   const [origName, setOrigName] = useState("");
   const [caption, setCaption] = useState("");
+  const [tags, setTags] = useState("");
   const [date, setDate] = useState(today());
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [items, setItems] = useState<GalleryItem[]>([]);
   // Photo currently being edited (caption/date), or null when the form is closed.
-  const [editing, setEditing] = useState<{ id: string; caption: string; date: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; caption: string; date: string; tags: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -120,6 +121,7 @@ export default function GalleryUploadPage() {
       const fd = new FormData();
       fd.set("file", file.blob, "photo.webp");
       fd.set("caption", caption);
+      fd.set("tags", tags);
       fd.set("date", date);
       fd.set("w", String(file.w));
       fd.set("h", String(file.h));
@@ -131,6 +133,7 @@ export default function GalleryUploadPage() {
       setFile(null);
       setOrigName("");
       setCaption("");
+      setTags("");
       setDate(today());
       if (inputRef.current) inputRef.current.value = "";
       if (data.item) setItems((prev) => [data.item!, ...prev]);
@@ -139,7 +142,7 @@ export default function GalleryUploadPage() {
     } finally {
       setBusy(false);
     }
-  }, [file, password, caption, date]);
+  }, [file, password, caption, tags, date]);
 
   const remove = useCallback(
     async (id: string) => {
@@ -181,6 +184,7 @@ export default function GalleryUploadPage() {
           password,
           caption: editing.caption,
           date: editing.date,
+          tags: editing.tags,
         }),
       });
       const data = (await res.json()) as { item?: GalleryItem; error?: string };
@@ -298,6 +302,20 @@ export default function GalleryUploadPage() {
         </label>
       </div>
 
+      {/* Tags — comma-separated; the API normalizes (lowercase, dedupe, cap 8). */}
+      <label className="mt-4 block">
+        <span className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
+          Tags
+        </span>
+        <input
+          type="text"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="friends, work, chicago"
+          className="mt-2 w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--bg)] px-3 py-2 text-sm outline-none focus:border-[color:var(--accent)]"
+        />
+      </label>
+
       <div className="mt-6 flex items-center gap-4">
         <button
           onClick={submit}
@@ -340,7 +358,12 @@ export default function GalleryUploadPage() {
                 />
                 <button
                   onClick={() =>
-                    setEditing({ id: item.id, caption: item.caption, date: item.date })
+                    setEditing({
+                      id: item.id,
+                      caption: item.caption,
+                      date: item.date,
+                      tags: item.tags?.join(", ") ?? "",
+                    })
                   }
                   className="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[color:var(--accent)]"
                   title="Edit caption/date"
@@ -391,6 +414,20 @@ export default function GalleryUploadPage() {
                   />
                 </label>
               </div>
+              <label className="mt-4 block">
+                <span className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
+                  Tags
+                </span>
+                <input
+                  type="text"
+                  value={editing.tags}
+                  onChange={(e) =>
+                    setEditing((prev) => prev && { ...prev, tags: e.target.value })
+                  }
+                  placeholder="friends, work, chicago"
+                  className="mt-2 w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--bg)] px-3 py-2 text-sm outline-none focus:border-[color:var(--accent)]"
+                />
+              </label>
               <div className="mt-4 flex items-center gap-4">
                 <button
                   onClick={saveEdit}

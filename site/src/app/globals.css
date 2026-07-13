@@ -219,123 +219,85 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* ─── Gallery: scrapbook scatter ──────────────────────────────────────────
-   Prints are physical objects lying on the dark page, so their frame and ink
-   are fixed light/dark tones — NOT theme vars. Per-print --rot/--tx/--ty/
-   --tape-rot/--delay come from a deterministic hash in GalleryBoard, applied
-   inline; the rules below only compose them. */
-
-/* Extra vertical room so rotated prints don't clip against the columns. */
-.print-board {
-  column-fill: balance;
-}
-
-.print {
-  position: relative;
-  z-index: 1;
-  display: block;
-  break-inside: avoid;
-  /* Slight negative margin so stacked prints overlap loosely within a column. */
-  margin-bottom: -0.75rem;
-  padding: 0.7rem;
-  background: #faf7f0;
-  /* Bottom band is taller than the sides — the polaroid chin. */
-  padding-bottom: 0;
-  border-radius: 2px;
-  box-shadow:
-    0 1px 1px rgba(0, 0, 0, 0.28),
-    0 6px 12px rgba(0, 0, 0, 0.32),
-    0 14px 28px rgba(0, 0, 0, 0.34);
-  cursor: default;
-  transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
-  /* Stagger the reveal; hover zeroes this below, and GalleryBoard clears
-     --delay after settle so hover-out never lags either. */
-  transition:
-    transform 250ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 250ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 250ms cubic-bezier(0.22, 1, 0.36, 1);
-  transition-delay: var(--delay);
-  outline: none;
-}
-
-/* Tape strip pinning the top edge — reads on both the frame and the page. */
-.print::before {
-  content: "";
-  position: absolute;
-  top: -0.7rem;
-  left: 50%;
-  width: 4.5rem;
-  height: 1.4rem;
-  transform: translateX(-50%) rotate(var(--tape-rot));
-  background: rgba(255, 250, 238, 0.42);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
-  border-radius: 1px;
-}
-
-.print-photo {
-  display: block;
-  width: 100%;
-  height: auto;
-  background: #e7e2d8;
-}
-
-/* Fixed ink so captions stay legible on the light frame regardless of theme. */
-.print-caption {
+/* ─── Gallery: full-bleed horizontal scroller ─────────────────────────────
+   Ported from the approved mock. A single rAF glide loop (in GalleryFeed)
+   owns all programmatic motion and snaps to the nearest slide on idle. There
+   is deliberately NO CSS scroll-snap here: mandatory snapping fights the
+   scripted scrolling and reads as chop. Slides carry no CSS transitions
+   either — their transform/opacity/filter are driven continuously from the
+   scroll position each frame, so motion stays tied to the hand. */
+.gallery-strip {
   display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
-  min-height: 1.6rem;
-  padding: 0.5rem 0.15rem 0.7rem;
-  line-height: 1.15;
+  align-items: center;
+  gap: 4vw;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* No-JS fallback only: GalleryFeed sets exact edge padding inline —
+     (viewport − end slide width) / 2 — so the first/last photo can center. */
+  padding: 0 12vw;
+  scrollbar-width: none;
+}
+.gallery-strip::-webkit-scrollbar {
+  display: none;
 }
 
-.print-caption-text {
-  font-size: 1.15rem;
-  color: #2b2620;
+.gallery-slide {
+  flex: 0 0 auto;
+  position: relative;
+  will-change: transform, opacity, filter;
+}
+/* A neighbouring photo invites a click to glide over to it. */
+.gallery-slide:not(.center) {
+  cursor: pointer;
+}
+.gallery-slide img {
+  will-change: transform;
 }
 
-.print-caption-date {
-  font-size: 0.9rem;
-  color: #8a8175;
+/* The resting photo breathes — a slow, barely-there zoom. Lives on the <img>
+   so it never collides with the slide-level transform set by paint(). */
+.gallery-slide.center img {
+  animation: gallery-breathe 11s ease-in-out infinite alternate;
 }
-
-/* Straighten and lift on hover/focus; kill the stagger delay so it never lags. */
-.print:hover,
-.print:focus-visible {
-  z-index: 10;
-  transform: translate(var(--tx), calc(var(--ty) - 6px)) rotate(0deg)
-    scale(1.025);
-  box-shadow:
-    0 2px 3px rgba(0, 0, 0, 0.3),
-    0 12px 22px rgba(0, 0, 0, 0.4),
-    0 26px 48px rgba(0, 0, 0, 0.45);
-  transition-delay: 0s;
-}
-
-/* Subtle accent ring for keyboard focus, in place of the default outline. */
-.print:focus-visible {
-  box-shadow:
-    0 0 0 2px var(--accent),
-    0 12px 22px rgba(0, 0, 0, 0.4),
-    0 26px 48px rgba(0, 0, 0, 0.45);
-}
-
-/* Drift-in start state — hidden, dropped, rotation only partway applied.
-   The IntersectionObserver removes data-pending to let the transition settle. */
-.print[data-pending] {
-  opacity: 0;
-  transform: translate(var(--tx), calc(var(--ty) + 18px))
-    rotate(calc(var(--rot) * 0.4));
-}
-
-/* Reduced motion: no transitions, but keep the static scatter — offsets and
-   rotation are layout, not motion. Show pending prints outright. */
-@media (prefers-reduced-motion: reduce) {
-  .print {
-    transition: none;
+@keyframes gallery-breathe {
+  from {
+    transform: scale(1);
   }
-  .print[data-pending] {
-    opacity: 1;
-    transform: translate(var(--tx), var(--ty)) rotate(var(--rot));
+  to {
+    transform: scale(1.018);
+  }
+}
+
+.gallery-slide img {
+  display: block;
+  height: min(62vh, 640px);
+  width: auto;
+  /* On phones a wider slide lets the next photo peek in; roomier from sm up. */
+  max-width: 86vw;
+  border-radius: 14px;
+  object-fit: contain;
+}
+@media (min-width: 640px) {
+  .gallery-slide img {
+    max-width: 78vw;
+  }
+}
+
+/* Caption scrim — fixed dark ink because it sits on the image (readable in any
+   theme). Its opacity is driven per-frame by paint(), so it must not transition. */
+.gallery-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 2.6rem 1.1rem 0.95rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.62), transparent);
+  border-radius: 0 0 14px 14px;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No breathing; the glide already jumps instead of easing and paint() clears
+     the per-slide transforms — see GalleryFeed. */
+  .gallery-slide.center img {
+    animation: none;
   }
 }
