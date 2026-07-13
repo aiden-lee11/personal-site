@@ -36,13 +36,19 @@ export function photoUrl(id: string): string {
   return `/api/gallery/photo/${id}`;
 }
 
-// The five env vars Railway injects when a bucket is attached to the service.
+// Railway's "Add to Service" injects the bucket credentials under these
+// AWS-conventional names (AWS_ENDPOINT_URL, AWS_S3_BUCKET_NAME,
+// AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION). We read those
+// first and fall back to the bare names so both conventions work.
 const ENV = {
-  endpoint: () => process.env.ENDPOINT,
-  bucket: () => process.env.BUCKET,
-  accessKeyId: () => process.env.ACCESS_KEY_ID,
-  secretAccessKey: () => process.env.SECRET_ACCESS_KEY,
-  region: () => process.env.REGION || "auto",
+  endpoint: () => process.env.AWS_ENDPOINT_URL ?? process.env.ENDPOINT,
+  bucket: () => process.env.AWS_S3_BUCKET_NAME ?? process.env.BUCKET,
+  accessKeyId: () =>
+    process.env.AWS_ACCESS_KEY_ID ?? process.env.ACCESS_KEY_ID,
+  secretAccessKey: () =>
+    process.env.AWS_SECRET_ACCESS_KEY ?? process.env.SECRET_ACCESS_KEY,
+  region: () =>
+    process.env.AWS_DEFAULT_REGION ?? process.env.REGION ?? "auto",
 };
 
 /** Reading/writing the bucket needs all four S3 credentials to be present. */
