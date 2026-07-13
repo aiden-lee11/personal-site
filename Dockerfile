@@ -102,6 +102,22 @@ COPY --from=web /app/site/.next/standalone ./
 COPY --from=web /app/site/.next/static ./.next/static
 COPY --from=web /app/site/public ./public
 
+# Precompiled-preset cache. Bring in just the generator, the shared cache
+# module, and the preset SOURCES, then compile the 4 presets (× full/no opts)
+# with the SHIPPED stage binaries + gcc + runtime.c. Because generation uses
+# the very binaries that will serve requests, the recorded compiler fingerprint
+# matches at runtime and the cache can never be stale/mismatched — the route
+# verifies it and otherwise falls back to live compilation. Never fails the
+# build (the script swallows its own errors); a missing cache just means live
+# compiles.
+ENV PRESET_CACHE_DIR=/app/precomputed-presets \
+    PRESET_CONTENT_DIR=/app/content/compiler-presets \
+    PRESET_CACHE_SHARED=/app/lib/presetCache.mjs
+COPY --from=web /app/site/scripts/precompile-presets.mjs ./scripts/precompile-presets.mjs
+COPY --from=web /app/site/src/lib/presetCache.mjs ./lib/presetCache.mjs
+COPY --from=web /app/site/content/compiler-presets ./content/compiler-presets
+RUN node scripts/precompile-presets.mjs
+
 # Non-root runtime user — the app, every compiler stage, and prog_exec all run
 # unprivileged (the container is the only isolation boundary on Railway).
 RUN useradd -u 10001 -m appuser \

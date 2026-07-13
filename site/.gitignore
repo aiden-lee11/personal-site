@@ -20,6 +20,9 @@
 # production
 /build
 
+# generated: build-time precompiled compiler-preset cache (binaries + stats)
+/precomputed-presets
+
 # misc
 .DS_Store
 *.pem

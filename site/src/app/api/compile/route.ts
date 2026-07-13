@@ -4,6 +4,15 @@ import os from "node:os";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import { spawn, spawnSync } from "node:child_process";
+import {
+  normalizeDisabledPasses,
+  configId,
+  cacheKey,
+  cacheDir,
+  binaryPath,
+  readManifest,
+  compilerFingerprint,
+} from "@/lib/presetCache.mjs";
 
 // ---------------------------------------------------------------------------
 // ISOLATION MODEL (read before touching this file — it runs untrusted code)
@@ -302,6 +311,112 @@ function runtimeAvailable(fromIdx: number): boolean {
   return true;
 }
 
+// ---------------------------------------------------------------------------
+// Precompiled-preset cache. The 4 playground presets are precompiled at BUILD
+// time (scripts/precompile-presets.mjs, run inside the production image against
+// the shipped stage binaries) in two configs — full opts / no opts. A request
+// whose source + normalized opt flags hash to a cached (preset, config) is
+// answered with the baked stats and, for a run, by executing the PREBUILT
+// binary directly — no compile chain in the path.
+//
+// Staleness is structurally impossible: each artifact records a fingerprint of
+// the exact compiler (content hash of every stage binary + runtime.c). The
+// route recomputes that fingerprint once (memoized) and ignores any artifact
+// that doesn't match, falling straight through to live compilation. So a cache
+// left over from a different compiler/arch (e.g. a dev machine) is never
+// trusted.
+// ---------------------------------------------------------------------------
+let cachedFingerprint: string | null = null;
+function currentFingerprint(): string {
+  if (cachedFingerprint === null) {
+    cachedFingerprint = compilerFingerprint(COMPILER_BIN_DIR, RUNTIME_C);
+  }
+  return cachedFingerprint;
+}
+
+type CachedManifest = {
+  fingerprint: string;
+  ok: boolean;
+  layers: Partial<Record<Layer, string>>;
+  errors: Partial<Record<Layer, string>>;
+  layerMs: Partial<Record<Layer, number>>;
+  totalMs: number;
+  programOutput?: string;
+  runExit?: number;
+  runMs?: number;
+};
+
+/**
+ * Try to answer `body` from the precompiled cache. Returns the JSON payload on
+ * a hit (fingerprint-verified), or null to fall through to live compilation.
+ * Only the two precomputed configs (all opts on / all opts off) can hit; any
+ * custom pass subset returns null immediately.
+ */
+async function serveFromCache(body: Body): Promise<object | null> {
+  const disabled = normalizeDisabledPasses(body.optFlags);
+  if (configId(disabled) === "custom") return null;
+
+  const dir = cacheDir();
+  const key = cacheKey(body.source, body.fromLayer, disabled);
+  const manifest = readManifest(dir, key) as CachedManifest | null;
+  if (!manifest || !manifest.ok) return null;
+  if (manifest.fingerprint !== currentFingerprint()) return null; // stale — recompile
+
+  // Transform-only request: hand back the baked stats, zero compile work.
+  if (!body.run) {
+    return {
+      ok: true,
+      layers: manifest.layers,
+      errors: manifest.errors,
+      totalMs: manifest.totalMs,
+      layerMs: manifest.layerMs,
+      cached: true,
+    };
+  }
+
+  // Run request: execute the PREBUILT binary directly (no compile). Program
+  // runtime (runMs) uses the build-time measured value — stable and never null.
+  const bin = binaryPath(dir, key);
+  let programOutput = manifest.programOutput;
+  let runExit = manifest.runExit;
+  if (fs.existsSync(bin)) {
+    const runDir = await fsp.mkdtemp(path.join(os.tmpdir(), "cachedrun-"));
+    try {
+      await fsp.copyFile(bin, path.join(runDir, "prog_exec"));
+      await fsp.chmod(path.join(runDir, "prog_exec"), 0o755);
+      const runSecs = Math.ceil(RUN_TIMEOUT_MS / 1000);
+      const cap = await sh(
+        `${RUN_LIMITS}; exec timeout ${runSecs}s ./prog_exec 2>&1`,
+        runDir,
+        RUN_TIMEOUT_MS + 5_000,
+        MAX_RUN_OUTPUT_BYTES,
+        true, // own process group; sweep-kill any forked children
+      );
+      // Only trust a clean exec; otherwise keep the baked output/exit.
+      if (!cap.timedOut) {
+        programOutput = cap.stdout;
+        runExit = cap.code;
+      }
+    } catch {
+      /* fall back to baked programOutput/runExit */
+    } finally {
+      fsp.rm(runDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+
+  return {
+    ok: true,
+    layers: manifest.layers,
+    errors: manifest.errors,
+    totalMs: manifest.totalMs,
+    layerMs: manifest.layerMs,
+    programOutput,
+    runExit,
+    runMs: manifest.runMs,
+    cached: true,
+  };
+}
+
 export async function POST(req: Request) {
   let body: Body;
   try {
@@ -347,6 +462,16 @@ export async function POST(req: Request) {
       },
       { status: 429 },
     );
+  }
+
+  // Fast path: a precompiled preset (source + full/none opts) is served from
+  // the build-time cache with zero compile work. Misses (edited source, custom
+  // pass subset, stale fingerprint) fall through to the live chain below.
+  try {
+    const cached = await serveFromCache(body);
+    if (cached) return NextResponse.json(cached);
+  } catch {
+    /* any cache error -> live compile */
   }
 
   const irFlags: string[] = [];
