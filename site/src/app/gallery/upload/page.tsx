@@ -43,6 +43,121 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+// ─── EXIF date extraction ───────────────────────────────────────────────────
+// Hand-rolled, zero-dependency. Must run on the ORIGINAL File: the canvas
+// recompression in compress() strips EXIF entirely. Every failure path returns
+// null silently — a missing date just means no prefill, never an error.
+
+/** EXIF "YYYY:MM:DD HH:MM:SS" → "YYYY-MM-DD", with a sanity check. */
+function exifToISODate(raw: string): string | null {
+  const m = raw.match(/^(\d{4}):(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const [, y, mo, d] = m;
+  const yy = Number(y);
+  const mm = Number(mo);
+  const dd = Number(d);
+  if (yy < 1900 || yy > 2100 || mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  return `${y}-${mo}-${d}`;
+}
+
+/** Locate the TIFF header (the "II"/"MM" byte-order mark) inside the buffer.
+ *  JPEG: walk marker segments to APP1's "Exif\0\0". Otherwise (HEIC, etc.):
+ *  scan for the "Exif\0\0" signature and validate the byte-order mark. */
+function findTiffOffset(view: DataView): number {
+  if (view.byteLength >= 2 && view.getUint16(0) === 0xffd8) {
+    let off = 2;
+    while (off + 4 <= view.byteLength) {
+      if (view.getUint8(off) !== 0xff) break; // out of sync with marker stream
+      const marker = view.getUint8(off + 1);
+      if (marker === 0xd8 || marker === 0xd9 || marker === 0xda) break; // SOI/EOI/SOS
+      const size = view.getUint16(off + 2);
+      if (size < 2) break;
+      const segStart = off + 4;
+      if (
+        marker === 0xe1 && // APP1
+        segStart + 6 <= view.byteLength &&
+        view.getUint32(segStart) === 0x45786966 && // "Exif"
+        view.getUint16(segStart + 4) === 0x0000 // "\0\0"
+      ) {
+        return segStart + 6;
+      }
+      off = segStart + (size - 2);
+    }
+  }
+  // Container fallback: brute-scan for the Exif signature + valid TIFF mark.
+  const limit = view.byteLength - 8;
+  for (let i = 0; i < limit; i++) {
+    if (view.getUint32(i) === 0x45786966 && view.getUint16(i + 4) === 0x0000) {
+      const tiff = i + 6;
+      const bo = view.getUint16(tiff);
+      if (bo === 0x4949 || bo === 0x4d4d) return tiff;
+    }
+  }
+  return -1;
+}
+
+/** Parse the TIFF structure at `tiff` and pull the first available date string:
+ *  ExifIFD 0x9003 (DateTimeOriginal) → 0x9004 (CreateDate) → IFD0 0x0132. */
+function readExifDate(view: DataView, tiff: number): string | null {
+  const le = view.getUint16(tiff) === 0x4949; // "II" = little-endian, "MM" = big
+  const u16 = (o: number) => view.getUint16(o, le);
+  const u32 = (o: number) => view.getUint32(o, le);
+
+  if (u16(tiff + 2) !== 0x002a) return null; // TIFF magic
+  const ifd0 = tiff + u32(tiff + 4);
+
+  const readAscii = (entry: number): string | null => {
+    const count = u32(entry + 4);
+    if (count === 0 || count > 64) return null;
+    const valOff = count <= 4 ? entry + 8 : tiff + u32(entry + 8);
+    if (valOff < 0 || valOff + count > view.byteLength) return null;
+    let s = "";
+    for (let k = 0; k < count; k++) {
+      const c = view.getUint8(valOff + k);
+      if (c === 0) break;
+      s += String.fromCharCode(c);
+    }
+    return s;
+  };
+
+  // Walk an IFD's entries, returning either an ASCII value (want a tag's value)
+  // or a sub-IFD pointer (want a pointer tag like 0x8769) via `asPointer`.
+  const scanIfd = (ifd: number, tag: number, asPointer = false): string | number | null => {
+    if (ifd < 0 || ifd + 2 > view.byteLength) return null;
+    const n = u16(ifd);
+    for (let e = 0; e < n; e++) {
+      const entry = ifd + 2 + e * 12;
+      if (entry + 12 > view.byteLength) break;
+      if (u16(entry) === tag) return asPointer ? u32(entry + 8) : readAscii(entry);
+    }
+    return null;
+  };
+
+  const exifPtr = scanIfd(ifd0, 0x8769, true);
+  if (typeof exifPtr === "number") {
+    const exifIfd = tiff + exifPtr;
+    const dto = scanIfd(exifIfd, 0x9003) ?? scanIfd(exifIfd, 0x9004);
+    if (typeof dto === "string") return dto;
+  }
+  const dt = scanIfd(ifd0, 0x0132);
+  return typeof dt === "string" ? dt : null;
+}
+
+/** Best-effort: read the first ~4MB (EXIF lives near the top) and extract the
+ *  capture date as "YYYY-MM-DD", or null on any failure. */
+async function extractExifDate(file: File): Promise<string | null> {
+  try {
+    const buf = await file.slice(0, 4 * 1024 * 1024).arrayBuffer();
+    const view = new DataView(buf);
+    const tiff = findTiffOffset(view);
+    if (tiff < 0) return null;
+    const raw = readExifDate(view, tiff);
+    return raw ? exifToISODate(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function GalleryUploadPage() {
   const [password, setPassword] = useState("");
   const [file, setFile] = useState<Compressed | null>(null);
@@ -50,6 +165,12 @@ export default function GalleryUploadPage() {
   const [caption, setCaption] = useState("");
   const [tags, setTags] = useState("");
   const [date, setDate] = useState(today());
+  // True once the user hand-edits the date — gates EXIF auto-prefill so we never
+  // clobber manual input. Auto-fill from a photo does NOT set this, so picking a
+  // new file may replace an earlier auto-filled date. A ref (not state) keeps
+  // pickFile's closure current without re-creating the callback.
+  const dateTouched = useRef(false);
+  const [dateFromPhoto, setDateFromPhoto] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -88,6 +209,14 @@ export default function GalleryUploadPage() {
       return;
     }
     setOrigName(f.name);
+    // Read EXIF from the ORIGINAL bytes before compress() re-encodes it away.
+    // Only prefill if the user hasn't typed a date of their own.
+    setDateFromPhoto(false);
+    const exifDate = await extractExifDate(f);
+    if (exifDate && !dateTouched.current) {
+      setDate(exifDate);
+      setDateFromPhoto(true);
+    }
     try {
       const c = await compress(f);
       setFile(c);
@@ -135,6 +264,8 @@ export default function GalleryUploadPage() {
       setCaption("");
       setTags("");
       setDate(today());
+      dateTouched.current = false;
+      setDateFromPhoto(false);
       if (inputRef.current) inputRef.current.value = "";
       if (data.item) setItems((prev) => [data.item!, ...prev]);
     } catch (e) {
@@ -296,9 +427,18 @@ export default function GalleryUploadPage() {
           <input
             type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => {
+              setDate(e.target.value);
+              dateTouched.current = true;
+              setDateFromPhoto(false);
+            }}
             className="mt-2 w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--bg)] px-3 py-2 font-mono text-sm outline-none focus:border-[color:var(--accent)]"
           />
+          {dateFromPhoto && (
+            <span className="mt-1.5 block font-mono text-[10px] text-[color:var(--accent)]">
+              date from photo
+            </span>
+          )}
         </label>
       </div>
 
