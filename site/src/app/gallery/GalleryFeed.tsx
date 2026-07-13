@@ -33,6 +33,11 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
     initialTag ? initialTag.toLowerCase() : null,
   );
 
+  // The tag rail is collapsed by default so the header stays clean; a single
+  // trigger chip expands the full set. Even a deep-linked filter starts
+  // collapsed — the active chip on the trigger row makes the state legible.
+  const [tagsOpen, setTagsOpen] = useState(false);
+
   // Rail tags: every distinct tag across ALL items (not just the filtered set),
   // in first-seen order so the rail is stable as the filter changes.
   const allTags = useMemo(() => {
@@ -286,36 +291,96 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
     <div className="gallery-feed">
       {/* Tag rail — interactive, so it lives here. Right-aligned within the same
           max-w gutter as the header so it reads as the header's right side;
-          on small screens it just wraps below the title. */}
-      <div className="mx-auto max-w-5xl px-6">
-        <nav
-          className="flex flex-wrap justify-end gap-2 pb-8 lg:-mt-14"
-          aria-label="Filter by tag"
-        >
+          on small screens it just wraps below the title. Collapsed by default:
+          a single trigger chip expands the full set of pills. */}
+      <div className="mx-auto max-w-5xl px-6 pb-8 lg:-mt-14">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* Collapsed + filtered: surface the active tag so the strip's
+              filtered state is never a mystery, with an inline clear. */}
+          {!tagsOpen && activeTag && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--accent)] bg-[color:var(--accent)] px-3.5 py-1.5 font-mono text-[11px] lowercase text-white">
+              {activeTag}
+              <button
+                type="button"
+                onClick={() => selectTag(null)}
+                aria-label={`Clear ${activeTag} filter`}
+                className="-mr-0.5 text-[13px] leading-none opacity-80 transition-opacity hover:opacity-100"
+              >
+                ×
+              </button>
+            </span>
+          )}
           <button
-            onClick={() => selectTag(null)}
-            className={`rounded-full border px-3.5 py-1.5 font-mono text-[11px] lowercase transition-colors ${
-              activeTag === null
-                ? "border-[color:var(--accent)] bg-[color:var(--accent)] text-white"
+            type="button"
+            onClick={() => setTagsOpen((o) => !o)}
+            aria-expanded={tagsOpen}
+            aria-controls="tag-rail"
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-[11px] lowercase transition-colors ${
+              tagsOpen || activeTag
+                ? "border-[color:var(--fg)] text-[color:var(--fg)]"
                 : "border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--fg)]"
             }`}
           >
-            all
-          </button>
-          {allTags.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => selectTag(tag)}
-              className={`rounded-full border px-3.5 py-1.5 font-mono text-[11px] lowercase transition-colors ${
-                tag === activeTag
-                  ? "border-[color:var(--accent)] bg-[color:var(--accent)] text-white"
-                  : "border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--fg)]"
+            <span>tags</span>
+            <span className="text-[color:var(--muted)]">{allTags.length}</span>
+            <svg
+              viewBox="0 0 10 6"
+              width="10"
+              height="6"
+              aria-hidden="true"
+              className={`transition-transform duration-300 motion-reduce:transition-none ${
+                tagsOpen ? "rotate-180" : ""
               }`}
             >
-              {tag}
-            </button>
-          ))}
-        </nav>
+              <path
+                d="M1 1l4 4 4-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Expanding panel: a grid-rows 0fr→1fr transition (respects
+            prefers-reduced-motion via CSS) keeps the reveal in the same motion
+            family as the strip. `inert` when closed pulls the clipped pills out
+            of the tab order and the a11y tree. */}
+        <div id="tag-rail" className="gallery-tagrail" data-open={tagsOpen}>
+          <nav
+            className="min-h-0 overflow-hidden"
+            aria-label="Filter by tag"
+            inert={tagsOpen ? undefined : true}
+          >
+            <div className="flex flex-wrap justify-end gap-2 pt-3">
+              <button
+                onClick={() => selectTag(null)}
+                className={`rounded-full border px-3.5 py-1.5 font-mono text-[11px] lowercase transition-colors ${
+                  activeTag === null
+                    ? "border-[color:var(--accent)] bg-[color:var(--accent)] text-white"
+                    : "border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--fg)]"
+                }`}
+              >
+                all
+              </button>
+              {allTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => selectTag(tag)}
+                  className={`rounded-full border px-3.5 py-1.5 font-mono text-[11px] lowercase transition-colors ${
+                    tag === activeTag
+                      ? "border-[color:var(--accent)] bg-[color:var(--accent)] text-white"
+                      : "border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--fg)]"
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </nav>
+        </div>
       </div>
 
       {/* Stale ?tag= with nothing to show — mirror the page's empty state. */}
