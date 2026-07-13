@@ -13,7 +13,7 @@ const STATUS = [
 const STATS = [
   ["536 ms", "winning benchmark"],
   ["18×", "faster than GCC"],
-  ["21K+", "lines of C++"],
+  ["21K+", "lines of hand-written C++"],
   ["10+", "optimization passes"],
 ];
 
@@ -103,7 +103,9 @@ export default function Home() {
         </h2>
         <p className="mt-5 max-w-xl text-[color:var(--muted)] leading-relaxed">
           A C-like language lowered through six intermediate layers to x86-64 —
-          the whole pipeline runs live in this site.
+          every line of the compiler written by hand with my partner. It outran
+          100+ students&apos; compilers across two quarters, and the whole
+          pipeline runs live in this site.
         </p>
 
         <div className="mt-10 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
@@ -157,12 +159,14 @@ export default function Home() {
         }
       >
         <ul className="space-y-8">
-          {otherProjects.map((p) => (
-            <li key={p.slug}>
-              <Link href={p.href ?? "/projects"} className="group block">
+          {otherProjects.map((p) => {
+            const external = p.href?.startsWith("http");
+            const inner = (
+              <>
                 <div className="flex items-baseline justify-between gap-4">
                   <h3 className="text-xl font-semibold tracking-tight group-hover:text-[color:var(--accent)] transition-colors">
                     {p.title}
+                    {external && <span aria-hidden> ↗</span>}
                   </h3>
                   <span className="font-mono text-[11px] text-[color:var(--muted)] whitespace-nowrap">
                     {p.period.split(" – ")[0]}
@@ -172,9 +176,22 @@ export default function Home() {
                 <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[color:var(--muted)] opacity-70">
                   {p.stack.join(" · ")}
                 </p>
-              </Link>
-            </li>
-          ))}
+              </>
+            );
+            return (
+              <li key={p.slug}>
+                {external ? (
+                  <a href={p.href} target="_blank" rel="noreferrer" className="group block">
+                    {inner}
+                  </a>
+                ) : (
+                  <Link href={p.href ?? "/projects"} className="group block">
+                    {inner}
+                  </Link>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </Section>
 

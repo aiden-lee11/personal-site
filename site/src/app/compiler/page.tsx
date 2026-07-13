@@ -7,11 +7,11 @@ import ShareLinkRedirect from "./ShareLinkRedirect";
 export const metadata: Metadata = {
   title: "Compiler · Aiden Lee",
   description:
-    "My 7-stage C++ compiler — LC → LB → LA → IR → L3 → L2 → L1 → x86-64 — running in your browser, with an interactive playground, a full LC grammar reference, and a gallery of every IR optimization pass.",
+    "The 7-stage C++ compiler my partner and I built for Northwestern's CS 322 — LC → LB → LA → IR → L3 → L2 → L1 → x86-64, every line rolled by hand, faster than 100+ students' compilers. Runs in your browser with an interactive playground, an LC grammar reference, and every IR optimization pass.",
 };
 
 const STATS = [
-  { value: "536 ms", label: "class-competition benchmark, 18× faster than GCC" },
+  { value: "536 ms", label: "outran 100+ students' compilers, 18× faster than GCC" },
   { value: "8", label: "pipeline layers, LC source down to x86-64" },
   { value: `${OPT_EXAMPLES.length}`, label: "IR optimization passes, each toggleable live" },
 ];
@@ -28,10 +28,9 @@ export default function CompilerOverviewPage() {
           <span className="text-[color:var(--accent)]">in your browser.</span>
         </h1>
         <p className="mt-6 text-[color:var(--muted)] max-w-2xl leading-relaxed">
-          I wrote this compiler for Northwestern&apos;s CS 322, where it won the
-          class competition. The LC and LB front-end stages run the
-          instructor&apos;s reference binaries; everything from LA down is my
-          code. The WebAssembly build lets you write code, inspect every
+          My partner and I built this compiler for Northwestern&apos;s CS
+          322 — every line by hand. It outran 100+ students&apos; compilers across two
+          quarters. The WebAssembly build lets you write code, inspect every
           intermediate representation, and toggle individual optimization
           passes — and the{" "}
           <Link
@@ -50,6 +49,14 @@ export default function CompilerOverviewPage() {
           <Link href="/compiler/passes" className="btn btn-ghost">
             Explore the passes
           </Link>
+          <a
+            href="https://www.linkedin.com/feed/update/urn:li:activity:7476648103211585536/"
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono text-sm link-underline"
+          >
+            the announcement post ↗
+          </a>
         </div>
       </header>
 

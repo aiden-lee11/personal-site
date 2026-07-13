@@ -1010,9 +1010,7 @@ export default function CompilerVisualizer({
             <div className="rounded-lg border border-[color:var(--border)] p-4 text-xs text-[color:var(--muted)] leading-relaxed">
               <p>
                 LA and below transform in-browser via WebAssembly; the LC and
-                LB stages lower server-side via the CS 322 instructor&apos;s
-                reference binaries (LA → x86-64 is my code; the LC/LB binaries
-                are the same ones I used during the class competition).{" "}
+                LB stages lower server-side.{" "}
                 <span className="text-[color:var(--fg)]">▸▸ run</span> links the
                 x86 and times the binary on the server. Check{" "}
                 <span className="text-[color:var(--fg)]">vs unopt</span> to also

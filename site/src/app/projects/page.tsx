@@ -23,7 +23,17 @@ function Row({ project }: { project: Project }) {
         </div>
         <article>
           <h2 className="text-2xl sm:text-3xl font-semibold tracking-[-0.035em]">
-            {p.href ? (
+            {p.href?.startsWith("http") ? (
+              <a
+                href={p.href}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-[color:var(--accent)] transition-colors"
+              >
+                {p.title}
+                <span aria-hidden> ↗</span>
+              </a>
+            ) : p.href ? (
               <Link href={p.href} className="hover:text-[color:var(--accent)] transition-colors">
                 {p.title}
               </Link>

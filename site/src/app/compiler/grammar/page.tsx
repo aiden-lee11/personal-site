@@ -192,9 +192,7 @@ export default function GrammarPage() {
         </h1>
         <p className="mt-4 max-w-2xl text-[color:var(--muted)] leading-relaxed">
           LC is a tiny C-like language where everything is a 64-bit integer.
-          Copy the template, tweak it, and watch it lower to x86-64. (The LC
-          and LB stages run the instructor&apos;s reference binaries; LA down
-          is my code.)
+          Copy the template, tweak it, and watch it lower to x86-64.
         </p>
       </header>
 
