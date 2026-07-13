@@ -92,7 +92,12 @@ RUN node scripts/precompile-presets.mjs
 
 # Non-root runtime user — the app, every compiler stage, and prog_exec all run
 # unprivileged (the container is the only isolation boundary on Railway).
-RUN useradd -u 10001 -m appuser \
+# The uid must be unusual: RLIMIT_NPROC (the compile route's `ulimit -u`) is
+# tallied per-uid across the HOST kernel, and Railway containers share hosts —
+# a common uid like 10001 can land with its process budget already spent by a
+# neighbouring tenant, and every fork fails EAGAIN ("Resource temporarily
+# unavailable" from timeout/gcc).
+RUN useradd -u 54737 -m appuser \
  && chown -R appuser:appuser /app
 USER appuser
 
