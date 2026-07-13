@@ -1,7 +1,7 @@
 /**
  * Canonical, hand-crafted illustrations of the IR optimizations Aiden's
- * compiler actually implements (see compiler-src/IR/src/*.cpp and the
- * OptConfig mask in IR.h).
+ * compiler actually implements (see the IR stage's src/*.cpp in the private
+ * compiler repo, site-fork branch, and the OptConfig mask in IR.h).
  *
  * These aren't literal compiler output on/off — they're minimal SSA fragments
  * that show the transformation a pass performs, in the same syntax the

@@ -51,7 +51,7 @@ import {
 // Every layer in the pipeline. Order matters — index defines fan-out from
 // `fromLayer`. Most stage binaries read prog.<cur> and write prog.<next>:
 //   LA -> prog.IR, IR -> prog.L3, L3 -> prog.L2, L2 -> prog.L1, L1 -> prog.S
-// EXCEPTION: the LC/LB instructor binaries (see compiler-src/LC/README.md)
+// EXCEPTION: the LC/LB instructor reference binaries (see compiler-bin/README.md)
 // write SHORT extensions — LC emits prog.b (LB code) and LB emits prog.a (LA
 // code). We rename those to prog.LB / prog.LA right after each runs (see
 // SHORT_OUTPUT below) so the rest of the chain sees the expected names. The
@@ -63,12 +63,14 @@ type Layer = (typeof CHAIN)[number];
 // Renamed to the canonical prog.<next> immediately after the stage runs.
 const SHORT_OUTPUT: Partial<Record<Layer, string>> = { LC: "prog.b", LB: "prog.a" };
 
-// Directory containing the built stage binaries in `<STAGE>/bin/<STAGE>` layout
-// and `lib/runtime.c`. Overridable so local dev works against the source tree
-// (binaries must be built for the host arch), image sets it explicitly.
+// Directory containing the stage binaries in `<STAGE>/bin/<STAGE>` layout and
+// `lib/runtime.c`. Defaults to the vendored compiler-bin/ bundle (prebuilt
+// linux/amd64 artifacts of the private compiler repo). The image sets it
+// explicitly to /opt/compiler; on a non-linux dev host the binaries can't exec
+// natively, so the Docker/qemu fallback below runs the stages instead.
 const COMPILER_BIN_DIR =
   process.env.COMPILER_BIN_DIR ||
-  path.resolve(process.cwd(), "..", "compiler-src");
+  path.resolve(process.cwd(), "..", "compiler-bin");
 // C runtime linked into every executed program.
 const RUNTIME_C =
   process.env.COMPILER_RUNTIME_C ||
@@ -197,7 +199,8 @@ function clientIp(req: Request): string {
   return req.headers.get("x-real-ip") || "unknown";
 }
 
-// Every IR pass with an --no-<slug> flag exposed by compiler-src/IR/src/compiler.cpp
+// Every IR pass with an --no-<slug> flag exposed by the IR stage's compiler.cpp
+// (private compiler repo, site-fork branch)
 const IR_PASSES = [
   "licm",
   "dce",

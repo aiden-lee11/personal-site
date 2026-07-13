@@ -2,62 +2,19 @@
 #
 # Single Railway-deployable image for the personal site + compiler live-run.
 #
-#   Stage A (compiler): Ubuntu 24.04 (amd64), build the five compiler stage
-#                       binaries from compiler-src with make + g++, plus the
-#                       prebuilt LC/LB instructor reference binaries.
-#   Stage B (web):      Node 22, build the Next.js app (standalone output).
-#   Final (runtime):    Ubuntu 24.04 + Node 22 + gcc + libc dev + the built
-#                       stage binaries + runtime.c + the Next server. Runs as a
-#                       non-root user. gcc stays because linking happens per
-#                       request; the C++ build toolchain and source do NOT ship.
+# No compiler source lives in this repo. The compiler stage binaries are built
+# on a private repo (branch `site-fork`) by its `build-binaries` GitHub Actions
+# workflow and vendored here under compiler-bin/ (see compiler-bin/README.md),
+# laid out exactly as the runtime's /opt/compiler tree expects.
 #
-# Ubuntu 24.04 ships g++ 13, which accepts the compilers' `-std=c++23`. Build
-# and runtime share the same base so the stage binaries' glibc/libstdc++ ABI
-# matches at run time.
-
-########################  Stage A: compiler binaries  ########################
-FROM --platform=linux/amd64 ubuntu:24.04 AS compiler
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      make g++ ca-certificates \
- && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /build
-COPY compiler-src/ ./compiler-src/
-
-# Build each stage FRESH (never trust checked-in host-arch .bin/bin artifacts).
-RUN set -eux; \
-    for d in L1 L2 L3 IR LA; do \
-      make -C "compiler-src/$d" clean || true; \
-      make -C "compiler-src/$d"; \
-      test -x "compiler-src/$d/bin/$d"; \
-    done
-
-# Assemble a minimal runtime tree: just the stage binaries + runtime.c.
-RUN set -eux; \
-    mkdir -p /opt/compiler/lib; \
-    for d in LA IR L3 L2 L1; do \
-      mkdir -p "/opt/compiler/$d/bin"; \
-      cp "compiler-src/$d/bin/$d" "/opt/compiler/$d/bin/$d"; \
-    done; \
-    cp compiler-src/lib/runtime.c /opt/compiler/lib/runtime.c
-
-# LC and LB are instructor reference binaries (prebuilt linux/amd64 ELF — no
-# source to build). Copy them in and smoke-test the LC -> LB -> LA prefix on a
-# trivial program so a broken/missing binary fails the build, not a request.
-# NOTE: unlike the other stages, these emit SHORT extensions — LC writes prog.b
-# (LB code) and LB writes prog.a (LA code); the /api/compile route renames them.
-RUN set -eux; \
-    for d in LC LB; do \
-      mkdir -p "/opt/compiler/$d/bin"; \
-      cp "compiler-src/$d/.bin/$d" "/opt/compiler/$d/bin/$d"; \
-      chmod +x "/opt/compiler/$d/bin/$d"; \
-    done; \
-    mkdir -p /tmp/lc-smoke; cd /tmp/lc-smoke; \
-    printf 'void main ( ) {\n  int x\n  x <- 1\n  print(x)\n  return\n}\n' > prog.LC; \
-    /opt/compiler/LC/bin/LC prog.LC -g 1 -O0; test -s prog.b; \
-    /opt/compiler/LB/bin/LB prog.b -g 1 -O0; test -s prog.a; \
-    cd /; rm -rf /tmp/lc-smoke
+#   Stage B (web):    Node 22, build the Next.js app (standalone output).
+#   Final (runtime):  Ubuntu 24.04 + Node 22 + gcc + libc dev + the vendored
+#                     stage binaries + runtime.c + the Next server. Runs as a
+#                     non-root user. gcc stays because linking happens per
+#                     request; the C++ build toolchain does NOT ship.
+#
+# The binaries are built on Ubuntu 24.04 / g++-13 (linux/amd64), so the runtime
+# base matches them and their glibc/libstdc++ ABI lines up at run time.
 
 ##########################  Stage B: Next.js build  ##########################
 FROM node:22-slim AS web
@@ -91,8 +48,23 @@ RUN apt-get update \
 RUN mkdir -p /lib64 \
  && ln -sf /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
 
-# Compiler binaries + runtime.c (no toolchain, no C++ source).
-COPY --from=compiler /opt/compiler /opt/compiler
+# Vendored compiler artifacts (no toolchain, no C++ source). The bundle already
+# mirrors /opt/compiler: <STAGE>/bin/<STAGE> for LA IR L3 L2 L1 + LC LB, plus
+# lib/runtime.c. Restore the executable bit (git preserves it, but keep this
+# explicit) and verify every binary is present and the LC -> LB prefix runs, so
+# a missing/broken binary fails the build here rather than at request time.
+COPY compiler-bin/ /opt/compiler/
+RUN set -eux; \
+    for d in LA IR L3 L2 L1 LC LB; do \
+      chmod +x "/opt/compiler/$d/bin/$d"; \
+      test -x "/opt/compiler/$d/bin/$d"; \
+    done; \
+    test -s /opt/compiler/lib/runtime.c; \
+    mkdir -p /tmp/lc-smoke; cd /tmp/lc-smoke; \
+    printf 'void main ( ) {\n  int x\n  x <- 1\n  print(x)\n  return\n}\n' > prog.LC; \
+    /opt/compiler/LC/bin/LC prog.LC -g 1 -O0; test -s prog.b; \
+    /opt/compiler/LB/bin/LB prog.b -g 1 -O0; test -s prog.a; \
+    cd /; rm -rf /tmp/lc-smoke
 
 # Next.js standalone server: server.js + traced node_modules, then static/public.
 # Tracing root is /app/site (its lockfile), so server.js sits at the standalone

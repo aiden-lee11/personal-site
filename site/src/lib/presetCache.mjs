@@ -19,7 +19,7 @@ export const CHAIN = ["LC", "LB", "LA", "IR", "L3", "L2", "L1", "S"];
 // (LC -> prog.b, LB -> prog.a); renamed to canonical prog.<next> after run.
 export const SHORT_OUTPUT = { LC: "prog.b", LB: "prog.a" };
 
-// Every IR pass exposing a --no-<slug> flag (compiler-src/IR/src/compiler.cpp).
+// Every IR pass exposing a --no-<slug> flag (IR stage compiler.cpp, site-fork).
 // Order is irrelevant to matching (the disabled set is sorted), but kept in the
 // route's declared order for readability.
 export const IR_PASSES = [

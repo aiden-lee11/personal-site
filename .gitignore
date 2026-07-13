@@ -5,16 +5,9 @@ site/out/
 site/.turbo/
 site/next-env.d.ts
 
-# Compiler build artifacts (only the source belongs in git)
-compiler-src/**/obj/
-compiler-src/**/build/
-compiler-src/**/*.o
-compiler-src/**/*.a
-compiler-src/**/prog.*
-
-# But do keep the built IR binary — that's the fork with per-pass flags.
-!compiler-src/IR/bin/
-compiler-src/**/bin/*.tmp
+# Compiler ships as prebuilt artifacts under compiler-bin/ (built by the private
+# repo's build-binaries workflow — see compiler-bin/README.md). Those binaries
+# are tracked; nothing to ignore here.
 
 # OS / editor
 .DS_Store

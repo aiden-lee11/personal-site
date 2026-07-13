@@ -1,24 +1,12 @@
-# Keep the build context small — the Dockerfile builds everything from source.
+# Keep the build context small. The Dockerfile builds the web app from source;
+# the compiler ships as prebuilt artifacts vendored under compiler-bin/ (built
+# by the private repo's build-binaries workflow — see compiler-bin/README.md),
+# which are copied into /opt/compiler as-is.
 **/node_modules
 **/.next
 **/.turbo
 **/out
 site/next-env.d.ts
-
-# Compiler build artifacts (rebuilt fresh inside the image; never ship host-arch)
-compiler-src/**/obj
-compiler-src/**/build
-compiler-src/**/*.o
-compiler-src/**/*.a
-compiler-src/**/bin
-compiler-src/**/.bin
-# …except LC/LB: instructor reference binaries (linux/amd64 ELF, no source to
-# build from) — the image ships these as-is.
-!compiler-src/LC/.bin/LC
-!compiler-src/LB/.bin/LB
-compiler-src/**/.cache
-compiler-src/**/prog.*
-compiler-src/**/*.ir
 
 # VCS / editor / OS
 .git

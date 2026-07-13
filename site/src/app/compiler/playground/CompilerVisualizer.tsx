@@ -48,7 +48,8 @@ function preferredStart(p: PresetBundle): { source: string; from: Layer } {
   return { source: p.layers.LA, from: "LA" };
 }
 
-// Every IR pass with a --no-<slug> flag exposed by compiler-src/IR/src/compiler.cpp
+// Every IR pass with a --no-<slug> flag exposed by the IR stage's compiler.cpp
+// (private compiler repo, site-fork branch)
 const IR_PASSES = [
   { id: "sccp",        name: "SCCP",        full: "Sparse Conditional Constant Propagation" },
   { id: "dce",         name: "DCE",         full: "Dead Code Elimination" },
@@ -908,7 +909,7 @@ export default function CompilerVisualizer({
               </ul>
               <p className="mt-3 text-[10px] text-[color:var(--muted)] leading-snug border-t border-[color:var(--border)] pt-2">
                 Flags plumbed through <code className="font-mono">--no-&lt;pass&gt;</code>{" "}
-                to the IR binary (compiler-src fork). Toggle any to see the emitted
+                to the IR binary (site-fork). Toggle any to see the emitted
                 code change live.
               </p>
             </div>

@@ -52,7 +52,7 @@ const {
 // --- environment (mirrors compile/route.ts resolution) ----------------------
 const COMPILER_BIN_DIR =
   process.env.COMPILER_BIN_DIR ||
-  path.resolve(process.cwd(), "..", "compiler-src");
+  path.resolve(process.cwd(), "..", "compiler-bin");
 const RUNTIME_C =
   process.env.COMPILER_RUNTIME_C ||
   path.join(COMPILER_BIN_DIR, "lib", "runtime.c");

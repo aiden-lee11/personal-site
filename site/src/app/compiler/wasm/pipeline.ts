@@ -25,7 +25,8 @@ const NEXT: Record<string, Layer> = {
   L1: "S",
 };
 
-// IR passes, in the order the flags are declared in compiler-src/IR/src/compiler.cpp.
+// IR passes, in the order the flags are declared in the IR stage's compiler.cpp
+// (private compiler repo, site-fork branch).
 export const IR_PASSES = [
   "licm",
   "dce",
