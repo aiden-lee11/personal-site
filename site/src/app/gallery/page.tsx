@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { readManifest, sortItems, storageConfigured } from "@/lib/gallery";
+import GalleryBoard from "./GalleryBoard";
 
 export const metadata: Metadata = {
   title: "Gallery · Aiden Lee",
@@ -9,18 +10,6 @@ export const metadata: Metadata = {
 
 // The manifest changes whenever a photo is added, so render on every request.
 export const dynamic = "force-dynamic";
-
-/** "2026-06-14" → "Jun 2026" — enough context without cluttering each caption. */
-function formatMonth(date: string): string {
-  const [y, m] = date.split("-");
-  const months = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-  ];
-  const mi = Number(m) - 1;
-  if (!y || mi < 0 || mi > 11) return "";
-  return `${months[mi]} ${y}`;
-}
 
 export default async function GalleryPage() {
   const items = sortItems(await readManifest());
@@ -59,39 +48,7 @@ export default async function GalleryPage() {
           </p>
         </div>
       ) : (
-        <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 [column-fill:_balance]">
-          {items.map((item) => (
-            <figure
-              key={item.id}
-              className="mb-4 break-inside-avoid overflow-hidden rounded-lg border border-[color:var(--border)] bg-[color:var(--subtle)]"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={item.url}
-                alt={item.caption || "Gallery photo"}
-                width={item.w}
-                height={item.h}
-                loading="lazy"
-                className="block w-full h-auto"
-                style={
-                  item.w && item.h
-                    ? { aspectRatio: `${item.w} / ${item.h}` }
-                    : undefined
-                }
-              />
-              {(item.caption || item.date) && (
-                <figcaption className="flex items-baseline justify-between gap-3 px-4 py-3">
-                  <span className="text-sm text-[color:var(--fg)] leading-snug">
-                    {item.caption}
-                  </span>
-                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-[color:var(--muted)] tabular">
-                    {formatMonth(item.date)}
-                  </span>
-                </figcaption>
-              )}
-            </figure>
-          ))}
-        </div>
+        <GalleryBoard items={items} />
       )}
     </div>
   );
