@@ -53,6 +53,9 @@ export default function GalleryUploadPage() {
   const [status, setStatus] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [items, setItems] = useState<GalleryItem[]>([]);
+  // Photo currently being edited (caption/date), or null when the form is closed.
+  const [editing, setEditing] = useState<{ id: string; caption: string; date: string } | null>(null);
+  const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Remember the password for the session so multi-upload doesn't retype it.
@@ -160,6 +163,39 @@ export default function GalleryUploadPage() {
     },
     [password],
   );
+
+  const saveEdit = useCallback(async () => {
+    if (!editing) return;
+    if (!password) {
+      setStatus({ kind: "err", msg: "Enter the password to edit." });
+      return;
+    }
+    setSaving(true);
+    setStatus(null);
+    try {
+      const res = await fetch("/api/gallery", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: editing.id,
+          password,
+          caption: editing.caption,
+          date: editing.date,
+        }),
+      });
+      const data = (await res.json()) as { item?: GalleryItem; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Edit failed.");
+      if (data.item) {
+        setItems((prev) => prev.map((i) => (i.id === data.item!.id ? data.item! : i)));
+      }
+      setEditing(null);
+      setStatus({ kind: "ok", msg: "Saved ✓" });
+    } catch (e) {
+      setStatus({ kind: "err", msg: (e as Error).message });
+    } finally {
+      setSaving(false);
+    }
+  }, [editing, password]);
 
   const kb = file ? Math.round(file.blob.size / 1024) : 0;
 
@@ -296,8 +332,21 @@ export default function GalleryUploadPage() {
                 <img
                   src={item.url}
                   alt={item.caption || "photo"}
-                  className="aspect-square w-full rounded object-cover border border-[color:var(--border)]"
+                  className={`aspect-square w-full rounded object-cover border ${
+                    editing?.id === item.id
+                      ? "border-[color:var(--accent)]"
+                      : "border-[color:var(--border)]"
+                  }`}
                 />
+                <button
+                  onClick={() =>
+                    setEditing({ id: item.id, caption: item.caption, date: item.date })
+                  }
+                  className="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[color:var(--accent)]"
+                  title="Edit caption/date"
+                >
+                  ✎
+                </button>
                 <button
                   onClick={() => remove(item.id)}
                   className="absolute right-1 top-1 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600"
@@ -308,6 +357,68 @@ export default function GalleryUploadPage() {
               </li>
             ))}
           </ul>
+
+          {/* Inline editor — same fields as upload, targets the selected photo */}
+          {editing && (
+            <div className="mt-6 rounded-lg border border-[color:var(--border)] p-4">
+              <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
+                <label className="block">
+                  <span className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
+                    Caption
+                  </span>
+                  <input
+                    type="text"
+                    value={editing.caption}
+                    maxLength={280}
+                    onChange={(e) =>
+                      setEditing((prev) => prev && { ...prev, caption: e.target.value })
+                    }
+                    placeholder="A line about this moment…"
+                    className="mt-2 w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--bg)] px-3 py-2 text-sm outline-none focus:border-[color:var(--accent)]"
+                  />
+                </label>
+                <label className="block">
+                  <span className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
+                    Date
+                  </span>
+                  <input
+                    type="date"
+                    value={editing.date}
+                    onChange={(e) =>
+                      setEditing((prev) => prev && { ...prev, date: e.target.value })
+                    }
+                    className="mt-2 w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--bg)] px-3 py-2 font-mono text-sm outline-none focus:border-[color:var(--accent)]"
+                  />
+                </label>
+              </div>
+              <div className="mt-4 flex items-center gap-4">
+                <button
+                  onClick={saveEdit}
+                  disabled={saving}
+                  className="btn btn-primary disabled:opacity-50"
+                >
+                  {saving ? "saving…" : "Save changes"}
+                </button>
+                <button
+                  onClick={() => setEditing(null)}
+                  className="font-mono text-xs text-[color:var(--muted)] hover:text-[color:var(--fg)]"
+                >
+                  cancel
+                </button>
+                {status && (
+                  <span
+                    className={`font-mono text-xs ${
+                      status.kind === "ok"
+                        ? "text-[color:var(--accent)]"
+                        : "text-red-400"
+                    }`}
+                  >
+                    {status.msg}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </section>
       )}
     </div>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { readManifest, sortItems, blobConfigured } from "@/lib/gallery";
+import { readManifest, sortItems, storageConfigured } from "@/lib/gallery";
 
 export const metadata: Metadata = {
   title: "Gallery · Aiden Lee",
@@ -43,7 +43,7 @@ export default async function GalleryPage() {
         <div className="border-t border-[color:var(--border)] pt-10">
           <p className="text-[color:var(--muted)] max-w-md leading-relaxed">
             No photos yet.{" "}
-            {blobConfigured() ? (
+            {storageConfigured() ? (
               <>
                 Head to the{" "}
                 <Link href="/gallery/upload" className="link-underline">
@@ -53,7 +53,7 @@ export default async function GalleryPage() {
               </>
             ) : (
               <span className="font-mono text-sm">
-                Blob storage isn’t configured on this deployment yet.
+                Photo storage isn’t configured on this deployment yet.
               </span>
             )}
           </p>

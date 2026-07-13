@@ -1,9 +1,17 @@
-import { list } from "@vercel/blob";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
-// One photo in the gallery. Images live in Vercel Blob; this metadata lives in
-// a single manifest.json blob that the API read-modify-writes on each upload.
+// One photo in the gallery. The image bytes live in a Railway Storage Bucket
+// (S3-compatible, private-only); this metadata lives in a single manifest.json
+// object that the API read-modify-writes on each upload.
 export type GalleryItem = {
   id: string;
+  /** Object key in the bucket, e.g. "gallery/photos/<id>.webp". */
+  key: string;
+  /**
+   * Serving URL the UI renders. Buckets are private, so we never hand out an
+   * object URL — instead we proxy bytes through /api/gallery/photo/<id>. Filled
+   * in on read; NOT persisted in the manifest (it's derivable from the id).
+   */
   url: string;
   caption: string;
   /** ISO date (YYYY-MM-DD) the photo is *about* — user-supplied, drives sort. */
@@ -15,38 +23,81 @@ export type GalleryItem = {
   uploadedAt: string;
 };
 
-// Fixed pathname (no random suffix) so the manifest is always at a known key.
-export const MANIFEST_PATH = "gallery/manifest.json";
-// Where the actual image blobs are stored.
+/** What actually gets written to manifest.json — the serving url is derived, not stored. */
+export type StoredItem = Omit<GalleryItem, "url">;
+
+// Fixed key (no random suffix) so the manifest is always at a known location.
+export const MANIFEST_KEY = "gallery/manifest.json";
+// Where the actual image objects are stored.
 export const PHOTOS_PREFIX = "gallery/photos/";
 
-/** Uploads only work when a Blob token AND an upload password are configured. */
-export function uploadsConfigured(): boolean {
-  return !!process.env.BLOB_READ_WRITE_TOKEN && !!process.env.UPLOAD_PASSWORD;
+/** Buckets are private — the UI reads photos through this proxy route by id. */
+export function photoUrl(id: string): string {
+  return `/api/gallery/photo/${id}`;
 }
 
-/** Reading the gallery just needs the Blob token. */
-export function blobConfigured(): boolean {
-  return !!process.env.BLOB_READ_WRITE_TOKEN;
+// The five env vars Railway injects when a bucket is attached to the service.
+const ENV = {
+  endpoint: () => process.env.ENDPOINT,
+  bucket: () => process.env.BUCKET,
+  accessKeyId: () => process.env.ACCESS_KEY_ID,
+  secretAccessKey: () => process.env.SECRET_ACCESS_KEY,
+  region: () => process.env.REGION || "auto",
+};
+
+/** Reading/writing the bucket needs all four S3 credentials to be present. */
+export function storageConfigured(): boolean {
+  return (
+    !!ENV.endpoint() &&
+    !!ENV.bucket() &&
+    !!ENV.accessKeyId() &&
+    !!ENV.secretAccessKey()
+  );
+}
+
+/** Uploads also require an upload password on top of the bucket credentials. */
+export function uploadsConfigured(): boolean {
+  return storageConfigured() && !!process.env.UPLOAD_PASSWORD;
+}
+
+// Lazily-built singleton so a missing-credentials import never throws at load.
+let _client: S3Client | null = null;
+export function s3(): S3Client {
+  if (_client) return _client;
+  _client = new S3Client({
+    region: ENV.region(),
+    endpoint: ENV.endpoint(),
+    credentials: {
+      accessKeyId: ENV.accessKeyId() ?? "",
+      secretAccessKey: ENV.secretAccessKey() ?? "",
+    },
+    // Railway buckets use virtual-hosted-style URLs (bucket as subdomain), so
+    // leave forcePathStyle unset (the default).
+  });
+  return _client;
+}
+
+/** The bucket name to target on every command. */
+export function bucketName(): string {
+  return ENV.bucket() ?? "";
 }
 
 /**
- * Load the manifest from Blob. Returns [] on any failure (unconfigured, no
- * manifest yet, transient error) so callers can always render something.
+ * Load the manifest from the bucket. Returns [] on any failure (unconfigured,
+ * no manifest yet, missing key, parse error) so callers can always render
+ * something. Each item gets a fresh serving url derived from its id.
  */
 export async function readManifest(): Promise<GalleryItem[]> {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) return [];
+  if (!storageConfigured()) return [];
   try {
-    const { blobs } = await list({ prefix: MANIFEST_PATH, token });
-    const manifest = blobs.find((b) => b.pathname === MANIFEST_PATH);
-    if (!manifest) return [];
-    // no-store: the manifest is overwritten in place, so we must never serve a
-    // cached copy or a fresh upload would appear to vanish on the next load.
-    const res = await fetch(manifest.url, { cache: "no-store" });
-    if (!res.ok) return [];
-    const data = (await res.json()) as unknown;
-    return Array.isArray(data) ? (data as GalleryItem[]) : [];
+    const res = await s3().send(
+      new GetObjectCommand({ Bucket: bucketName(), Key: MANIFEST_KEY }),
+    );
+    const body = await res.Body?.transformToString();
+    if (!body) return [];
+    const data = JSON.parse(body) as unknown;
+    if (!Array.isArray(data)) return [];
+    return (data as StoredItem[]).map((it) => ({ ...it, url: photoUrl(it.id) }));
   } catch {
     return [];
   }
