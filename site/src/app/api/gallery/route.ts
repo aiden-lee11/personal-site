@@ -27,6 +27,8 @@ export const dynamic = "force-dynamic";
 // a mistake. Also keeps us clear of the platform's request body ceiling.
 const MAX_BYTES = 8 * 1024 * 1024;
 const MAX_CAPTION = 280;
+// Cap on files in one grouped (stack) upload — keeps the request body sane.
+const MAX_GROUP = 10;
 
 /** Constant-time password check so we don't leak length/prefix via timing. */
 function passwordOk(supplied: string): boolean {
@@ -71,21 +73,32 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Wrong password." }, { status: 401 });
   }
 
-  const file = form.get("file");
-  if (!(file instanceof File)) {
+  // One or many files: a "stack" upload sends several `file` entries (plus a
+  // `w`/`h` pair each, in the same order). A single file is byte-identical to
+  // the old single-upload path — no group field, `{ item }` response.
+  const files = form.getAll("file").filter((f): f is File => f instanceof File);
+  if (files.length === 0) {
     return NextResponse.json({ error: "No image provided." }, { status: 400 });
   }
-  if (!file.type.startsWith("image/")) {
+  if (files.length > MAX_GROUP) {
     return NextResponse.json(
-      { error: "That file isn’t an image." },
+      { error: `Too many photos — ${MAX_GROUP} max per upload.` },
       { status: 400 },
     );
   }
-  if (file.size > MAX_BYTES) {
-    return NextResponse.json(
-      { error: "Image is too large even after compression (8MB max)." },
-      { status: 413 },
-    );
+  for (const f of files) {
+    if (!f.type.startsWith("image/")) {
+      return NextResponse.json(
+        { error: "That file isn’t an image." },
+        { status: 400 },
+      );
+    }
+    if (f.size > MAX_BYTES) {
+      return NextResponse.json(
+        { error: "Image is too large even after compression (8MB max)." },
+        { status: 413 },
+      );
+    }
   }
 
   const caption = String(form.get("caption") ?? "")
@@ -95,38 +108,52 @@ export async function POST(req: Request) {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
     ? rawDate
     : new Date().toISOString().slice(0, 10);
-  const w = Number(form.get("w")) || undefined;
-  const h = Number(form.get("h")) || undefined;
+  // Per-file natural dimensions, positional to the file list.
+  const ws = form.getAll("w");
+  const hs = form.getAll("h");
   const tags = normalizeTags(String(form.get("tags") ?? ""));
 
-  const id = crypto.randomUUID();
-  const key = `${PHOTOS_PREFIX}${id}.${extFor(file.type)}`;
-  const bytes = Buffer.from(await file.arrayBuffer());
-  await s3().send(
-    new PutObjectCommand({
-      Bucket: bucketName(),
-      Key: key,
-      Body: bytes,
-      ContentType: file.type,
-    }),
-  );
+  // Shared across the set: one group id (only when >1 file) and one upload
+  // timestamp so the members sort adjacently in the feed.
+  const group = files.length > 1 ? crypto.randomUUID() : undefined;
+  const uploadedAt = new Date().toISOString();
 
-  const stored: StoredItem = {
-    id,
-    key,
-    caption,
-    date,
-    w,
-    h,
-    tags,
-    uploadedAt: new Date().toISOString(),
-  };
+  const created: GalleryItem[] = [];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const id = crypto.randomUUID();
+    const key = `${PHOTOS_PREFIX}${id}.${extFor(file.type)}`;
+    const bytes = Buffer.from(await file.arrayBuffer());
+    await s3().send(
+      new PutObjectCommand({
+        Bucket: bucketName(),
+        Key: key,
+        Body: bytes,
+        ContentType: file.type,
+      }),
+    );
+    const stored: StoredItem = {
+      id,
+      key,
+      caption,
+      date,
+      w: Number(ws[i]) || undefined,
+      h: Number(hs[i]) || undefined,
+      tags,
+      ...(group ? { group } : {}),
+      uploadedAt,
+    };
+    created.push({ ...stored, url: photoUrl(id) });
+  }
 
   const items = await readManifest();
-  items.push({ ...stored, url: photoUrl(id) });
+  items.push(...created);
   await writeManifest(items);
 
-  return NextResponse.json({ item: { ...stored, url: photoUrl(id) } });
+  // Multiple → `{ items }`; single → `{ item }` so existing clients are unchanged.
+  return created.length > 1
+    ? NextResponse.json({ items: created })
+    : NextResponse.json({ item: created[0] });
 }
 
 export async function PATCH(req: Request) {
@@ -242,6 +269,8 @@ async function writeManifest(items: GalleryItem[]) {
     w: i.w,
     h: i.h,
     tags: i.tags ?? [],
+    // Only persist group when set — a single upload stays free of the field.
+    ...(i.group ? { group: i.group } : {}),
     uploadedAt: i.uploadedAt,
   }));
   await s3().send(

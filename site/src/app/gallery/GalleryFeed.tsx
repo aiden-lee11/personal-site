@@ -1,8 +1,14 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { GalleryItem } from "@/lib/gallery";
+
+// One slide as fed to the strip. A lone photo is a group of one; photos sharing
+// a `group` collapse into a single stacked slide. `key` is stable across the
+// motion engine's rebuilds. The imperative engine only ever sees [data-slide] —
+// it neither knows nor cares that a slide holds several photos.
+type Slide = { key: string; items: GalleryItem[] };
 
 /** "2026-06-14" → "Jun 2026" — enough context without cluttering each caption. */
 function formatMonth(date: string): string {
@@ -14,6 +20,150 @@ function formatMonth(date: string): string {
   const mi = Number(m) - 1;
   if (!y || mi < 0 || mi > 11) return "";
   return `${months[mi]} ${y}`;
+}
+
+// Small deterministic pile offsets for the peeking backs — alternating 2–3° and
+// a few px so a stack reads like prints dropped on a desk. Keyed by the photo's
+// ORIGINAL index so the pile stays put while the top print swaps on cycle.
+function backStyle(i: number): React.CSSProperties {
+  const dir = i % 2 === 0 ? 1 : -1;
+  const rot = dir * (i % 3 === 0 ? 3 : 2);
+  return {
+    transform: `rotate(${rot}deg) translate(${dir * (5 + i * 2)}px, ${-(2 + i)}px)`,
+  };
+}
+
+// A single strip slide. For a lone photo it renders exactly as before; for a
+// group it stacks the prints and cycles the active one on tap/click/chip. The
+// [data-slide] figure stays the unit the per-frame engine transforms — cycling
+// is plain local state, invisible to that engine.
+function GallerySlide({
+  items,
+  activeTag,
+  onSelectTag,
+  onImgLoad,
+  eager,
+}: {
+  items: GalleryItem[];
+  activeTag: string | null;
+  onSelectTag: (tag: string) => void;
+  onImgLoad: () => void;
+  eager: boolean;
+}) {
+  const [active, setActive] = useState(0);
+  const figRef = useRef<HTMLElement>(null);
+  const isStack = items.length > 1;
+  // Caption/date/tags are shared across the group; the photo (url/w/h) is the
+  // active one. Guard the index in case a filter/edit shrank the group.
+  const meta = items[0];
+  const idx = Math.min(active, items.length - 1);
+  const photo = items[idx];
+
+  const advance = useCallback(
+    () => setActive((a) => (a + 1) % items.length),
+    [items.length],
+  );
+
+  // Extend today's click behaviour: an off-center slide is centered by the
+  // engine's own listener; a click on the ALREADY-centered stack cycles it. We
+  // read the engine's .center class rather than tracking centeredness in React.
+  // A drag never fires a click (native semantics), so a swipe can't cycle.
+  const onClick = (e: React.MouseEvent) => {
+    if (!isStack) return;
+    if ((e.target as HTMLElement).closest("button")) return; // chip / tag pills
+    if (figRef.current?.classList.contains("center")) advance();
+  };
+
+  return (
+    <figure
+      ref={figRef}
+      data-slide=""
+      className={`gallery-slide${isStack ? " gallery-stack" : ""}`}
+      onClick={isStack ? onClick : undefined}
+    >
+      {/* Peeking backs — every non-active print, behind the top one. Decorative,
+          non-interactive; sized to the slide box by CSS, offset inline. */}
+      {isStack &&
+        items.map((b, i) =>
+          i === idx ? null : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={b.id}
+              className="gallery-stack-back"
+              src={b.url}
+              alt=""
+              aria-hidden="true"
+              style={backStyle(i)}
+            />
+          ),
+        )}
+      {/* Active print — defines the slide's aspect ratio / dimensions, like a
+          lone photo does. Keyed by id so a cycle remounts it (replays the
+          settle animation) and swaps the aspect ratio to the new print. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        key={photo.id}
+        className={isStack ? "gallery-stack-top" : undefined}
+        src={photo.url}
+        alt={meta.caption || "Gallery photo"}
+        width={photo.w}
+        height={photo.h}
+        loading={eager ? "eager" : "lazy"}
+        onLoad={onImgLoad}
+        style={
+          photo.w && photo.h
+            ? { aspectRatio: `${photo.w} / ${photo.h}` }
+            : undefined
+        }
+      />
+      <figcaption data-overlay="" className="gallery-overlay">
+        {meta.caption && (
+          <p className="mb-1.5 text-[0.92rem] leading-snug text-white">
+            {meta.caption}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-[11px] text-white/65">
+            {formatMonth(meta.date)}
+          </span>
+          {meta.tags?.map((tag) => (
+            <button
+              key={tag}
+              data-chip=""
+              onClick={() => onSelectTag(tag)}
+              className={`rounded-full px-2.5 py-0.5 font-mono text-[11px] lowercase transition-colors ${
+                tag === activeTag
+                  ? "bg-[color:var(--accent)] text-white"
+                  : "bg-white/15 text-white/90 hover:bg-white/25"
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      </figcaption>
+      {/* Discoverable advance affordance on desktop + touch. A real button, so
+          the engine's click handler ignores it; stopPropagation keeps the
+          figure's own onClick from double-advancing. */}
+      {isStack && (
+        <button
+          type="button"
+          className="gallery-stack-chip"
+          onClick={(e) => {
+            e.stopPropagation();
+            advance();
+          }}
+          aria-label={`Show next photo in this stack (${idx + 1} of ${items.length})`}
+        >
+          <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+            <rect x="2.5" y="0.5" width="8" height="8" rx="1.2" fill="none" stroke="currentColor" strokeWidth="1" />
+            <rect x="0.5" y="2.5" width="8" height="8" rx="1.2" fill="currentColor" opacity="0.85" />
+          </svg>
+          {idx + 1} / {items.length}
+        </button>
+      )}
+    </figure>
+  );
 }
 
 export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
@@ -52,6 +202,32 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
     () => (activeTag ? items.filter((i) => i.tags?.includes(activeTag)) : items),
     [items, activeTag],
   );
+
+  // Collapse groups into stacked slides. Group by `group` id (not adjacency) to
+  // be safe, and hold each group's sort position at its FIRST member so the
+  // stack lands where its newest photo would. Filtering happens upstream on
+  // `filtered`: since group members share tags, a tag filter keeps or drops a
+  // whole group together — the stack never fractures. This is the single memo
+  // the render and the progress counter both read, so groups count as one slide
+  // everywhere automatically.
+  const slides = useMemo<Slide[]>(() => {
+    const out: Slide[] = [];
+    const at = new Map<string, number>();
+    for (const it of filtered) {
+      if (it.group) {
+        const i = at.get(it.group);
+        if (i === undefined) {
+          at.set(it.group, out.length);
+          out.push({ key: `g:${it.group}`, items: [it] });
+        } else {
+          out[i].items.push(it);
+        }
+      } else {
+        out.push({ key: it.id, items: [it] });
+      }
+    }
+    return out;
+  }, [filtered]);
 
   // Toggle a tag: clicking the active one clears the filter, else switch to it.
   // Mirror the choice into the URL (?tag=) without disturbing scroll position.
@@ -337,7 +513,10 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
       cancelAnimationFrame(rafGlide);
       repaintRef.current = () => {};
     };
-  }, [filtered]);
+    // Keyed on `slides`, not `filtered`: the engine measures [data-slide]
+    // elements, and a group changes the slide count, so it must rebuild when the
+    // collapsed set changes (identity changes exactly when `filtered` does).
+  }, [slides]);
 
   return (
     <div className="gallery-feed">
@@ -458,52 +637,15 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
             tabIndex={0}
             aria-label="Photo scroller — scroll, drag, or use arrow keys"
           >
-            {filtered.map((item, idx) => (
-              <figure key={item.id} data-slide="" className="gallery-slide">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.url}
-                  alt={item.caption || "Gallery photo"}
-                  width={item.w}
-                  height={item.h}
-                  loading={idx === 0 ? "eager" : "lazy"}
-                  onLoad={() => repaintRef.current()}
-                  style={
-                    item.w && item.h
-                      ? { aspectRatio: `${item.w} / ${item.h}` }
-                      : undefined
-                  }
-                />
-                <figcaption
-                  data-overlay=""
-                  className="gallery-overlay"
-                >
-                  {item.caption && (
-                    <p className="mb-1.5 text-[0.92rem] leading-snug text-white">
-                      {item.caption}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-[11px] text-white/65">
-                      {formatMonth(item.date)}
-                    </span>
-                    {item.tags?.map((tag) => (
-                      <button
-                        key={tag}
-                        data-chip=""
-                        onClick={() => selectTag(tag)}
-                        className={`rounded-full px-2.5 py-0.5 font-mono text-[11px] lowercase transition-colors ${
-                          tag === activeTag
-                            ? "bg-[color:var(--accent)] text-white"
-                            : "bg-white/15 text-white/90 hover:bg-white/25"
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    ))}
-                  </div>
-                </figcaption>
-              </figure>
+            {slides.map((slide, idx) => (
+              <GallerySlide
+                key={slide.key}
+                items={slide.items}
+                activeTag={activeTag}
+                onSelectTag={selectTag}
+                onImgLoad={() => repaintRef.current()}
+                eager={idx === 0}
+              />
             ))}
           </div>
 
@@ -522,7 +664,7 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
               ref={countRef}
               className="font-mono text-[11px] tracking-[0.08em] text-[color:var(--muted)] tabular-nums"
             >
-              01 / {String(filtered.length).padStart(2, "0")}
+              01 / {String(slides.length).padStart(2, "0")}
             </span>
           </div>
         </>

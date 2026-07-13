@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GalleryItem } from "@/lib/gallery";
 
 // Downscale + recompress in the browser so phone photos (often 5–12MB) arrive
@@ -160,7 +160,9 @@ async function extractExifDate(file: File): Promise<string | null> {
 
 export default function GalleryUploadPage() {
   const [password, setPassword] = useState("");
-  const [file, setFile] = useState<Compressed | null>(null);
+  // Selected photos, in upload order. A single entry behaves like the old
+  // single-file flow; more than one becomes a stack (shared caption/date/tags).
+  const [files, setFiles] = useState<Compressed[]>([]);
   const [origName, setOrigName] = useState("");
   const [caption, setCaption] = useState("");
   const [tags, setTags] = useState("");
@@ -202,24 +204,63 @@ export default function GalleryUploadPage() {
   }, []);
   useEffect(() => { loadItems(); }, [loadItems]);
 
-  const pickFile = useCallback(async (f: File) => {
+  // ─── Feature 1: existing-tag chips ──────────────────────────────────────────
+  // Every distinct tag already in the gallery, first-seen order. Clicking a chip
+  // toggles it in the comma-separated input so near-duplicates ("project" vs
+  // "projects") stop creeping in. Derivable client-side — items are already loaded.
+  const knownTags = useMemo(() => {
+    const seen: string[] = [];
+    for (const it of items) {
+      for (const t of it.tags ?? []) if (!seen.includes(t)) seen.push(t);
+    }
+    return seen;
+  }, [items]);
+  // The input parsed the way the API normalizes it (lowercased, trimmed), so a
+  // chip lights up the instant its tag appears in the field as the user types.
+  const currentTags = useMemo(
+    () =>
+      tags
+        .split(",")
+        .map((t) => t.trim().toLowerCase())
+        .filter(Boolean),
+    [tags],
+  );
+  const toggleTag = useCallback((tag: string) => {
+    setTags((prev) => {
+      const parts = prev.split(",").map((t) => t.trim()).filter(Boolean);
+      const idx = parts.findIndex((p) => p.toLowerCase() === tag);
+      if (idx >= 0) parts.splice(idx, 1);
+      else parts.push(tag);
+      return parts.join(", ");
+    });
+  }, []);
+
+  const pickFiles = useCallback(async (list: File[]) => {
     setStatus(null);
-    if (!f.type.startsWith("image/")) {
+    const imgs = list.filter((f) => f.type.startsWith("image/"));
+    if (imgs.length === 0) {
       setStatus({ kind: "err", msg: "That’s not an image file." });
       return;
     }
-    setOrigName(f.name);
-    // Read EXIF from the ORIGINAL bytes before compress() re-encodes it away.
-    // Only prefill if the user hasn't typed a date of their own.
+    // Same cap the API enforces; trim quietly rather than erroring.
+    const capped = imgs.slice(0, 10);
+    setOrigName(capped.length === 1 ? capped[0].name : `${capped.length} photos`);
+    // EXIF: read the ORIGINAL bytes (compress() re-encodes it away) and prefill
+    // from the FIRST file that yields a date, unless the user typed one already.
     setDateFromPhoto(false);
-    const exifDate = await extractExifDate(f);
-    if (exifDate && !dateTouched.current) {
-      setDate(exifDate);
-      setDateFromPhoto(true);
+    if (!dateTouched.current) {
+      for (const f of capped) {
+        const exifDate = await extractExifDate(f);
+        if (exifDate) {
+          setDate(exifDate);
+          setDateFromPhoto(true);
+          break;
+        }
+      }
     }
     try {
-      const c = await compress(f);
-      setFile(c);
+      const compressed = await Promise.all(capped.map(compress));
+      setFiles(compressed);
     } catch (e) {
       setStatus({ kind: "err", msg: (e as Error).message });
     }
@@ -229,14 +270,14 @@ export default function GalleryUploadPage() {
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragging(false);
-      const f = e.dataTransfer.files?.[0];
-      if (f) pickFile(f);
+      const list = Array.from(e.dataTransfer.files ?? []);
+      if (list.length) pickFiles(list);
     },
-    [pickFile],
+    [pickFiles],
   );
 
   const submit = useCallback(async () => {
-    if (!file) {
+    if (files.length === 0) {
       setStatus({ kind: "err", msg: "Pick a photo first." });
       return;
     }
@@ -248,18 +289,29 @@ export default function GalleryUploadPage() {
     setStatus(null);
     try {
       const fd = new FormData();
-      fd.set("file", file.blob, "photo.webp");
+      // Repeated file/w/h in matching order; caption/date/tags shared for the set.
+      for (const c of files) {
+        fd.append("file", c.blob, "photo.webp");
+        fd.append("w", String(c.w));
+        fd.append("h", String(c.h));
+      }
       fd.set("caption", caption);
       fd.set("tags", tags);
       fd.set("date", date);
-      fd.set("w", String(file.w));
-      fd.set("h", String(file.h));
       fd.set("password", password);
       const res = await fetch("/api/gallery", { method: "POST", body: fd });
-      const data = (await res.json()) as { item?: GalleryItem; error?: string };
+      const data = (await res.json()) as {
+        item?: GalleryItem;
+        items?: GalleryItem[];
+        error?: string;
+      };
       if (!res.ok) throw new Error(data.error ?? "Upload failed.");
-      setStatus({ kind: "ok", msg: "Uploaded ✓" });
-      setFile(null);
+      const created = data.items ?? (data.item ? [data.item] : []);
+      setStatus({
+        kind: "ok",
+        msg: created.length > 1 ? `Uploaded ${created.length} ✓` : "Uploaded ✓",
+      });
+      setFiles([]);
       setOrigName("");
       setCaption("");
       setTags("");
@@ -267,13 +319,13 @@ export default function GalleryUploadPage() {
       dateTouched.current = false;
       setDateFromPhoto(false);
       if (inputRef.current) inputRef.current.value = "";
-      if (data.item) setItems((prev) => [data.item!, ...prev]);
+      if (created.length) setItems((prev) => [...created, ...prev]);
     } catch (e) {
       setStatus({ kind: "err", msg: (e as Error).message });
     } finally {
       setBusy(false);
     }
-  }, [file, password, caption, tags, date]);
+  }, [files, password, caption, tags, date]);
 
   const remove = useCallback(
     async (id: string) => {
@@ -332,7 +384,20 @@ export default function GalleryUploadPage() {
     }
   }, [editing, password]);
 
-  const kb = file ? Math.round(file.blob.size / 1024) : 0;
+  // Total compressed weight across the current selection.
+  const kb = Math.round(files.reduce((s, f) => s + f.blob.size, 0) / 1024);
+  // How many items each group has, so the manage list can badge stack members.
+  const groupCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const it of items) {
+      if (it.group) m.set(it.group, (m.get(it.group) ?? 0) + 1);
+    }
+    return m;
+  }, [items]);
+
+  const removeSelected = useCallback((i: number) => {
+    setFiles((prev) => prev.filter((_, k) => k !== i));
+  }, []);
 
   return (
     <div className="mx-auto max-w-3xl px-6 pt-20 pb-24 sm:pt-28">
@@ -376,32 +441,61 @@ export default function GalleryUploadPage() {
             : "border-[color:var(--border)] hover:border-[color:var(--fg)]"
         }`}
       >
-        {file ? (
+        {files.length === 1 ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={file.previewUrl}
+            src={files[0].previewUrl}
             alt="preview"
             className="mx-auto max-h-72 w-auto rounded"
           />
+        ) : files.length > 1 ? (
+          // A stack in the making — thumbnails of every selected photo.
+          <div className="flex flex-wrap justify-center gap-2">
+            {files.map((f, i) => (
+              <div key={i} className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={f.previewUrl}
+                  alt={`selected ${i + 1}`}
+                  className="h-24 w-24 rounded object-cover border border-[color:var(--border)]"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeSelected(i);
+                  }}
+                  className="absolute -right-1.5 -top-1.5 rounded-full bg-black/75 px-1.5 py-0.5 font-mono text-[10px] leading-none text-white hover:bg-red-600"
+                  title="Remove from set"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
         ) : (
           <p className="text-sm text-[color:var(--muted)]">
-            Drop a photo here, or click to choose one.
+            Drop photos here, or click to choose. Pick several to post them as one
+            stack.
           </p>
         )}
         <input
           ref={inputRef}
           type="file"
           accept="image/*"
+          multiple
           className="hidden"
           onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) pickFile(f);
+            const list = Array.from(e.target.files ?? []);
+            if (list.length) pickFiles(list);
           }}
         />
       </div>
-      {file && (
+      {files.length > 0 && (
         <p className="mt-2 font-mono text-[11px] text-[color:var(--muted)] tabular">
-          {origName} → {file.w}×{file.h}, {kb} KB webp
+          {files.length === 1
+            ? `${origName} → ${files[0].w}×${files[0].h}, ${kb} KB webp`
+            : `${files.length} photos → stack, ${kb} KB webp total`}
         </p>
       )}
 
@@ -456,13 +550,42 @@ export default function GalleryUploadPage() {
         />
       </label>
 
+      {/* Existing tags — click to toggle in the field above. Reuses the gallery
+          rail's pill look; an active pill is one already present in the input. */}
+      {knownTags.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {knownTags.map((tag) => {
+            const active = currentTags.includes(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => toggleTag(tag)}
+                aria-pressed={active}
+                className={`rounded-full border px-3 py-1 font-mono text-[11px] lowercase transition-colors ${
+                  active
+                    ? "border-[color:var(--accent)] bg-[color:var(--accent)] text-white"
+                    : "border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--fg)]"
+                }`}
+              >
+                {tag}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="mt-6 flex items-center gap-4">
         <button
           onClick={submit}
-          disabled={busy || !file}
+          disabled={busy || files.length === 0}
           className="btn btn-primary disabled:opacity-50"
         >
-          {busy ? "uploading…" : "Publish photo"}
+          {busy
+            ? "uploading…"
+            : files.length > 1
+              ? `Publish stack (${files.length})`
+              : "Publish photo"}
         </button>
         {status && (
           <span
@@ -517,6 +640,13 @@ export default function GalleryUploadPage() {
                 >
                   ✕
                 </button>
+                {/* Group members get a subtle badge so a stack is identifiable;
+                    edit/delete still act on this one photo. */}
+                {item.group && groupCounts.get(item.group)! > 1 && (
+                  <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-white">
+                    stack · {groupCounts.get(item.group)}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

@@ -21,6 +21,13 @@ export type GalleryItem = {
   h?: number;
   /** Free-form tags for filtering the feed. Normalized (see normalizeTags). */
   tags?: string[];
+  /**
+   * Shared id for photos uploaded together as one thing (a build, a trip). The
+   * feed collapses same-group items into a single stacked slide. Absent on every
+   * pre-existing item and on single-file uploads — everything stays backward
+   * compatible, so treat missing as "not grouped".
+   */
+  group?: string;
   /** When it was uploaded (ISO timestamp) — tiebreaker for same-day photos. */
   uploadedAt: string;
 };
