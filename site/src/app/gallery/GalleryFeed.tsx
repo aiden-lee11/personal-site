@@ -22,14 +22,28 @@ function formatMonth(date: string): string {
   return `${months[mi]} ${y}`;
 }
 
-// Small deterministic pile offsets for the peeking backs — alternating 2–3° and
-// a few px so a stack reads like prints dropped on a desk. Keyed by the photo's
-// ORIGINAL index so the pile stays put while the top print swaps on cycle.
-function backStyle(i: number): React.CSSProperties {
-  const dir = i % 2 === 0 ? 1 : -1;
-  const rot = dir * (i % 3 === 0 ? 3 : 2);
+// Cascade slots for the peeking backs — a diagonal collage rather than a tight
+// pile: alternating left/right with a progressive drop (up-left, mid-right,
+// down-left, …) so every print is clearly visible and invites a click. Offsets
+// are % of the (active) slide box and kept modest so the overflow stays within
+// ~½ the 4vw inter-slide gap; deeper prints scale down to read as further back.
+const CASCADE = [
+  { x: -12, y: -9, r: -2.5, s: 0.86 },
+  { x: 13, y: 4, r: 2, s: 0.83 },
+  { x: -10, y: 14, r: -3, s: 0.8 },
+  { x: 11, y: 8, r: 2.5, s: 0.8 },
+];
+// `d` is the print's depth in cycle order behind the active one (0 = next up),
+// so the arrangement is fully determined by which print is active; a tiny
+// index-keyed rotation jitter keeps the scrapbook feel from looking stamped.
+function backStyle(d: number, i: number): React.CSSProperties {
+  const c = CASCADE[Math.min(d, CASCADE.length - 1)];
+  const jitter = (i % 3) - 1; // -1 | 0 | 1, stable per original index
   return {
-    transform: `rotate(${rot}deg) translate(${dir * (5 + i * 2)}px, ${-(2 + i)}px)`,
+    transform: `translate(${c.x}%, ${c.y}%) rotate(${(c.r + jitter * 0.6).toFixed(
+      2,
+    )}deg) scale(${c.s})`,
+    zIndex: 3 - d, // nearer prints layer above farther ones, all below the top
   };
 }
 
@@ -81,11 +95,15 @@ function GallerySlide({
       className={`gallery-slide${isStack ? " gallery-stack" : ""}`}
       onClick={isStack ? onClick : undefined}
     >
-      {/* Peeking backs — every non-active print, behind the top one. Decorative,
-          non-interactive; sized to the slide box by CSS, offset inline. */}
+      {/* Peeking backs — the nearest few upcoming prints (cycle order) cascade
+          behind the top one. Decorative, non-interactive; sized to the slide box
+          by CSS, offset inline. Capped at 4 so a big stack doesn't become noise
+          — the chip still communicates the true count. */}
       {isStack &&
-        items.map((b, i) =>
-          i === idx ? null : (
+        Array.from({ length: Math.min(4, items.length - 1) }, (_, d) => {
+          const bi = (idx + d + 1) % items.length;
+          const b = items[bi];
+          return (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={b.id}
@@ -93,10 +111,10 @@ function GallerySlide({
               src={b.url}
               alt=""
               aria-hidden="true"
-              style={backStyle(i)}
+              style={backStyle(d, bi)}
             />
-          ),
-        )}
+          );
+        })}
       {/* Active print — defines the slide's aspect ratio / dimensions, like a
           lone photo does. Keyed by id so a cycle remounts it (replays the
           settle animation) and swaps the aspect ratio to the new print. */}
@@ -468,8 +486,9 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
     // Edge padding sized in JS so the first/last slides can reach viewport
     // center — with static padding alone, centerOf(first) is negative and
     // clamp() rounds it to 0, so the edge slides mathematically can never
-    // center. offsetWidth is valid before images load (slides carry
-    // aspect-ratio + a fixed height). Order matters: padding shifts
+    // center. offsetWidth is valid before images load (each <img> carries
+    // width/height attrs + an inline aspect-ratio, so its box shrink-wraps to a
+    // stable size under the CSS max-width/max-height caps). Order matters: padding shifts
     // offsetLeft, so it must be applied before centerOf. Then start centered
     // on the nearest slide (slide 0 on a fresh mount/filter) — crisp, full
     // caption, no drift; a resize shouldn't animate either.

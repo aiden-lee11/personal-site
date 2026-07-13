@@ -9,7 +9,11 @@ import type { GalleryItem } from "@/lib/gallery";
 const MAX_DIM = 2400;
 const WEBP_QUALITY = 0.82;
 
-type Compressed = { blob: Blob; w: number; h: number; previewUrl: string };
+// `name`/`sig` carry the original file's identity through the recompress so the
+// additive picker can label the selection and dedupe obvious re-adds.
+type Compressed = { blob: Blob; w: number; h: number; previewUrl: string; name: string; sig: string };
+
+const fileSig = (f: File) => `${f.name}:${f.size}:${f.lastModified}`;
 
 async function compress(file: File): Promise<Compressed> {
   const bitmapUrl = URL.createObjectURL(file);
@@ -33,7 +37,14 @@ async function compress(file: File): Promise<Compressed> {
       canvas.toBlob(resolve, "image/webp", WEBP_QUALITY),
     );
     if (!blob) throw new Error("Could not compress that image.");
-    return { blob, w, h, previewUrl: canvas.toDataURL("image/webp", 0.5) };
+    return {
+      blob,
+      w,
+      h,
+      previewUrl: canvas.toDataURL("image/webp", 0.5),
+      name: file.name,
+      sig: fileSig(file),
+    };
   } finally {
     URL.revokeObjectURL(bitmapUrl);
   }
@@ -163,7 +174,6 @@ export default function GalleryUploadPage() {
   // Selected photos, in upload order. A single entry behaves like the old
   // single-file flow; more than one becomes a stack (shared caption/date/tags).
   const [files, setFiles] = useState<Compressed[]>([]);
-  const [origName, setOrigName] = useState("");
   const [caption, setCaption] = useState("");
   const [tags, setTags] = useState("");
   const [date, setDate] = useState(today());
@@ -235,36 +245,54 @@ export default function GalleryUploadPage() {
     });
   }, []);
 
-  const pickFiles = useCallback(async (list: File[]) => {
-    setStatus(null);
-    const imgs = list.filter((f) => f.type.startsWith("image/"));
-    if (imgs.length === 0) {
-      setStatus({ kind: "err", msg: "That’s not an image file." });
-      return;
-    }
-    // Same cap the API enforces; trim quietly rather than erroring.
-    const capped = imgs.slice(0, 10);
-    setOrigName(capped.length === 1 ? capped[0].name : `${capped.length} photos`);
-    // EXIF: read the ORIGINAL bytes (compress() re-encodes it away) and prefill
-    // from the FIRST file that yields a date, unless the user typed one already.
-    setDateFromPhoto(false);
-    if (!dateTouched.current) {
-      for (const f of capped) {
-        const exifDate = await extractExifDate(f);
-        if (exifDate) {
-          setDate(exifDate);
-          setDateFromPhoto(true);
-          break;
+  const pickFiles = useCallback(
+    async (list: File[]) => {
+      setStatus(null);
+      const imgs = list.filter((f) => f.type.startsWith("image/"));
+      if (imgs.length === 0) {
+        setStatus({ kind: "err", msg: "That’s not an image file." });
+        return;
+      }
+      // Additive: new picks APPEND to the set (photos live far apart on disk, so
+      // they're chosen one at a time). Dedupe obvious re-adds against what's
+      // already selected so re-picking the same path is a silent no-op.
+      const have = new Set(files.map((f) => f.sig));
+      const fresh = imgs.filter((f) => !have.has(fileSig(f)));
+      if (fresh.length === 0) return;
+      // Same cap the API enforces (10). Fill the remaining room; if the pick
+      // overflows, take what fits and say so rather than dropping silently.
+      const room = 10 - files.length;
+      if (room <= 0) {
+        setStatus({ kind: "err", msg: "That’s the limit — 10 photos per stack." });
+        return;
+      }
+      const capped = fresh.slice(0, room);
+      if (fresh.length > room) {
+        setStatus({ kind: "err", msg: `Only room for ${room} more — capped at 10.` });
+      }
+      // EXIF: read the ORIGINAL bytes (compress() re-encodes it away) and prefill
+      // from the FIRST file across the accumulated set that yields a date. Earlier
+      // files already scanned to nothing, so only these new ones can be that
+      // first; skip once the user hand-edited or a photo date already stuck.
+      if (!dateTouched.current && !dateFromPhoto) {
+        for (const f of capped) {
+          const exifDate = await extractExifDate(f);
+          if (exifDate) {
+            setDate(exifDate);
+            setDateFromPhoto(true);
+            break;
+          }
         }
       }
-    }
-    try {
-      const compressed = await Promise.all(capped.map(compress));
-      setFiles(compressed);
-    } catch (e) {
-      setStatus({ kind: "err", msg: (e as Error).message });
-    }
-  }, []);
+      try {
+        const compressed = await Promise.all(capped.map(compress));
+        setFiles((prev) => [...prev, ...compressed]);
+      } catch (e) {
+        setStatus({ kind: "err", msg: (e as Error).message });
+      }
+    },
+    [files, dateFromPhoto],
+  );
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
@@ -312,7 +340,6 @@ export default function GalleryUploadPage() {
         msg: created.length > 1 ? `Uploaded ${created.length} ✓` : "Uploaded ✓",
       });
       setFiles([]);
-      setOrigName("");
       setCaption("");
       setTags("");
       setDate(today());
@@ -475,8 +502,14 @@ export default function GalleryUploadPage() {
           </div>
         ) : (
           <p className="text-sm text-[color:var(--muted)]">
-            Drop photos here, or click to choose. Pick several to post them as one
+            Drop photos here, or click to choose. Add them one at a time to build a
             stack.
+          </p>
+        )}
+        {/* Once photos are in, the zone reads as additive — click/drop appends. */}
+        {files.length > 0 && (
+          <p className="mt-3 font-mono text-[11px] text-[color:var(--muted)]">
+            {files.length >= 10 ? "10 photos — that’s the limit" : "+ add another photo"}
           </p>
         )}
         <input
@@ -487,6 +520,9 @@ export default function GalleryUploadPage() {
           className="hidden"
           onChange={(e) => {
             const list = Array.from(e.target.files ?? []);
+            // Reset so re-picking the SAME path fires change again — additive
+            // picking leans on choosing files one at a time.
+            e.target.value = "";
             if (list.length) pickFiles(list);
           }}
         />
@@ -494,7 +530,7 @@ export default function GalleryUploadPage() {
       {files.length > 0 && (
         <p className="mt-2 font-mono text-[11px] text-[color:var(--muted)] tabular">
           {files.length === 1
-            ? `${origName} → ${files[0].w}×${files[0].h}, ${kb} KB webp`
+            ? `${files[0].name} → ${files[0].w}×${files[0].h}, ${kb} KB webp`
             : `${files.length} photos → stack, ${kb} KB webp total`}
         </p>
       )}

@@ -290,7 +290,12 @@ body {
 
 .gallery-slide img {
   display: block;
-  height: min(62vh, 640px);
+  /* Shrink-wrap the visible photo: cap both axes and let the intrinsic aspect
+     ratio pick the smaller box, so a landscape photo width-clamped to max-width
+     no longer keeps a too-tall fixed height (which letterboxed on phones and
+     oversized the cascade backs + dropped the caption below the photo). */
+  height: auto;
+  max-height: min(62vh, 640px);
   width: auto;
   /* On phones a wider slide lets the next photo peek in; roomier from sm up. */
   max-width: 86vw;
@@ -325,14 +330,17 @@ body {
 }
 .gallery-slide .gallery-stack-top {
   position: relative;
-  z-index: 1;
+  z-index: 4; /* above all cascade backs (max z 3); below overlay/chip */
   /* Quick settle when the active print swaps — replays because React keys the
      top <img> by id, so a cycle remounts it. Same easing family as the strip. */
   animation: gallery-stack-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-/* Backs fill the same box as the top print, offset via their inline transform.
-   Higher specificity than `.gallery-slide img` so the flow-sizing rules (fixed
-   height, max-width) don't apply. Non-interactive — clicks fall to the figure. */
+/* Backs fill the same box as the top print, offset+scaled via their inline
+   transform. Higher specificity than `.gallery-slide img` so the flow-sizing
+   rules (shrink-wrapped height, max-width) don't apply. Non-interactive — clicks fall to
+   the figure. A soft shadow + hairline light ring lifts each print's edge off
+   the dark bg; z-index is inline (nearer prints sit above farther ones). They
+   fade in on cycle so a reshuffled cascade doesn't pop. */
 .gallery-slide img.gallery-stack-back {
   position: absolute;
   inset: 0;
@@ -340,9 +348,23 @@ body {
   height: 100%;
   max-width: none;
   object-fit: cover;
-  z-index: 0;
   pointer-events: none;
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.07);
+  /* Opacity-only — a transform animation would clobber the inline cascade
+     offset while it ran. */
+  animation: gallery-back-in 260ms ease-out;
+}
+@keyframes gallery-back-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* Keep the caption scrim + counter chip above the raised top print. */
+.gallery-slide.gallery-stack .gallery-overlay {
+  z-index: 5;
 }
 @keyframes gallery-stack-in {
   from {
@@ -359,7 +381,7 @@ body {
   position: absolute;
   top: 0.6rem;
   right: 0.6rem;
-  z-index: 2;
+  z-index: 6; /* above the raised top print + overlay */
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
@@ -383,7 +405,8 @@ body {
     animation: none;
   }
   /* Cycling a stack is instant — no settle fade. */
-  .gallery-slide .gallery-stack-top {
+  .gallery-slide .gallery-stack-top,
+  .gallery-slide img.gallery-stack-back {
     animation: none;
   }
 }
