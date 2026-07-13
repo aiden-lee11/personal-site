@@ -88,10 +88,20 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
     let rafPaint = 0;
     let rafGlide = 0;
 
-    // Follow-the-hand motion is quick; the idle settle is a slow drift. Two
-    // speeds, one loop — `ease` is re-set by whichever motion is in charge.
+    // Touch gesture anchor: the centered slide index and scrollLeft captured the
+    // moment a finger lands. iOS momentum keeps firing scroll events after
+    // touchend, so this must outlive the release — it's only cleared once the
+    // idle settle actually runs. null means no live touch gesture, and the
+    // settle falls back to plain nearest (wheel/keys/click never set it).
+    let anchorIdx = 0;
+    let anchorLeft: number | null = null;
+
+    // Follow-the-hand motion is quick; the idle settle is a slow drift. A
+    // directional commit sits between — snap-ish but still eased. `ease` is
+    // re-set by whichever motion is in charge.
     const FOLLOW = 0.14;
     const SETTLE = 0.04;
+    const COMMIT = 0.11;
     let ease = FOLLOW;
 
     const clamp = (x: number) =>
@@ -143,9 +153,31 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
         const vis = slides();
-        // A long pause, then a drift so slow it reads as the strip exhaling —
-        // never a snap.
-        if (vis.length) go(centerOf(vis[nearest(vis)]), SETTLE);
+        if (!vis.length) return;
+        const near = nearest(vis);
+        // Default (tap, wheel, wiggle): a drift so slow it reads as the strip
+        // exhaling — never a snap — onto whatever slide sits nearest center.
+        let idx = near;
+        let speed = SETTLE;
+        // A touch gesture is live. Commit in the swipe's direction so a partial
+        // swipe always advances at least one slide and never snaps back against
+        // the finger, while a momentum fling that already sailed past keeps its
+        // extra distance (max/min, not a hard anchor±1).
+        if (anchorLeft !== null) {
+          const disp = strip.scrollLeft - anchorLeft;
+          // Below this it's a tap or accidental wiggle — keep plain nearest.
+          const commit = Math.max(40, strip.clientWidth * 0.08);
+          if (disp > commit) {
+            idx = Math.max(near, anchorIdx + 1);
+            speed = COMMIT;
+          } else if (disp < -commit) {
+            idx = Math.min(near, anchorIdx - 1);
+            speed = COMMIT;
+          }
+          idx = Math.max(0, Math.min(idx, vis.length - 1));
+          anchorLeft = null; // gesture consumed — next settle is nearest again
+        }
+        go(centerOf(vis[idx]), speed);
       }, 380);
     };
 
@@ -210,8 +242,26 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
     // native non-passive listener — React's synthetic onWheel can't preventDefault.
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      anchorLeft = null; // definitively not-touch — drop any stale touch anchor
       go(target + e.deltaY + e.deltaX);
       snapSoon();
+    };
+    // A finger lands: snapshot where we're centered and the raw scroll position
+    // so the idle settle can commit in the swipe's direction. Passive — we never
+    // block native touch scrolling.
+    const onTouchStart = () => {
+      // A finger always wins over any programmatic glide. Kill an in-flight
+      // glide (e.g. the seconds-long SETTLE exhale) and hand the strip to the
+      // hand — otherwise glide() keeps stepping scrollLeft toward the stale
+      // pre-gesture target and drags the strip back out from under the finger.
+      // Clearing gliding also lets onScroll re-arm the idle settle so the
+      // directional commit actually runs on release.
+      cancelAnimationFrame(rafGlide);
+      gliding = false;
+      target = strip.scrollLeft;
+      const vis = slides();
+      anchorIdx = vis.length ? nearest(vis) : 0;
+      anchorLeft = strip.scrollLeft;
     };
     // Native drag/scroll: keep target in sync so the glide never fights a hand,
     // and request a paint frame for the new position.
@@ -268,6 +318,7 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
 
     strip.addEventListener("wheel", onWheel, { passive: false });
     strip.addEventListener("scroll", onScroll);
+    strip.addEventListener("touchstart", onTouchStart, { passive: true });
     strip.addEventListener("click", onClick);
     window.addEventListener("keydown", onKey);
     window.addEventListener("resize", onResize);
@@ -277,6 +328,7 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
     return () => {
       strip.removeEventListener("wheel", onWheel);
       strip.removeEventListener("scroll", onScroll);
+      strip.removeEventListener("touchstart", onTouchStart);
       strip.removeEventListener("click", onClick);
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", onResize);
