@@ -228,6 +228,17 @@ body {
   padding: 0 2px;
 }
 
+/* Ember-tinted variant of the spotlight pill (PassCinema). Same shape as
+   .pass-pill, but warm (#f2a65a) instead of purple — used when a step contrasts
+   two actors so the established/known value reads distinct from the one in flux.
+   The token text itself is colored var(--ember, #f2a65a) inline in PassCinema. */
+.pass-pill-warm {
+  background: rgba(242, 166, 90, 0.16);
+  box-shadow: 0 0 0 1px rgba(242, 166, 90, 0.4);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
 /* Granular per-line spotlight outline used by the animated pass explainer
    (PassCinema). Wraps only a marked line's instruction text — the ring/tint
    themselves fade in via framer; padding + negative margin are constant so the

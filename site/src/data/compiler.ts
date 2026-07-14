@@ -46,15 +46,26 @@ export type OptExample = {
    * When present these REPLACE the single focus-token trace beat; each step
    * moves attention with its own highlights, so the explainer reads as a
    * sequence rather than one blanket highlight:
-   *   - marks:   tokens pill-highlighted (.pass-pill) during that step only,
-   *              matched with the same %/:-aware boundaries as `focus`. They
-   *              un-highlight when the step advances, so attention moves.
+   *   - marks:   tokens pill-highlighted in purple (.pass-pill) during that step
+   *              only, matched with the same %/:-aware boundaries as `focus`.
+   *              They un-highlight when the step advances, so attention moves.
+   *   - warm:    tokens pill-highlighted in EMBER (.pass-pill-warm) instead of
+   *              purple for that step. Used when a step contrasts two actors so
+   *              they read as visually distinct. Semantic (consistent across all
+   *              passes): EMBER = the established / known / original value — the
+   *              proven constant, the copy's source, the kept original, the
+   *              identity/constant operand. PURPLE (marks) = the thing in flux —
+   *              being folded, transformed, copied, or the redundant one that
+   *              gets rewritten. A token must never be in both marks and warm in
+   *              the same step.
    *   - outline: any line whose trimmed text contains one of these strings gets
    *              the tight per-line ring (.pass-mark) during that step — lets a
    *              step point at a whole instruction or a label's line.
-   *   - caption: the callout text for the step (focus tokens colored as usual).
+   *   - caption: the callout text for the step. Tokens matching that step's
+   *              marks render accent, tokens matching warm render ember, so the
+   *              callout legend matches the pills in the code.
    */
-  steps?: { caption: string; marks?: string[]; outline?: string[] }[];
+  steps?: { caption: string; marks?: string[]; warm?: string[]; outline?: string[] }[];
 };
 
 export const OPT_EXAMPLES: OptExample[] = [
@@ -71,11 +82,17 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "so the false arm is unreachable",
       transform: "the branch and every fold collapse to one constant",
     },
+    // ember = the proven-known value (%c, then %x, then %y as each is folded and
+    // becomes the known input to the next fold); purple = the arm/target in flux.
     steps: [
-      { marks: ["%c"], outline: ["%c <- 1"], caption: "%c is assigned once — provably always 1" },
-      { marks: ["%c"], outline: ["br %c"], caption: "the branch condition is that constant" },
+      { warm: ["%c"], outline: ["%c <- 1"], caption: "%c is assigned once — provably always 1" },
+      { warm: ["%c"], outline: ["br %c"], caption: "the branch condition is that constant" },
       { marks: [":maybe_taken"], caption: ":maybe_taken is always the arm taken" },
+      { marks: ["%x"], outline: ["%x <- 2 + 3"], caption: "2 + 3 is already constant — %x folds to 5" },
+      { marks: ["%y"], warm: ["%x"], outline: ["%y <- %x * 4"], caption: "%x is known to be 5, so %y folds to 20" },
+      { marks: ["%out"], warm: ["%y"], outline: ["%out <- %y - 5"], caption: "constants keep propagating — %out is just 15" },
       { marks: [":never_taken"], outline: [":never_taken"], caption: "so the false arm is unreachable — dead" },
+      { marks: ["%out"], outline: ["return %out"], caption: "the whole arm collapses to return 15" },
     ],
     before: `define void @g () {
 
@@ -219,10 +236,12 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "same inputs hash to the same value number",
       transform: "so %b just reuses %a",
     },
+    // ember = %t1, the original computation that is kept and reused; purple = %t2,
+    // the redundant recompute that gets rewritten into a copy.
     steps: [
       { marks: ["%t1"], outline: ["%t1 <- %x * %x"], caption: "%t1 computes %x * %x first" },
       { marks: ["%t2"], outline: ["%t2 <- %x * %x"], caption: "%t2 recomputes the identical expression" },
-      { marks: ["%t1", "%t2"], caption: "same inputs hash to one value number — reuse %t1" },
+      { marks: ["%t2"], warm: ["%t1"], caption: "same inputs hash to one value number — reuse %t1" },
     ],
     before: `define void @dup (%x) {
 
@@ -257,11 +276,13 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "every use traces straight back to %a",
       transform: "so the copies collapse into the source",
     },
+    // ember = %a, the real source value (kept); purple = %b/%c, the pure copies
+    // that collapse into it. %a stays ember wherever it appears for a stable legend.
     steps: [
-      { marks: ["%a"], outline: ["%a <- 5"], caption: "%a holds the real value" },
-      { marks: ["%b", "%a"], outline: ["%b <- %a"], caption: "%b is just a copy of %a" },
+      { warm: ["%a"], outline: ["%a <- 5"], caption: "%a holds the real value" },
+      { marks: ["%b"], warm: ["%a"], outline: ["%b <- %a"], caption: "%b is just a copy of %a" },
       { marks: ["%c", "%b"], outline: ["%c <- %b"], caption: "%c copies %b — the chain renames one value" },
-      { marks: ["%a"], caption: "every use traces straight back to %a" },
+      { warm: ["%a"], caption: "every use traces straight back to %a" },
     ],
     before: `define void @chain () {
 
@@ -291,11 +312,13 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "the identity operands don't change the value",
       transform: "so each op becomes a plain copy",
     },
+    // ember = the identity/constant operand (the known literal); purple = the
+    // variable value the op flows through and simplifies to.
     steps: [
-      { marks: ["1"], outline: ["%a <- %x * 1"], caption: "%x * 1 leaves %x unchanged" },
-      { marks: ["0"], outline: ["%b <- %a + 0"], caption: "%a + 0 leaves %a unchanged" },
-      { marks: ["0"], outline: ["%c <- %b << 0"], caption: "%b << 0 leaves %b unchanged" },
-      { marks: ["1", "0"], outline: ["%a <- %x * 1", "%b <- %a + 0", "%c <- %b << 0"], caption: "so each identity op collapses to a copy" },
+      { marks: ["%x"], warm: ["1"], outline: ["%a <- %x * 1"], caption: "%x * 1 leaves %x unchanged" },
+      { marks: ["%a"], warm: ["0"], outline: ["%b <- %a + 0"], caption: "%a + 0 leaves %a unchanged" },
+      { marks: ["%b"], warm: ["0"], outline: ["%c <- %b << 0"], caption: "%b << 0 leaves %b unchanged" },
+      { marks: ["%x", "%a", "%b"], warm: ["1", "0"], outline: ["%a <- %x * 1", "%b <- %a + 0", "%c <- %b << 0"], caption: "so each identity op collapses to a copy" },
     ],
     before: `define void @idents (%x) {
 
@@ -327,10 +350,12 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "+1, +2 and +0 fold together",
       transform: "into a single %x + 3",
     },
+    // ember = the constant addends (known literals); purple = the running
+    // variable value they accumulate into.
     steps: [
-      { marks: ["1", "2"], outline: ["%a <- %x + 1", "%b <- %a + 2"], caption: "a window of adds chains through +1 then +2" },
-      { marks: ["0"], outline: ["%c <- %b + 0"], caption: "+0 does nothing" },
-      { marks: ["1", "2", "0"], caption: "+1, +2 and +0 fold into one %x + 3" },
+      { marks: ["%x", "%a"], warm: ["1", "2"], outline: ["%a <- %x + 1", "%b <- %a + 2"], caption: "a window of adds chains through +1 then +2" },
+      { marks: ["%b"], warm: ["0"], outline: ["%c <- %b + 0"], caption: "+0 does nothing" },
+      { marks: ["%x"], warm: ["1", "2", "0"], caption: "+1, +2 and +0 fold into one %x + 3" },
     ],
     before: `define void @window (%x) {
 
@@ -360,9 +385,11 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "but %i is proven to stay in [0, %len)",
       transform: "so the always-true check is removed",
     },
+    // ember = %len, the fixed/known upper bound; purple = %i, the induction
+    // variable whose range is being proven (and %ok, the check being removed).
     steps: [
       { marks: ["%ok"], outline: ["%ok <- %i < %len"], caption: "%ok is a per-access bounds check" },
-      { marks: ["%i", "%len"], caption: "but %i is proven to stay in [0, %len)" },
+      { marks: ["%i"], warm: ["%len"], caption: "but %i is proven to stay in [0, %len)" },
       { marks: ["%ok"], outline: ["br %ok"], caption: "so %ok is always true — the check and its trap are dead" },
     ],
     before: `define void @fill (%a, %len) {
@@ -467,11 +494,13 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "the join φ picks %m from the two arms",
       transform: "so the whole triangle becomes one cmov",
     },
+    // ember = %cmp, the established selector condition; purple = %m, the new
+    // cmov result the triangle folds into.
     steps: [
       { marks: ["%cmp"], outline: ["br %cmp"], caption: "the branch picks an arm on %cmp" },
       { outline: ["br :join"], caption: "both arms are empty — they just reach :join" },
       { marks: ["%m"], outline: ["%m <- φ"], caption: "the join φ selects %m from the two arms" },
-      { marks: ["%cmp", "%m"], caption: "so the whole triangle folds to one cmov on %cmp" },
+      { marks: ["%m"], warm: ["%cmp"], caption: "so the whole triangle folds to one cmov on %cmp" },
     ],
     before: `define void @max (%a, %b) {
 

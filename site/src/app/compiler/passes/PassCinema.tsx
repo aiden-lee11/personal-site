@@ -44,6 +44,11 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 const ADD_TINT = "rgba(166, 132, 245, 0.18)";
 const ADD_TINT_OFF = "rgba(166, 132, 245, 0)";
 const TRANSPARENT = "rgba(0, 0, 0, 0)";
+// Warm ember for the second-actor pills/callout tokens. The var may not be in
+// :root yet, so the literal fallback is what actually paints today.
+const EMBER = "var(--ember, #f2a65a)";
+// Shared empty set for stages that have no warm (ember) tokens — avoids realloc.
+const EMPTY_WARM: ReadonlySet<string> = new Set<string>();
 
 type RowKind = "same" | "del" | "add";
 type Row = { key: string; kind: RowKind; text: string };
@@ -58,7 +63,10 @@ type Stage = {
   key: string;
   phase: Phase;
   caption?: string;
+  // pillRe matches every token the step highlights (marks ∪ warm); warmSet says
+  // which of those matches paint ember rather than purple.
   pillRe: RegExp | null;
+  warmSet: ReadonlySet<string>;
   outline: string[];
   isStep: boolean;
   duration: number;
@@ -110,11 +118,17 @@ function lineMatchesOutline(text: string, outline: string[]): boolean {
   return outline.some((o) => t.includes(o));
 }
 
-/** Split a line into text + highlighted-token nodes. */
+/**
+ * Split a line into text + highlighted-token nodes. `re` matches both purple
+ * (marks) and ember (warm) tokens; `warmSet` decides, per match, which is which
+ * — warm tokens paint ember (pill wash + text), the rest stay purple/accent, so
+ * two contrasted actors read as visually distinct within the same step.
+ */
 function renderTokens(
   text: string,
   re: RegExp | null,
   variant: "pill" | "accent",
+  warmSet: ReadonlySet<string> = EMPTY_WARM,
 ): React.ReactNode {
   if (!re) return text;
   re.lastIndex = 0;
@@ -125,22 +139,27 @@ function renderTokens(
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) out.push(text.slice(last, m.index));
     const k = key++;
+    const warm = warmSet.has(m[0]);
     out.push(
       variant === "pill" ? (
         // Keying on the matched text forces a remount (so the fade/scale-in
         // replays) whenever the token at this slot changes between steps.
         <motion.span
           key={`${k}-${m[0]}`}
-          className="pass-pill"
+          className={warm ? "pass-pill-warm" : "pass-pill"}
           initial={{ opacity: 0, scale: 0.82 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3, ease: EASE }}
-          style={{ display: "inline-block", verticalAlign: "baseline" }}
+          style={{
+            display: "inline-block",
+            verticalAlign: "baseline",
+            color: warm ? EMBER : undefined,
+          }}
         >
           {m[0]}
         </motion.span>
       ) : (
-        <span key={k} style={{ color: "var(--accent)" }}>
+        <span key={k} style={{ color: warm ? EMBER : "var(--accent)" }}>
           {m[0]}
         </span>
       ),
@@ -179,6 +198,7 @@ export default function PassCinema({ example }: { example: OptExample }) {
       key: "before",
       phase: "before",
       pillRe: null,
+      warmSet: EMPTY_WARM,
       outline: [],
       isStep: false,
       duration: DURATION.before,
@@ -188,18 +208,23 @@ export default function PassCinema({ example }: { example: OptExample }) {
       phase: "spot",
       caption: example.story?.spot ?? example.tagline,
       pillRe: null,
+      warmSet: EMPTY_WARM,
       outline: [],
       isStep: false,
       duration: DURATION.spot,
     });
     if (example.steps?.length) {
-      // Authored steps replace the single trace beat entirely.
+      // Authored steps replace the single trace beat entirely. Purple marks and
+      // ember warm tokens share one match regex; warmSet tags which are ember.
       example.steps.forEach((s, i) => {
+        const marks = s.marks ?? [];
+        const warm = s.warm ?? [];
         list.push({
           key: `step-${i}`,
           phase: "trace",
           caption: s.caption,
-          pillRe: buildTokenRegex(s.marks ?? []),
+          pillRe: buildTokenRegex([...marks, ...warm]),
+          warmSet: warm.length ? new Set(warm) : EMPTY_WARM,
           outline: s.outline ?? [],
           isStep: true,
           duration: STEP_DURATION,
@@ -211,6 +236,7 @@ export default function PassCinema({ example }: { example: OptExample }) {
         phase: "trace",
         caption: example.story?.trace ?? "tracing the values involved",
         pillRe: tokenRe,
+        warmSet: EMPTY_WARM,
         outline: [],
         isStep: false,
         duration: DURATION.trace,
@@ -221,6 +247,7 @@ export default function PassCinema({ example }: { example: OptExample }) {
       phase: "transform",
       caption: example.story?.transform ?? "applying the transform",
       pillRe: null,
+      warmSet: EMPTY_WARM,
       outline: [],
       isStep: false,
       duration: DURATION.transform,
@@ -229,6 +256,7 @@ export default function PassCinema({ example }: { example: OptExample }) {
       key: "after",
       phase: "after",
       pillRe: null,
+      warmSet: EMPTY_WARM,
       outline: [],
       isStep: false,
       duration: DURATION.after,
@@ -288,6 +316,11 @@ export default function PassCinema({ example }: { example: OptExample }) {
 
   const stage = stages[stageIdx] ?? stages[0];
   const showCallout = stage.caption != null;
+  // The callout legend mirrors the code: on an authored step, color its own
+  // marks (accent) and warm (ember) tokens; on the framing beats, fall back to
+  // the focus tokens as accent, exactly as before.
+  const calloutRe = stage.isStep ? stage.pillRe : tokenRe;
+  const calloutWarm = stage.isStep ? stage.warmSet : EMPTY_WARM;
 
   return (
     <div
@@ -330,7 +363,7 @@ export default function PassCinema({ example }: { example: OptExample }) {
               transition={{ duration: 0.25, ease: EASE }}
               aria-hidden
             >
-              {renderTokens(stage.caption ?? "", tokenRe, "accent")}
+              {renderTokens(stage.caption ?? "", calloutRe, "accent", calloutWarm)}
             </motion.div>
           )}
         </AnimatePresence>
@@ -430,7 +463,7 @@ const MARK_VARIANTS: Variants = {
 };
 
 function RowLine({ row, stage }: { row: Row; stage: Stage }) {
-  const { phase, pillRe, outline, isStep } = stage;
+  const { phase, pillRe, warmSet, outline, isStep } = stage;
   const { indent, code, comment } = splitLine(row.text || " ");
   const hasCode = code.trim() !== "";
   const showPills = phase === "trace" && pillRe !== null;
@@ -486,10 +519,10 @@ function RowLine({ row, stage }: { row: Row; stage: Stage }) {
             variants={MARK_VARIANTS}
             transition={{ duration: 0.3, ease: EASE }}
           >
-            {renderTokens(code, showPills ? pillRe : null, "pill")}
+            {renderTokens(code, showPills ? pillRe : null, "pill", warmSet)}
           </motion.span>
         )}
-        {renderTokens(comment, showPills ? pillRe : null, "pill")}
+        {renderTokens(comment, showPills ? pillRe : null, "pill", warmSet)}
       </span>
     </motion.div>
   );
