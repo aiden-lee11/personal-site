@@ -618,7 +618,7 @@ const MARK_VARIANTS: Variants = {
 };
 
 function RowLine({ row, stage }: { row: Row; stage: Stage }) {
-  const { phase, pillRe, warmSet, outline, isStep, scoped, rewrites } = stage;
+  const { phase, pillRe, warmSet, outline, isStep, rewrites } = stage;
   // Inline-rewrite overlay: show the (possibly folded) text, but keep matching
   // ring/pills against this DISPLAYED text so a step can pill the substituted
   // constant. Height/kind targets below still use the original row identity.
@@ -626,10 +626,15 @@ function RowLine({ row, stage }: { row: Row; stage: Stage }) {
   const { indent, code, comment } = splitLine(displayText || " ");
   const hasCode = code.trim() !== "";
 
-  // A scoped step (one that declared rewrites) restricts its pills + lighting to
-  // its outlined lines, so a bare-number token lights only the rewritten line.
+  // Every authored step focuses tightly. A step that names an `outline` scopes
+  // its pills + line-lighting to exactly those lines (so a bare-number token
+  // lights only the rewritten line, and a step about one instruction doesn't
+  // brighten every line that mentions its token). A step with NO outline scopes
+  // to the lines whose CODE carries one of its marks/warm tokens. Either way,
+  // every other line on the step dims, so attention lands on the beat.
   const onOutline = lineMatchesOutline(displayText, outline);
-  const effectivePillRe = scoped && !onOutline ? null : pillRe;
+  const scopeToOutline = isStep && outline.length > 0;
+  const effectivePillRe = scopeToOutline && !onOutline ? null : pillRe;
   const showPills = phase === "trace" && effectivePillRe !== null;
 
   // Per-line ring: during a step it follows the step's `outline`; otherwise it
@@ -638,9 +643,10 @@ function RowLine({ row, stage }: { row: Row; stage: Stage }) {
     ? hasCode && onOutline
     : row.kind === "del" && hasCode && (phase === "spot" || phase === "trace");
 
-  // Within a step, only outlined lines and lines carrying a pilled token stay
-  // fully lit; everything else dims so attention lands on the beat.
-  const activeRow = isStep && (marked || lineHasToken(displayText, effectivePillRe));
+  // A line is lit when it's the ringed outline line or (for an outline-less
+  // step) its CODE carries a pilled token — matched against `code`, never the
+  // comment, so a token that only appears in a `;;` note doesn't light the line.
+  const activeRow = isStep && (marked || lineHasToken(code, effectivePillRe));
 
   // A staged transform collapses/grows only the rows this sub-beat has reached.
   const done = stage.transformDone;
@@ -703,7 +709,10 @@ function RowLine({ row, stage }: { row: Row; stage: Stage }) {
               {renderTokens(code, showPills ? effectivePillRe : null, "pill", warmSet)}
             </motion.span>
           )}
-          {renderTokens(comment, showPills ? effectivePillRe : null, "pill", warmSet)}
+          {/* The comment segment is never tokenized — pills/marks apply to the
+              code portion only, so a token that also appears in a `;;` comment
+              (e.g. "%c is always 1") is left as plain comment text. */}
+          {comment}
         </motion.span>
       </span>
     </motion.div>

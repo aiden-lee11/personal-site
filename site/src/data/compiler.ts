@@ -335,7 +335,13 @@ export const OPT_EXAMPLES: OptExample[] = [
     steps: [
       { marks: ["%t1"], outline: ["%t1 <- %x * %x"], caption: "%t1 computes %x * %x first" },
       { marks: ["%t2"], outline: ["%t2 <- %x * %x"], caption: "%t2 recomputes the identical expression" },
-      { marks: ["%t2"], warm: ["%t1"], caption: "same inputs hash to one value number — reuse %t1" },
+      {
+        marks: ["%t2"],
+        warm: ["%t1"],
+        outline: ["%t2 <- %t1"],
+        rewrites: [{ line: "%t2 <- %x * %x", to: "%t2 <- %t1" }],
+        caption: "same inputs hash to one value number — %t2 just reuses %t1",
+      },
     ],
     before: `define void @dup (%x) {
 
@@ -376,7 +382,12 @@ export const OPT_EXAMPLES: OptExample[] = [
       { warm: ["%a"], outline: ["%a <- 5"], caption: "%a holds the real value" },
       { marks: ["%b"], warm: ["%a"], outline: ["%b <- %a"], caption: "%b is just a copy of %a" },
       { marks: ["%c", "%b"], outline: ["%c <- %b"], caption: "%c copies %b — the chain renames one value" },
-      { warm: ["%a"], caption: "every use traces straight back to %a" },
+      {
+        warm: ["%a"],
+        outline: ["return %a"],
+        rewrites: [{ line: "return %c", to: "return %a" }],
+        caption: "every use traces straight back to %a",
+      },
     ],
     before: `define void @chain () {
 
@@ -409,10 +420,32 @@ export const OPT_EXAMPLES: OptExample[] = [
     // ember = the identity/constant operand (the known literal); purple = the
     // variable value the op flows through and simplifies to.
     steps: [
-      { marks: ["%x"], warm: ["1"], outline: ["%a <- %x * 1"], caption: "%x * 1 leaves %x unchanged" },
-      { marks: ["%a"], warm: ["0"], outline: ["%b <- %a + 0"], caption: "%a + 0 leaves %a unchanged" },
-      { marks: ["%b"], warm: ["0"], outline: ["%c <- %b << 0"], caption: "%b << 0 leaves %b unchanged" },
-      { marks: ["%x", "%a", "%b"], warm: ["1", "0"], outline: ["%a <- %x * 1", "%b <- %a + 0", "%c <- %b << 0"], caption: "so each identity op collapses to a copy" },
+      {
+        marks: ["%x"],
+        warm: ["1"],
+        outline: ["%a <- %x"],
+        rewrites: [{ line: "%a <- %x * 1", to: "%a <- %x" }],
+        caption: "%x * 1 leaves %x unchanged — %a is just %x",
+      },
+      {
+        marks: ["%a"],
+        warm: ["0"],
+        outline: ["%b <- %a"],
+        rewrites: [{ line: "%b <- %a + 0", to: "%b <- %a" }],
+        caption: "%a + 0 leaves %a unchanged — %b is just %a",
+      },
+      {
+        marks: ["%b"],
+        warm: ["0"],
+        outline: ["%c <- %b"],
+        rewrites: [{ line: "%c <- %b << 0", to: "%c <- %b" }],
+        caption: "%b << 0 leaves %b unchanged — %c is just %b",
+      },
+      {
+        marks: ["%x", "%a", "%b"],
+        outline: ["%a <- %x", "%b <- %a", "%c <- %b"],
+        caption: "so each identity op has collapsed to a plain copy",
+      },
     ],
     // One identity op rewrites to a copy per beat.
     transformStages: [
@@ -454,8 +487,20 @@ export const OPT_EXAMPLES: OptExample[] = [
     // variable value they accumulate into.
     steps: [
       { marks: ["%x", "%a"], warm: ["1", "2"], outline: ["%a <- %x + 1", "%b <- %a + 2"], caption: "a window of adds chains through +1 then +2" },
-      { marks: ["%b"], warm: ["0"], outline: ["%c <- %b + 0"], caption: "+0 does nothing" },
-      { marks: ["%x"], warm: ["1", "2", "0"], caption: "+1, +2 and +0 fold into one %x + 3" },
+      {
+        marks: ["%b"],
+        warm: ["0"],
+        outline: ["%c <- %b"],
+        rewrites: [{ line: "%c <- %b + 0", to: "%c <- %b" }],
+        caption: "+0 does nothing — %c is just %b",
+      },
+      {
+        marks: ["%x"],
+        warm: ["1", "2", "3"],
+        outline: ["%b <- %x + 3"],
+        rewrites: [{ line: "%b <- %a + 2", to: "%b <- %x + 3" }],
+        caption: "+1 and +2 fold into one %x + 3",
+      },
     ],
     // The +const window folds first, then the trivial +0 drops.
     transformStages: [
@@ -495,7 +540,13 @@ export const OPT_EXAMPLES: OptExample[] = [
     steps: [
       { marks: ["%ok"], outline: ["%ok <- %i < %len"], caption: "%ok is a per-access bounds check" },
       { marks: ["%i"], warm: ["%len"], caption: "but %i is proven to stay in [0, %len)" },
-      { marks: ["%ok"], outline: ["br %ok"], caption: "so %ok is always true — the check and its trap are dead" },
+      {
+        marks: ["%ok"],
+        warm: ["true"],
+        outline: ["%ok <- true", "br %ok"],
+        rewrites: [{ line: "%ok <- %i < %len", to: "%ok <- true" }],
+        caption: "so %ok folds to true — the check and its trap are dead",
+      },
     ],
     // First the proven check + its branch drop and the store falls straight
     // through; then the now-unreachable trap block is cleaned up.
@@ -629,7 +680,13 @@ export const OPT_EXAMPLES: OptExample[] = [
       { marks: ["%cmp"], outline: ["br %cmp"], caption: "the branch picks an arm on %cmp" },
       { outline: ["br :join"], caption: "both arms are empty — they just reach :join" },
       { marks: ["%m"], outline: ["%m <- φ"], caption: "the join φ selects %m from the two arms" },
-      { marks: ["%m"], warm: ["%cmp"], caption: "so the whole triangle folds to one cmov on %cmp" },
+      {
+        marks: ["%m"],
+        warm: ["%cmp"],
+        outline: ["%m <- cmov"],
+        rewrites: [{ line: "%m <- φ", to: "%m <- cmov %cmp, %a, %b" }],
+        caption: "so the whole triangle folds to one cmov on %cmp",
+      },
     ],
     before: `define void @max (%a, %b) {
 
