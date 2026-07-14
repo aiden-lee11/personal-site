@@ -71,21 +71,6 @@ export const projects: Project[] = [
     ],
   },
   {
-    slug: "nu-esports-bot",
-    title: "NU Esports Discord Bot",
-    tagline: "A Discord bot for checking campus game-room availability",
-    stack: ["Python", "PostgreSQL", "Docker"],
-    period: "Sep 2025 – Present",
-    href: "https://github.com/aiden-lee11/nu-esports-bot",
-    bullets: [
-      "Helps more than 1,500 students see what rooms and PCs are available before walking over.",
-      "Also handles reservations and team scheduling.",
-    ],
-    links: [
-      { label: "GitHub", href: "https://github.com/aiden-lee11/nu-esports-bot" },
-    ],
-  },
-  {
     slug: "nufood",
     title: "NUFood",
     tagline: "A faster way to check Northwestern dining-hall menus",
@@ -99,6 +84,21 @@ export const projects: Project[] = [
     links: [
       { label: "GitHub", href: "https://github.com/aiden-lee11/nufood" },
       { label: "nufood.me", href: "https://nufood.me" },
+    ],
+  },
+  {
+    slug: "nu-esports-bot",
+    title: "NU Esports Discord Bot",
+    tagline: "A Discord bot for checking campus game-room availability",
+    stack: ["Python", "PostgreSQL", "Docker"],
+    period: "Sep 2025 – Present",
+    href: "https://github.com/aiden-lee11/nu-esports-bot",
+    bullets: [
+      "Helps more than 1,500 students see what rooms and PCs are available before walking over.",
+      "Also handles reservations and team scheduling.",
+    ],
+    links: [
+      { label: "GitHub", href: "https://github.com/aiden-lee11/nu-esports-bot" },
     ],
   },
   {
@@ -119,29 +119,19 @@ export const projects: Project[] = [
   // — side projects, smaller in scope but real —
 
   {
-    slug: "lit",
-    title: "lit",
-    tagline: "A small reimplementation of Git in C++",
-    stack: ["C++", "SHA-1", "Zlib"],
-    period: "2025",
+    slug: "panopto-summaries",
+    title: "panopto-summaries",
+    tagline: "A Chrome extension for AI lecture summaries",
+    stack: ["JavaScript", "Chrome extension", "OpenAI", "Gemini"],
+    period: "Feb 2026 – Present",
     side: true,
     bullets: [
-      "Reads and writes Git's object format directly, without calling the Git CLI.",
-    ],
-    links: [{ label: "GitHub", href: "https://github.com/aiden-lee11/lit" }],
-  },
-  {
-    slug: "baby-docker",
-    title: "baby-docker",
-    tagline: "A small Linux container runtime in C++",
-    stack: ["C++", "Linux syscalls", "clone()", "namespaces"],
-    period: "2025",
-    side: true,
-    bullets: [
-      "Runs isolated processes with Linux namespaces, without a Docker daemon.",
+      "Turns a lecture transcript into notes right on the Panopto page.",
+      "Built the day I realized I could either watch the whole recording or read the notes in five minutes.",
     ],
     links: [
-      { label: "GitHub", href: "https://github.com/aiden-lee11/baby-docker" },
+      { label: "GitHub", href: "https://github.com/aiden-lee11/panopto-summaries" },
+      { label: "Chrome Web Store", href: "https://chromewebstore.google.com/detail/panopto-summarizer/cpeanbbcgghgjbpjpkgidndkmhgoplob?hl=en" },
     ],
   },
   {
@@ -172,19 +162,29 @@ export const projects: Project[] = [
     links: [{ label: "GitHub", href: "https://github.com/aiden-lee11/STOP" }],
   },
   {
-    slug: "panopto-summaries",
-    title: "panopto-summaries",
-    tagline: "A Chrome extension for shorter Panopto lecture notes",
-    stack: ["JavaScript", "Chrome extension", "OpenAI", "Gemini"],
+    slug: "lit",
+    title: "lit",
+    tagline: "A small reimplementation of Git in C++",
+    stack: ["C++", "SHA-1", "Zlib"],
     period: "2025",
     side: true,
     bullets: [
-      "Turns a lecture transcript into notes right on the Panopto page.",
-      "Built the day I realized I could either watch the whole recording or read the notes in five minutes.",
+      "Reads and writes Git's object format directly, without calling the Git CLI.",
+    ],
+    links: [{ label: "GitHub", href: "https://github.com/aiden-lee11/lit" }],
+  },
+  {
+    slug: "baby-docker",
+    title: "baby-docker",
+    tagline: "A small Linux container runtime in C++",
+    stack: ["C++", "Linux syscalls", "clone()", "namespaces"],
+    period: "2025",
+    side: true,
+    bullets: [
+      "Runs isolated processes with Linux namespaces, without a Docker daemon.",
     ],
     links: [
-      { label: "GitHub", href: "https://github.com/aiden-lee11/panopto-summaries" },
-      { label: "Chrome Web Store", href: "https://chromewebstore.google.com/detail/panopto-summarizer/cpeanbbcgghgjbpjpkgidndkmhgoplob?hl=en" },
+      { label: "GitHub", href: "https://github.com/aiden-lee11/baby-docker" },
     ],
   },
 ];
