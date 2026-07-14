@@ -38,6 +38,9 @@ const DURATION: Record<Phase, number> = {
 };
 // Each authored step dwells long enough to read the caption and the highlight.
 const STEP_DURATION = 2800;
+// A staged transform sub-beat is deliberately quick — it repeats the same
+// collapse/grow motion, so there is little new to read between beats.
+const TRANSFORM_STAGE_DURATION = 1000;
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 // --accent (#a684f5) as rgba so we can animate to/from transparent.
@@ -70,6 +73,10 @@ type Stage = {
   outline: string[];
   isStep: boolean;
   duration: number;
+  // Only set on a staged transform sub-beat: the cumulative set of del row keys
+  // that have collapsed and add row keys that have grown by this beat. When
+  // absent (unstaged transform / any other phase) rows use the default targets.
+  transformDone?: { del: ReadonlySet<string>; add: ReadonlySet<string> };
 };
 
 function buildRows(before: string, after: string): Row[] {
@@ -242,16 +249,85 @@ export default function PassCinema({ example }: { example: OptExample }) {
         duration: DURATION.trace,
       });
     }
-    list.push({
-      key: "transform",
-      phase: "transform",
-      caption: example.story?.transform ?? "applying the transform",
-      pillRe: null,
-      warmSet: EMPTY_WARM,
-      outline: [],
-      isStep: false,
-      duration: DURATION.transform,
-    });
+    const tStages = example.transformStages;
+    if (tStages?.length) {
+      // Staged transform: play the rewrite as an ordered sequence of quick beats.
+      // Each authored stage claims del/add rows by substring (like `outline`);
+      // claims are cumulative so a collapsed/grown line stays that way. Blank
+      // lines fold in with their nearest claimed neighbor, and anything no stage
+      // claims sweeps into an implicit final beat, so the last beat always equals
+      // `after`.
+      const delRows = rows.filter((r) => r.kind === "del");
+      const addRows = rows.filter((r) => r.kind === "add");
+      const assign = new Map<string, number>();
+      const matchAny = (text: string, subs?: string[]) => {
+        if (!subs?.length) return false;
+        const t = text.trim();
+        return subs.some((s) => t.includes(s));
+      };
+      tStages.forEach((ts, si) => {
+        for (const r of delRows)
+          if (!assign.has(r.key) && matchAny(r.text, ts.del)) assign.set(r.key, si);
+        for (const r of addRows)
+          if (!assign.has(r.key) && matchAny(r.text, ts.add)) assign.set(r.key, si);
+      });
+      // Fold each still-unclaimed blank line into its nearest claimed neighbor of
+      // the same kind, so separators collapse with the block they belong to.
+      const sweepBlanks = (rowList: Row[]) => {
+        rowList.forEach((r, idx) => {
+          if (assign.has(r.key) || r.text.trim() !== "") return;
+          for (let d = 1; d < rowList.length; d++) {
+            const prev = rowList[idx - d];
+            if (prev && assign.has(prev.key)) return void assign.set(r.key, assign.get(prev.key)!);
+            const next = rowList[idx + d];
+            if (next && assign.has(next.key)) return void assign.set(r.key, assign.get(next.key)!);
+          }
+        });
+      };
+      sweepBlanks(delRows);
+      sweepBlanks(addRows);
+      const hasUnclaimed = [...delRows, ...addRows].some((r) => !assign.has(r.key));
+      const total = tStages.length + (hasUnclaimed ? 1 : 0);
+      for (let si = 0; si < total; si++) {
+        const isLast = si === total - 1;
+        const cumDel = new Set<string>();
+        const cumAdd = new Set<string>();
+        // Unclaimed rows (assign undefined) only appear on the final sweep beat.
+        for (const r of delRows) {
+          const a = assign.get(r.key);
+          if (a === undefined ? isLast : a <= si) cumDel.add(r.key);
+        }
+        for (const r of addRows) {
+          const a = assign.get(r.key);
+          if (a === undefined ? isLast : a <= si) cumAdd.add(r.key);
+        }
+        list.push({
+          key: `transform-${si}`,
+          phase: "transform",
+          caption:
+            (si < tStages.length ? tStages[si].caption : undefined) ??
+            example.story?.transform ??
+            "applying the transform",
+          pillRe: null,
+          warmSet: EMPTY_WARM,
+          outline: [],
+          isStep: false,
+          duration: TRANSFORM_STAGE_DURATION,
+          transformDone: { del: cumDel, add: cumAdd },
+        });
+      }
+    } else {
+      list.push({
+        key: "transform",
+        phase: "transform",
+        caption: example.story?.transform ?? "applying the transform",
+        pillRe: null,
+        warmSet: EMPTY_WARM,
+        outline: [],
+        isStep: false,
+        duration: DURATION.transform,
+      });
+    }
     list.push({
       key: "after",
       phase: "after",
@@ -262,12 +338,45 @@ export default function PassCinema({ example }: { example: OptExample }) {
       duration: DURATION.after,
     });
     return list;
-  }, [example.steps, example.story, example.tagline, tokens.length, tokenRe]);
+  }, [
+    example.steps,
+    example.story,
+    example.tagline,
+    example.transformStages,
+    rows,
+    tokens.length,
+    tokenRe,
+  ]);
 
   const maxLines = useMemo(
     () => Math.max(example.before.split("\n").length, example.after.split("\n").length),
     [example.before, example.after],
   );
+
+  // Step-dots: one dot per stage, EXCEPT the transform's sub-beats collapse into
+  // a single dot. Authored narrative steps already dominate the rail (SCCP has
+  // eight), so giving each of a pass's 2–4 transform beats its own dot would push
+  // some passes past a dozen dots and overflow on narrow screens; the sub-beats
+  // read as one conceptual "apply the transform" phase, so one dot spanning them
+  // keeps the rail legible while still letting a click jump into the transform.
+  const dots = useMemo(() => {
+    const out: { key: string; label: string; phase: Phase; start: number; end: number }[] = [];
+    stages.forEach((s, i) => {
+      const prev = out[out.length - 1];
+      if (s.phase === "transform" && prev?.phase === "transform") {
+        prev.end = i;
+      } else {
+        out.push({
+          key: s.key,
+          label: s.phase === "transform" ? "transform" : s.key,
+          phase: s.phase,
+          start: i,
+          end: i,
+        });
+      }
+    });
+    return out;
+  }, [stages]);
 
   const [reduced, setReduced] = useState(false);
   const [inView, setInView] = useState(false);
@@ -380,15 +489,15 @@ export default function PassCinema({ example }: { example: OptExample }) {
         </button>
 
         <div className="flex items-center gap-1.5" role="tablist" aria-label="Animation steps">
-          {stages.map((s, i) => {
-            const isActive = i === stageIdx;
+          {dots.map((d) => {
+            const isActive = stageIdx >= d.start && stageIdx <= d.end;
             return (
               <button
-                key={s.key}
+                key={d.key}
                 role="tab"
                 aria-selected={isActive}
-                aria-label={s.key}
-                onClick={() => setStageIdx(i)}
+                aria-label={d.label}
+                onClick={() => setStageIdx(d.start)}
                 className="rounded-full transition-all"
                 style={{
                   width: isActive ? 16 : 6,
@@ -478,21 +587,28 @@ function RowLine({ row, stage }: { row: Row; stage: Stage }) {
   // fully lit; everything else dims so attention lands on the beat.
   const activeRow = isStep && (marked || lineHasToken(row.text, pillRe));
 
+  // A staged transform collapses/grows only the rows this sub-beat has reached.
+  const done = stage.transformDone;
+  const delCollapsing =
+    row.kind === "del" && phase === "transform" && (!done || done.del.has(row.key));
+  const addGrown =
+    row.kind === "add" && phase === "transform" && (!done || done.add.has(row.key));
+
   let target = rowTarget(row.kind, phase);
   if (isStep) {
     target =
       row.kind === "add"
         ? { opacity: 0, height: 0 }
         : { opacity: activeRow ? 1 : 0.3, height: "auto" };
+  } else if (phase === "transform" && done) {
+    if (row.kind === "del")
+      target = delCollapsing ? { opacity: 0, height: 0 } : { opacity: 1, height: "auto" };
+    else if (row.kind === "add")
+      target = addGrown ? { opacity: 1, height: "auto" } : { opacity: 0, height: 0 };
   }
 
-  const strike = row.kind === "del" && phase === "transform";
-  const addBg =
-    row.kind === "add"
-      ? phase === "transform"
-        ? ADD_TINT
-        : ADD_TINT_OFF
-      : TRANSPARENT;
+  const strike = delCollapsing;
+  const addBg = addGrown ? ADD_TINT : row.kind === "add" ? ADD_TINT_OFF : TRANSPARENT;
 
   return (
     <motion.div

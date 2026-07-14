@@ -66,6 +66,22 @@ export type OptExample = {
    *              callout legend matches the pills in the code.
    */
   steps?: { caption: string; marks?: string[]; warm?: string[]; outline?: string[] }[];
+  /**
+   * Staged transform sub-beats. The transform phase normally collapses every
+   * removed line and grows every added line at once; with `transformStages` it
+   * plays as an ordered sequence of ~1s beats so a multi-part rewrite is easy to
+   * follow (fold one branch, then the next, …). Each stage lists substring
+   * matchers (trimmed-line `includes`, exactly like `outline`):
+   *   - del:     removed lines that collapse (strike + shrink) during THIS beat
+   *   - add:     added lines that grow in during THIS beat
+   *   - caption: the short callout flashed for the beat
+   * Matches are cumulative — once a line collapses/grows it stays that way for
+   * the rest of the transform. Blank lines fold in with their nearest matched
+   * neighbor; any line no stage claims sweeps into an implicit final beat, so the
+   * end state always equals `after`. A matcher that hits nothing is harmless.
+   * Omit entirely to keep the single all-at-once transform.
+   */
+  transformStages?: { del?: string[]; add?: string[]; caption?: string }[];
 };
 
 export const OPT_EXAMPLES: OptExample[] = [
@@ -93,6 +109,17 @@ export const OPT_EXAMPLES: OptExample[] = [
       { marks: ["%out"], warm: ["%y"], outline: ["%out <- %y - 5"], caption: "constants keep propagating — %out is just 15" },
       { marks: [":never_taken"], outline: [":never_taken"], caption: "so the false arm is unreachable — dead" },
       { marks: ["%out"], outline: ["return %out"], caption: "the whole arm collapses to return 15" },
+    ],
+    // Fold the taken arm top-down, then prune the false arm and re-point entry.
+    transformStages: [
+      { del: ["%x <- 2 + 3"], caption: "2 + 3 folds to 5" },
+      { del: ["%y <- %x * 4"], caption: "%x is 5 → %y folds to 20" },
+      { del: ["%out <- %y - 5", "return %out"], add: ["return 15"], caption: "%out is 15 → return 15" },
+      {
+        del: ["%c <- 1", "br %c", ":never_taken", "some_side_effect", "return %z"],
+        add: ["br :maybe_taken"],
+        caption: "false arm pruned, branch made direct",
+      },
     ],
     before: `define void @g () {
 
@@ -137,6 +164,11 @@ export const OPT_EXAMPLES: OptExample[] = [
       { marks: ["%unused"], caption: "%unused appears nowhere else — no reader" },
       { marks: ["%also_unused"], outline: ["%also_unused <- %a + %b"], caption: "%also_unused only feeds more dead code" },
       { marks: ["%also_unused"], caption: "nothing live reads either — both are dead" },
+    ],
+    // Each dead computation collapses on its own beat.
+    transformStages: [
+      { del: ["%unused <- %x * %x"], caption: "%unused has no reader — deleted" },
+      { del: ["%also_unused <- %a + %b"], caption: "%also_unused too — deleted" },
     ],
     before: `define void @f (%x) {
 
@@ -320,6 +352,12 @@ export const OPT_EXAMPLES: OptExample[] = [
       { marks: ["%b"], warm: ["0"], outline: ["%c <- %b << 0"], caption: "%b << 0 leaves %b unchanged" },
       { marks: ["%x", "%a", "%b"], warm: ["1", "0"], outline: ["%a <- %x * 1", "%b <- %a + 0", "%c <- %b << 0"], caption: "so each identity op collapses to a copy" },
     ],
+    // One identity op rewrites to a copy per beat.
+    transformStages: [
+      { del: ["%x * 1"], add: ["*1 → copy"], caption: "%x * 1 → copy" },
+      { del: ["%a + 0"], add: ["+0 → copy"], caption: "%a + 0 → copy" },
+      { del: ["%b << 0"], add: ["<<0 → copy"], caption: "%b << 0 → copy" },
+    ],
     before: `define void @idents (%x) {
 
   :entry
@@ -357,6 +395,11 @@ export const OPT_EXAMPLES: OptExample[] = [
       { marks: ["%b"], warm: ["0"], outline: ["%c <- %b + 0"], caption: "+0 does nothing" },
       { marks: ["%x"], warm: ["1", "2", "0"], caption: "+1, +2 and +0 fold into one %x + 3" },
     ],
+    // The +const window folds first, then the trivial +0 drops.
+    transformStages: [
+      { del: ["%a <- %x + 1", "%b <- %a + 2"], add: ["+1 and +2 collapsed"], caption: "+1 then +2 fold to +3" },
+      { del: ["%c <- %b + 0", "return %c"], add: ["+0 dropped"], caption: "+0 does nothing — dropped" },
+    ],
     before: `define void @window (%x) {
 
   :entry
@@ -391,6 +434,16 @@ export const OPT_EXAMPLES: OptExample[] = [
       { marks: ["%ok"], outline: ["%ok <- %i < %len"], caption: "%ok is a per-access bounds check" },
       { marks: ["%i"], warm: ["%len"], caption: "but %i is proven to stay in [0, %len)" },
       { marks: ["%ok"], outline: ["br %ok"], caption: "so %ok is always true — the check and its trap are dead" },
+    ],
+    // First the proven check + its branch drop and the store falls straight
+    // through; then the now-unreachable trap block is cleaned up.
+    transformStages: [
+      {
+        del: ["%ok <- %i < %len", "br %ok :store :trap", ":store", "store %a[%i], %i"],
+        add: ["check proven redundant"],
+        caption: "%i in range → check dropped, store falls through",
+      },
+      { del: [":trap", "@bounds_error", "return"], caption: "trap block now unreachable — removed" },
     ],
     before: `define void @fill (%a, %len) {
 
@@ -455,6 +508,16 @@ export const OPT_EXAMPLES: OptExample[] = [
       { marks: [":mid"], outline: ["br :mid"], caption: ":entry does nothing but branch to :mid" },
       { marks: [":body"], outline: ["br :body"], caption: ":mid does nothing but fall through to :body" },
       { marks: [":done"], outline: ["br %x :done :done"], caption: "and br %x :done :done has identical arms → unconditional" },
+    ],
+    // One forwarder folds per beat, then the identical-arm branch goes direct.
+    transformStages: [
+      { del: ["br :mid", ":mid"], caption: ":mid folds away" },
+      { del: ["br :body", ":body"], caption: ":body folds away" },
+      {
+        del: ["%x <- 7", "br %x :done :done"],
+        add: ["forwarders merged", "br :done"],
+        caption: "identical arms → unconditional",
+      },
     ],
     before: `define void @straight () {
 
