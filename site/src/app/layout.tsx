@@ -50,7 +50,7 @@ const NAV_LINKS = [
   { href: "/gallery", label: "Gallery" },
   // Writing hidden for now — only one post. Route still lives at /writing.
   // { href: "/writing", label: "Writing" },
-  { href: "/Aiden-Lee-Resume.pdf", label: "Résumé", external: true },
+  { href: "/Aiden-Lee-Resume.pdf", label: "Resume", external: true },
 ];
 
 export default function RootLayout({
