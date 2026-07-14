@@ -94,9 +94,9 @@ export default function Home() {
           {featuredProject.title}
         </h2>
         <p className="mt-5 max-w-xl text-[color:var(--muted)] leading-relaxed">
-          My partner and I built this C-like compiler in C++ for a class
-          competition. It was later ported to WebAssembly, so you can write
-          code, see how it changes along the way, and run the result here.
+          My partner and I built this compiler for Northwestern&apos;s CS 322,
+          then ported it to WebAssembly. Write a little C-like code, see how it
+          changes on the way to assembly, and run it right here.
         </p>
 
         <Link

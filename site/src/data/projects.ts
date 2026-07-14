@@ -54,7 +54,7 @@ export const LIVE: LiveThing[] = [
 export const projects: Project[] = [
   {
     slug: "compiler",
-    title: "Optimizing Compiler",
+    title: "C-Like Compiler",
     tagline: "A C-like compiler built from scratch in C++",
     stack: ["C++23", "PEGTL", "SSA", "x86-64"],
     period: "Mar 2026 – Jun 2026",
