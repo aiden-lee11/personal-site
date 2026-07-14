@@ -105,7 +105,7 @@ export default function ProjectsPage() {
               </>
             );
             const className =
-              "group flex flex-col border border-[color:var(--border)] hover:border-[color:var(--accent)] p-6 transition-all";
+              "group flex flex-col border border-[color:var(--border)] p-6 transition-colors";
             return t.external ? (
               <a
                 key={t.href}
