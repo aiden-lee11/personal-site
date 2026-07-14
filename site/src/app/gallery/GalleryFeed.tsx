@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { GalleryItem } from "@/lib/gallery";
 
@@ -25,31 +25,38 @@ function formatMonth(date: string): string {
 // Cascade slots for the peeking backs — a diagonal collage rather than a tight
 // pile: alternating left/right with a progressive drop (up-left, mid-right,
 // down-left, …) so every print is clearly visible and invites a click. Offsets
-// are % of the (active) slide box, tuned so on desktop the overflow stays
-// within ~½ the 4vw inter-slide gap; deeper prints scale down to read as
-// further back. On phone widths the slide spans ~86vw, so the same offsets
-// would sprawl into the neighbouring slide — the CSS `--peek` factor (see
-// .gallery-stack-back) squeezes the whole arrangement toward "tucked in" there.
+// are % of the slide box, tuned so on desktop the overflow stays within ~½ the
+// 4vw inter-slide gap; deeper prints scale down to read as further back. On
+// phone widths the slide spans ~86vw, so the same offsets would sprawl into
+// the neighbouring slide — the CSS `--peek` factor (see .gallery-stack-print)
+// squeezes the whole arrangement toward "tucked in" there.
 const CASCADE = [
   { x: -12, y: -9, r: -2.5, s: 0.86 },
   { x: 13, y: 4, r: 2, s: 0.83 },
   { x: -10, y: 14, r: -3, s: 0.8 },
   { x: 11, y: 8, r: 2.5, s: 0.8 },
 ];
-// `d` is the print's depth in cycle order behind the active one (0 = next up),
-// so the arrangement is fully determined by which print is active; a tiny
+// Every print in a stack renders persistently and is merely assigned a slot —
+// top, back depth d, or hidden — per the active index. Slots are handed to CSS
+// as variables (not a literal transform) so a single transition on the
+// transform glides a print between slots whenever roles shift, and the phone
+// breakpoint can rescale the fan without JS knowing the viewport. A tiny
 // index-keyed rotation jitter keeps the scrapbook feel from looking stamped.
-// The slot is handed to CSS as variables (not a literal transform) so the
-// phone breakpoint can rescale it without JS knowing the viewport.
-function backStyle(d: number, i: number): React.CSSProperties {
-  const c = CASCADE[Math.min(d, CASCADE.length - 1)];
+function printStyle(i: number, idx: number, n: number): React.CSSProperties {
+  const isTop = i === idx;
+  // depth behind the top in cycle order (0 = next up)
+  const d = (i - idx - 1 + n) % n;
+  const c = isTop ? { x: 0, y: 0, r: 0, s: 1 } : CASCADE[Math.min(d, CASCADE.length - 1)];
   const jitter = (i % 3) - 1; // -1 | 0 | 1, stable per original index
   return {
     "--tx": `${c.x}%`,
     "--ty": `${c.y}%`,
-    "--rot": `${(c.r + jitter * 0.6).toFixed(2)}deg`,
+    "--rot": `${(isTop ? 0 : c.r + jitter * 0.6).toFixed(2)}deg`,
     "--shrink": (1 - c.s).toFixed(2),
-    zIndex: 3 - d, // nearer prints layer above farther ones, all below the top
+    // top above all cascade backs (max z 3); below overlay/chip (z 5/6)
+    zIndex: isTop ? 4 : Math.max(0, 3 - d),
+    // prints beyond the visible fan sit in the deepest slot, faded out
+    opacity: isTop || d < CASCADE.length ? 1 : 0,
   } as React.CSSProperties;
 }
 
@@ -71,18 +78,23 @@ function GallerySlide({
   eager: boolean;
 }) {
   const [active, setActive] = useState(0);
+  // The just-demoted print plays the swing-out exit (see @keyframes
+  // gallery-tuck); cleared on animation end so a later role change doesn't
+  // replay it. Rapid taps simply move the class to the newest demotee.
+  const [tucking, setTucking] = useState<number | null>(null);
   const figRef = useRef<HTMLElement>(null);
   const isStack = items.length > 1;
-  // Caption/date/tags are shared across the group; the photo (url/w/h) is the
-  // active one. Guard the index in case a filter/edit shrank the group.
+  // Caption/date/tags are shared across the group. The FIRST photo defines the
+  // slide box (its aspect never changes, so cycling can't shift layout); other
+  // prints fill that box with object-fit: cover. Guard the index in case a
+  // filter/edit shrank the group.
   const meta = items[0];
   const idx = Math.min(active, items.length - 1);
-  const photo = items[idx];
 
-  const advance = useCallback(
-    () => setActive((a) => (a + 1) % items.length),
-    [items.length],
-  );
+  const advance = () => {
+    setTucking(idx);
+    setActive((idx + 1) % items.length);
+  };
 
   // Extend today's click behaviour: an off-center slide is centered by the
   // engine's own listener; a click on the ALREADY-centered stack cycles it. We
@@ -101,45 +113,53 @@ function GallerySlide({
       className={`gallery-slide${isStack ? " gallery-stack" : ""}`}
       onClick={isStack ? onClick : undefined}
     >
-      {/* Peeking backs — the nearest few upcoming prints (cycle order) cascade
-          behind the top one. Decorative, non-interactive; sized to the slide box
-          by CSS, offset inline. Capped at 4 so a big stack doesn't become noise
-          — the chip still communicates the true count. */}
-      {isStack &&
-        Array.from({ length: Math.min(4, items.length - 1) }, (_, d) => {
-          const bi = (idx + d + 1) % items.length;
-          const b = items[bi];
-          return (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={b.id}
-              className="gallery-stack-back"
-              src={b.url}
-              alt=""
-              aria-hidden="true"
-              style={backStyle(d, bi)}
-            />
-          );
-        })}
-      {/* Active print — defines the slide's aspect ratio / dimensions, like a
-          lone photo does. Keyed by id so a cycle remounts it (replays the
-          settle animation) and swaps the aspect ratio to the new print. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        key={photo.id}
-        className={isStack ? "gallery-stack-top" : undefined}
-        src={photo.url}
-        alt={meta.caption || "Gallery photo"}
-        width={photo.w}
-        height={photo.h}
-        loading={eager ? "eager" : "lazy"}
-        onLoad={onImgLoad}
-        style={
-          photo.w && photo.h
-            ? { aspectRatio: `${photo.w} / ${photo.h}` }
-            : undefined
-        }
-      />
+      {/* Stack prints — ALL of them render persistently with stable keys, and
+          cycling only reassigns slots (top / back depth / hidden) through CSS
+          vars, so one CSS transition glides every print between slots. No
+          remount, no re-entrance animation, no layout shift: the first print
+          stays in flow as the sizer (its aspect fixes the box), the rest fill
+          the box absolutely with object-fit: cover. The visible fan is capped
+          at 4 backs by the hidden slot — the chip communicates the true count. */}
+      {isStack ? (
+        items.map((it, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={it.id}
+            className={`gallery-stack-print${i === 0 ? " gallery-stack-sizer" : ""}${
+              i === tucking ? " gallery-stack-tucking" : ""
+            }`}
+            src={it.url}
+            alt={i === idx ? meta.caption || "Gallery photo" : ""}
+            aria-hidden={i === idx ? undefined : true}
+            width={i === 0 ? it.w : undefined}
+            height={i === 0 ? it.h : undefined}
+            loading={eager && i === idx ? "eager" : "lazy"}
+            onLoad={i === 0 ? onImgLoad : undefined}
+            onAnimationEnd={i === tucking ? () => setTucking(null) : undefined}
+            style={{
+              ...printStyle(i, idx, items.length),
+              ...(i === 0 && it.w && it.h
+                ? { aspectRatio: `${it.w} / ${it.h}` }
+                : undefined),
+            }}
+          />
+        ))
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={meta.url}
+          alt={meta.caption || "Gallery photo"}
+          width={meta.w}
+          height={meta.h}
+          loading={eager ? "eager" : "lazy"}
+          onLoad={onImgLoad}
+          style={
+            meta.w && meta.h
+              ? { aspectRatio: `${meta.w} / ${meta.h}` }
+              : undefined
+          }
+        />
+      )}
       <figcaption data-overlay="" className="gallery-overlay">
         {meta.caption && (
           <p className="mb-1.5 text-[0.92rem] leading-snug text-white">

@@ -274,9 +274,8 @@ body {
 
 /* The resting photo breathes — a slow, barely-there zoom. Lives on the <img>
    so it never collides with the slide-level transform set by paint(). Excludes
-   stack prints: the top gets its own settle animation, and the peeking backs
-   carry the cascade transform that breathe would clobber. */
-.gallery-slide.center img:not(.gallery-stack-top):not(.gallery-stack-back) {
+   stack prints: they carry the slot transform that breathe would clobber. */
+.gallery-slide.center img:not(.gallery-stack-print) {
   animation: gallery-breathe 11s ease-in-out infinite alternate;
 }
 @keyframes gallery-breathe {
@@ -320,77 +319,104 @@ body {
 }
 
 /* ── Grouped upload = a scrapbook stack ──────────────────────────────────────
-   Several prints of one thing pile up as a single slide. The active print sits
-   in normal flow and defines the slide box (its w/h drive the aspect ratio like
-   a lone photo); the rest peek behind it, rotated a hair. Cycling is React
-   state in GallerySlide — the motion engine never sees the stack. */
+   Several prints of one thing pile up as a single slide. Every print renders
+   persistently; React only reassigns each one's SLOT (top / back depth /
+   hidden) through the CSS vars below, and the transition here glides prints
+   between slots — the swap animation is emergent, nothing remounts. The first
+   print stays in flow (the "sizer") so the box never changes size mid-cycle.
+   Cycling is React state in GallerySlide — the motion engine never sees it. */
 .gallery-slide.gallery-stack.center {
   /* the centered stack invites a click/tap to flip through it */
   cursor: pointer;
 }
-.gallery-slide .gallery-stack-top {
-  position: relative;
-  z-index: 4; /* above all cascade backs (max z 3); below overlay/chip */
-  /* Quick settle when the active print swaps — replays because React keys the
-     top <img> by id, so a cycle remounts it. Same easing family as the strip. */
-  animation: gallery-stack-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-/* Backs fill the same box as the top print, offset+scaled into their cascade
-   slot. Higher specificity than `.gallery-slide img` so the flow-sizing
-   rules (shrink-wrapped height, max-width) don't apply. Non-interactive — clicks fall to
-   the figure. A soft shadow + hairline light ring lifts each print's edge off
-   the dark bg; z-index is inline (nearer prints sit above farther ones). They
-   fade in on cycle so a reshuffled cascade doesn't pop. */
-.gallery-slide img.gallery-stack-back {
+/* Prints fill the sizer's box, placed into their slot by transform. Higher
+   specificity than `.gallery-slide img` so the flow-sizing rules (shrink-
+   wrapped height, max-width) don't apply. Non-interactive — clicks fall to the
+   figure. A soft shadow + hairline light ring lifts each print's edge off the
+   dark bg; z-index/opacity are inline (role-driven). --peek scales both the
+   offset and how much smaller a back sits, so one number slides the whole
+   arrangement between "fanned out" (1) and "tucked in" (→0). */
+.gallery-slide img.gallery-stack-print {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   max-width: none;
+  max-height: none;
   object-fit: cover;
   pointer-events: none;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.07);
-  /* The cascade slot, from variables set inline by backStyle(). --peek scales
-     both the offset and how much smaller the back sits, so one number slides
-     the whole arrangement between "fanned out" (1) and "tucked in" (→0). */
   transform: translate(
       calc(var(--tx) * var(--peek, 1)),
       calc(var(--ty) * var(--peek, 1))
     )
     rotate(var(--rot)) scale(calc(1 - var(--shrink) * var(--peek, 1)));
-  /* Opacity-only — a transform animation would clobber the cascade slot while
-     it ran. */
-  animation: gallery-back-in 260ms ease-out;
+  transition:
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 320ms ease;
+}
+/* The sizer keeps the flow-sizing rules — it shrink-wraps to the photo's
+   aspect under the max-width/max-height caps and defines the slide box. It
+   must be positioned or its role z-index is ignored and it paints under the
+   absolute siblings. */
+.gallery-slide img.gallery-stack-print.gallery-stack-sizer {
+  position: relative;
+  inset: auto;
+  width: auto;
+  height: auto;
+  max-width: 86vw;
+  max-height: min(62vh, 640px);
+}
+@media (min-width: 640px) {
+  .gallery-slide img.gallery-stack-print.gallery-stack-sizer {
+    max-width: 78vw;
+  }
 }
 /* Phones: the slide is width-clamped to ~86vw, so the desktop fan would sprawl
    past the 4vw gap into the neighbouring slide and the screen edge. Squeeze the
    cascade to slim slivers — still clearly a stack, nothing crowds the neighbour. */
 @media (max-width: 639px) {
-  .gallery-slide img.gallery-stack-back {
+  .gallery-slide img.gallery-stack-print {
     --peek: 0.45;
   }
 }
-@keyframes gallery-back-in {
-  from {
-    opacity: 0;
+/* The demoted top print: swing out to the side, flip beneath the pile while
+   fully clear of it (z-index staged inside the keyframes — the animation
+   overrides the inline z until it finishes), then slide back in behind. The
+   100% frame matches the resting slot formula, so the handoff back to the
+   transition is seamless. animation-timing-function is per-segment: an in-out
+   swing to the apex, then an ease-out tuck. */
+.gallery-slide img.gallery-stack-print.gallery-stack-tucking {
+  animation: gallery-tuck 640ms both;
+}
+@keyframes gallery-tuck {
+  0% {
+    transform: translate(0%, 0%) rotate(0deg) scale(1);
+    z-index: 5;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1);
   }
-  to {
-    opacity: 1;
+  42% {
+    transform: translate(26%, 7%) rotate(5deg) scale(0.94);
+    z-index: 5;
+    animation-timing-function: linear;
+  }
+  58% {
+    transform: translate(22%, 8%) rotate(4deg) scale(0.92);
+    z-index: 0;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  100% {
+    transform: translate(
+        calc(var(--tx) * var(--peek, 1)),
+        calc(var(--ty) * var(--peek, 1))
+      )
+      rotate(var(--rot)) scale(calc(1 - var(--shrink) * var(--peek, 1)));
+    z-index: 0;
   }
 }
 /* Keep the caption scrim + counter chip above the raised top print. */
 .gallery-slide.gallery-stack .gallery-overlay {
   z-index: 5;
-}
-@keyframes gallery-stack-in {
-  from {
-    opacity: 0;
-    transform: scale(0.985);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
 /* Mono counter chip — a real button, the discoverable advance affordance. */
 .gallery-stack-chip {
@@ -420,9 +446,9 @@ body {
   .gallery-slide.center img {
     animation: none;
   }
-  /* Cycling a stack is instant — no settle fade. */
-  .gallery-slide .gallery-stack-top,
-  .gallery-slide img.gallery-stack-back {
+  /* Cycling a stack is instant — no slot glide, no swing-out exit. */
+  .gallery-slide img.gallery-stack-print {
+    transition: none;
     animation: none;
   }
 }
