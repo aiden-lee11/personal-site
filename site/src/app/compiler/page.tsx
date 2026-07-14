@@ -15,12 +15,6 @@ const STATS = [
   { value: `${OPT_EXAMPLES.length}`, label: "optimizations you can turn on and off" },
 ];
 
-const DIVE_LINKS = [
-  { href: "/compiler/playground", title: "Playground", cta: "open playground →" },
-  { href: "/compiler/passes", title: "Passes", cta: "explore passes →" },
-  { href: "/compiler/grammar", title: "Language", cta: "start writing LC →" },
-];
-
 export default function CompilerOverviewPage() {
   return (
     <div>
@@ -105,29 +99,6 @@ export default function CompilerOverviewPage() {
             </li>
           ))}
         </ol>
-      </section>
-
-      {/* Dive in — compact CTA row */}
-      <section className="border-t border-[color:var(--border)] pt-8">
-        <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)] mb-5">
-          Dive in
-        </h2>
-        <div className="grid sm:grid-cols-3 gap-3">
-          {DIVE_LINKS.map((d) => (
-            <Link
-              key={d.href}
-              href={d.href}
-              className="group flex items-center justify-between gap-4 border border-[color:var(--border)] hover:border-[color:var(--accent)] px-4 py-3 transition-colors"
-            >
-              <span className="text-base font-semibold tracking-tight group-hover:text-[color:var(--accent)] transition-colors">
-                {d.title}
-              </span>
-              <span className="font-mono text-xs text-[color:var(--accent)]">
-                {d.cta}
-              </span>
-            </Link>
-          ))}
-        </div>
       </section>
     </div>
   );

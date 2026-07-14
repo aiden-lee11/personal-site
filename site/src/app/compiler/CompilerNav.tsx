@@ -27,15 +27,17 @@ export default function CompilerNav() {
           <Link
             key={t.href}
             href={t.href}
-            className={`relative px-3 py-2.5 font-mono text-xs tracking-wide transition-colors ${
+            className={`group relative px-3.5 py-3 font-mono text-[13px] tracking-wide transition-colors ${
               active
-                ? "text-[color:var(--fg)]"
+                ? "text-[color:var(--fg)] font-medium"
                 : "text-[color:var(--muted)] hover:text-[color:var(--fg)]"
             }`}
           >
             {t.label}
-            {active && (
-              <span className="absolute inset-x-3 -bottom-px h-[2px] bg-[color:var(--accent)]" />
+            {active ? (
+              <span className="absolute inset-x-3.5 -bottom-px h-[2px] bg-[color:var(--accent)]" />
+            ) : (
+              <span className="absolute inset-x-3.5 -bottom-px h-[2px] bg-[color:var(--border)] opacity-0 transition-opacity group-hover:opacity-100" />
             )}
           </Link>
         );
