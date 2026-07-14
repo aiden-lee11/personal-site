@@ -11,9 +11,9 @@ export const alt = "Aiden Lee — useful, fast software.";
 // pipeline as the signature footer. Satori only embeds fonts it's handed
 // (the bundled default is regular-weight only), so the real site fonts are
 // vendored in ./og-fonts and loaded here.
-const BG = "#0b0a0f";
-const FG = "#ece9f2";
-const MUTED = "#837e91";
+const BG = "#08080e";
+const FG = "#ede8df";
+const MUTED = "#8b849b";
 const ACCENT = "#a684f5";
 
 const font = (file: string) =>

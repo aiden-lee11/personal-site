@@ -42,7 +42,9 @@ export default function Home() {
   return (
     <div className="mx-auto max-w-5xl px-6">
       {/* Hero */}
-      <section className="grid gap-x-16 gap-y-12 pt-20 pb-16 sm:pt-28 lg:grid-cols-[1fr_15rem]">
+      <section className="relative grid gap-x-16 gap-y-12 pt-20 pb-16 sm:pt-28 lg:grid-cols-[1fr_15rem]">
+        {/* Warm desk-lamp glow behind the headline — see .hero-lamp. */}
+        <div className="hero-lamp" aria-hidden />
         <div>
           <p className="eyebrow">Aiden Lee — Software engineer</p>
           <h1 className="mt-8 text-[clamp(2.75rem,6vw,5rem)] font-semibold leading-[0.92] tracking-[-0.045em]">
