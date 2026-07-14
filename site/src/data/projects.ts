@@ -62,7 +62,7 @@ export const projects: Project[] = [
     href: "/compiler",
     bullets: [
       "Built every part with a partner in 21K+ lines of C++. Won the class competition: fastest of 100+ students and 2× faster than the previous winner.",
-      "Lowers C-like source through LC, LB, LA, IR, L3, L2, and L1 before emitting x86-64.",
+      "Lowers C-like source through multiple IR layers before emitting x86-64.",
       "Includes 10+ IR optimizations, graph-coloring register allocation, and instruction tiling on the backend.",
     ],
     links: [
