@@ -3,8 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Writing LC · Aiden Lee",
-  description:
-    "A one-minute guide to LC, the tiny C-like language my compiler lowers to x86-64 — a template to start from, what the language gives you, and the rules that bite.",
+  description: "A quick reference for LC, the small C-like language in my compiler.",
 };
 
 /* ------------------------------------------------------------------ */
@@ -191,8 +190,8 @@ export default function GrammarPage() {
           Writing LC
         </h1>
         <p className="mt-4 max-w-2xl text-[color:var(--muted)] leading-relaxed">
-          LC is a tiny C-like language where everything is a 64-bit integer.
-          Copy the template, tweak it, and watch it lower to x86-64.
+          LC is a small C-like language. Start with this template, change it,
+          and see what the compiler does with it.
         </p>
       </header>
 
@@ -211,7 +210,7 @@ export default function GrammarPage() {
       {/* What you have */}
       <section className="border-t border-[color:var(--border)] mt-12 pt-8">
         <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)] mb-6">
-          What you have
+          What&apos;s available
         </h2>
         <div className="grid gap-x-10 gap-y-7 sm:grid-cols-2">
           {TOOLBOX.map((group) => (
@@ -242,7 +241,7 @@ export default function GrammarPage() {
       {/* The rules that bite */}
       <section className="border-t border-[color:var(--border)] mt-12 pt-8">
         <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)] mb-6">
-          The rules that bite
+          A few rules
         </h2>
         <ul className="grid gap-x-10 gap-y-2.5 sm:grid-cols-2 max-w-4xl">
           {RULES.map((r, i) => (

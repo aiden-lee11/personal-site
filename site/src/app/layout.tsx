@@ -29,13 +29,11 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "Aiden Lee",
-  description:
-    "Aiden Lee — CS at Northwestern. Compilers, distributed systems, and interactive tools.",
+  description: "Aiden Lee — a Northwestern CS student who likes useful, fast software.",
   metadataBase: new URL("https://aidenlee.dev"),
   openGraph: {
     title: "Aiden Lee",
-    description:
-      "CS at Northwestern. Compilers, distributed systems, and interactive tools.",
+    description: "A Northwestern CS student who likes useful, fast software.",
     url: "/",
     siteName: "Aiden Lee",
     type: "website",

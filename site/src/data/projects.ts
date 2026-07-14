@@ -24,27 +24,27 @@ export type LiveThing = {
 export const LIVE: LiveThing[] = [
   {
     title: "Compiler",
-    blurb: "write C-like code, watch it lower to x86-64, run it — in your browser",
+    blurb: "Write C-like code and run it in your browser.",
     href: "/compiler",
     cta: "open the playground",
   },
   {
     title: "NUFood",
-    blurb: "live dining-hall menus for Northwestern",
+    blurb: "Dining-hall menus for Northwestern.",
     href: "https://nufood.me",
     cta: "visit nufood.me",
     external: true,
   },
   {
     title: "Panopto Summarizer",
-    blurb: "one-click lecture summaries in your browser",
+    blurb: "Lecture summaries when you need them.",
     href: "https://chromewebstore.google.com/detail/panopto-summarizer/cpeanbbcgghgjbpjpkgidndkmhgoplob?hl=en",
     cta: "install from the web store",
     external: true,
   },
   {
     title: "YouTube",
-    blurb: "live coding — LeetCode interview prep and project builds",
+    blurb: "Coding streams and project builds.",
     href: "https://www.youtube.com/@aiden-lee11",
     cta: "watch on YouTube",
     external: true,
@@ -55,16 +55,15 @@ export const projects: Project[] = [
   {
     slug: "compiler",
     title: "Optimizing Compiler",
-    tagline: "5-stage C-like → x86-64 compiler, 21K+ lines of hand-written C++",
+    tagline: "A C-like compiler built from scratch in C++",
     stack: ["C++23", "PEGTL", "SSA", "x86-64"],
     period: "Mar 2026 – Jun 2026",
     featured: true,
     href: "/compiler",
     bullets: [
-      "Built with a partner; won the class compiler competition at 536 ms — fastest of 100+ students across two quarters, 18× faster than GCC, 2× faster than the previous winner.",
-      "Lowers a C-like source through LC → LB → LA → IR → L3 → L2 → L1 → x86-64.",
-      "10+ SSA-based optimizations (SCCP, GVN, LICM, DCE, VRA/BCE, algebraic simplification, copy prop, out-of-SSA, CFG simplify, peephole).",
-      "Graph-coloring register allocation and instruction tiling on the backend.",
+      "Built every part with a partner in 21K+ lines of C++. Won the class competition: fastest of 100+ students and 2× faster than the previous winner.",
+      "Lowers C-like source through LC, LB, LA, IR, L3, L2, and L1 before emitting x86-64.",
+      "Includes 10+ IR optimizations, graph-coloring register allocation, and instruction tiling on the backend.",
     ],
     links: [
       { label: "Try the visualizer", href: "/compiler" },
@@ -74,14 +73,13 @@ export const projects: Project[] = [
   {
     slug: "nu-esports-bot",
     title: "NU Esports Discord Bot",
-    tagline: "Real-time game-room visibility for 1,500+ students",
+    tagline: "A Discord bot for checking campus game-room availability",
     stack: ["Python", "PostgreSQL", "Docker"],
     period: "Sep 2025 – Present",
     href: "https://github.com/aiden-lee11/nu-esports-bot",
     bullets: [
-      "Shipped commands that give 1,500+ students live game-room availability, replacing walk-in checks.",
-      "Self-hosted GGLeap proxy reusing attendant session JWT to unlock PC state and reservation endpoints.",
-      "PostgreSQL reservation scheduler with conflict detection, room allocation, and prime-time quotas per team.",
+      "Helps more than 1,500 students see what rooms and PCs are available before walking over.",
+      "Also handles reservations and team scheduling.",
     ],
     links: [
       { label: "GitHub", href: "https://github.com/aiden-lee11/nu-esports-bot" },
@@ -90,14 +88,13 @@ export const projects: Project[] = [
   {
     slug: "nufood",
     title: "NUFood",
-    tagline: "Dining-hall app used by 500+ students, featured in The Daily Northwestern",
+    tagline: "A faster way to check Northwestern dining-hall menus",
     stack: ["Go", "TypeScript", "React", "PostgreSQL", "AWS"],
-    period: "Sep 2024 – Sep 2025",
+    period: "Sep 2024 – Present",
     href: "https://nufood.me",
     bullets: [
-      "Optimized dining-hall menu app used by 500+ students; covered in The Daily Northwestern.",
-      "Go backend with 90% latency reduction vs available alternatives.",
-      "Deployed on AWS with a batched pipeline that caches all pages upfront for instant UI filtering.",
+      "Used by more than 500 students and featured in The Daily Northwestern.",
+      "Built the backend to make menus load quickly and stay easy to search.",
     ],
     links: [
       { label: "GitHub", href: "https://github.com/aiden-lee11/nufood" },
@@ -107,13 +104,12 @@ export const projects: Project[] = [
   {
     slug: "content",
     title: "YouTube — @aiden-lee11",
-    tagline: "Live coding — LeetCode interview prep & project builds · 2K+ subs · 125K+ views",
+    tagline: "Coding streams, interview prep, and project builds",
     stack: ["OBS", "Real-time coding"],
     period: "Dec 2024 – Present",
     href: "https://www.youtube.com/@aiden-lee11",
     bullets: [
-      "350+ videos of live coding: daily 'coding everyday until summer internship' streams, LeetCode interview prep, and project builds.",
-      "2,000+ subscribers, 125,000+ views to date.",
+      "More than 350 videos and 2,000 subscribers.",
     ],
     links: [
       { label: "YouTube", href: "https://www.youtube.com/@aiden-lee11" },
@@ -125,26 +121,24 @@ export const projects: Project[] = [
   {
     slug: "lit",
     title: "lit",
-    tagline: "A from-scratch reimplementation of git in C++",
+    tagline: "A small reimplementation of Git in C++",
     stack: ["C++", "SHA-1", "Zlib"],
     period: "2025",
     side: true,
     bullets: [
-      "`lit init / hash-object / add / commit / status / log` implemented against the real .git object-store layout — SHA-1-addressed blobs, trees, commits.",
-      "Reads and writes Git's on-disk format directly instead of wrapping the git CLI.",
+      "Reads and writes Git's object format directly, without calling the Git CLI.",
     ],
     links: [{ label: "GitHub", href: "https://github.com/aiden-lee11/lit" }],
   },
   {
     slug: "baby-docker",
     title: "baby-docker",
-    tagline: "A minimal Linux container runtime in C++",
+    tagline: "A small Linux container runtime in C++",
     stack: ["C++", "Linux syscalls", "clone()", "namespaces"],
     period: "2025",
     side: true,
     bullets: [
-      "Uses raw `clone()` with `CLONE_NEWPID/UTS/NS` flags to isolate a child process into its own namespaces — the same primitive Docker uses under the hood.",
-      "Runs isolated processes without a Docker daemon or container library.",
+      "Runs isolated processes with Linux namespaces, without a Docker daemon.",
     ],
     links: [
       { label: "GitHub", href: "https://github.com/aiden-lee11/baby-docker" },
@@ -153,14 +147,12 @@ export const projects: Project[] = [
   {
     slug: "poker",
     title: "Go Poker",
-    tagline: "Real-time multiplayer poker over WebSockets",
+    tagline: "Multiplayer poker in the browser",
     stack: ["Go", "WebSockets", "Monte Carlo"],
     period: "Jan 2025 – Mar 2025",
     side: true,
     bullets: [
-      "Concurrent Go backend serving live game state to browsers over a single WebSocket per player.",
-      "Monte Carlo hand evaluator running 10K+ win-probability simulations per hand in real time.",
-      "Modular room/table/hand model with unit-tested evaluator on top.",
+      "Keeps a live game in sync over WebSockets and estimates hand odds as you play.",
     ],
     links: [
       { label: "GitHub", href: "https://github.com/aiden-lee11/poker" },
@@ -169,12 +161,12 @@ export const projects: Project[] = [
   {
     slug: "stop",
     title: "STOP",
-    tagline: "C++ solver for NYT Strands — 'baSed nyT strands sOlving Program'",
+    tagline: "A C++ solver for NYT Strands",
     stack: ["C++", "DFS", "BFS"],
     period: "2025",
     side: true,
     bullets: [
-      "Curls the day's board + solution set from the Strands API, then walks the grid via DFS/BFS to find every valid word.",
+      "Finds every valid word on the day's board.",
       "Written mostly to stop losing to my friends.",
     ],
     links: [{ label: "GitHub", href: "https://github.com/aiden-lee11/STOP" }],
@@ -182,12 +174,12 @@ export const projects: Project[] = [
   {
     slug: "panopto-summaries",
     title: "panopto-summaries",
-    tagline: "Chrome extension that turns Panopto lectures into bullet-point summaries",
+    tagline: "A Chrome extension for shorter Panopto lecture notes",
     stack: ["JavaScript", "Chrome extension", "OpenAI", "Gemini"],
     period: "2025",
     side: true,
     bullets: [
-      "One-click on a Panopto lecture page: pulls the transcript, sends it to OpenAI or Gemini, drops the bullet summary back into the UI.",
+      "Turns a lecture transcript into notes right on the Panopto page.",
       "Built the day I realized I could either watch the whole recording or read the notes in five minutes.",
     ],
     links: [

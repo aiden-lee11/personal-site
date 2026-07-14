@@ -275,7 +275,7 @@ body {
 /* The resting photo breathes — a slow, barely-there zoom. Lives on the <img>
    so it never collides with the slide-level transform set by paint(). Excludes
    stack prints: the top gets its own settle animation, and the peeking backs
-   carry an inline offset transform that breathe would clobber. */
+   carry the cascade transform that breathe would clobber. */
 .gallery-slide.center img:not(.gallery-stack-top):not(.gallery-stack-back) {
   animation: gallery-breathe 11s ease-in-out infinite alternate;
 }
@@ -335,8 +335,8 @@ body {
      top <img> by id, so a cycle remounts it. Same easing family as the strip. */
   animation: gallery-stack-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-/* Backs fill the same box as the top print, offset+scaled via their inline
-   transform. Higher specificity than `.gallery-slide img` so the flow-sizing
+/* Backs fill the same box as the top print, offset+scaled into their cascade
+   slot. Higher specificity than `.gallery-slide img` so the flow-sizing
    rules (shrink-wrapped height, max-width) don't apply. Non-interactive — clicks fall to
    the figure. A soft shadow + hairline light ring lifts each print's edge off
    the dark bg; z-index is inline (nearer prints sit above farther ones). They
@@ -350,9 +350,25 @@ body {
   object-fit: cover;
   pointer-events: none;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.07);
-  /* Opacity-only — a transform animation would clobber the inline cascade
-     offset while it ran. */
+  /* The cascade slot, from variables set inline by backStyle(). --peek scales
+     both the offset and how much smaller the back sits, so one number slides
+     the whole arrangement between "fanned out" (1) and "tucked in" (→0). */
+  transform: translate(
+      calc(var(--tx) * var(--peek, 1)),
+      calc(var(--ty) * var(--peek, 1))
+    )
+    rotate(var(--rot)) scale(calc(1 - var(--shrink) * var(--peek, 1)));
+  /* Opacity-only — a transform animation would clobber the cascade slot while
+     it ran. */
   animation: gallery-back-in 260ms ease-out;
+}
+/* Phones: the slide is width-clamped to ~86vw, so the desktop fan would sprawl
+   past the 4vw gap into the neighbouring slide and the screen edge. Squeeze the
+   cascade to slim slivers — still clearly a stack, nothing crowds the neighbour. */
+@media (max-width: 639px) {
+  .gallery-slide img.gallery-stack-back {
+    --peek: 0.45;
+  }
 }
 @keyframes gallery-back-in {
   from {

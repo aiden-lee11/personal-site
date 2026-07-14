@@ -10,24 +10,6 @@ const STATUS = [
   ["Based", "Evanston", "Illinois"],
 ];
 
-const STATS = [
-  ["536 ms", "winning benchmark"],
-  ["18×", "faster than GCC"],
-  ["21K+", "lines of hand-written C++"],
-  ["10+", "optimization passes"],
-];
-
-const PIPELINE = [
-  "LC · C-like source",
-  "LB · scoped control flow",
-  "LA · flat branches",
-  "IR · control flow",
-  "L3 · instruction selection",
-  "L2 · register allocation",
-  "L1 · machine operations",
-  "x86-64 · assembly",
-];
-
 function Section({
   label,
   aside,
@@ -63,15 +45,11 @@ export default function Home() {
         <div>
           <p className="eyebrow">Aiden Lee — Software engineer</p>
           <h1 className="mt-8 text-[clamp(2.75rem,6vw,5rem)] font-semibold leading-[0.92] tracking-[-0.045em]">
-            Compilers.
-            <br />
-            Infrastructure.
-            <br />
-            <span className="text-[color:var(--accent)]">Developer tools.</span>
+            Hi, I&apos;m Aiden.
           </h1>
           <p className="mt-9 max-w-xl text-lg leading-relaxed text-[color:var(--muted)]">
             I&apos;m a Northwestern CS student, currently at Pinterest. I like
-            making people&apos;s lives easier, and I like code that runs fast.
+            making people&apos;s lives easier, and code that runs fast.
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-3">
             <Link href="/compiler" className="btn btn-primary">
@@ -102,41 +80,10 @@ export default function Home() {
           {featuredProject.title}
         </h2>
         <p className="mt-5 max-w-xl text-[color:var(--muted)] leading-relaxed">
-          A C-like language lowered through six intermediate layers to x86-64 —
-          every line of the compiler written by hand with my partner. It outran
-          100+ students&apos; compilers across two quarters, and the whole
-          pipeline runs live in this site.
+          My partner and I built this C-like compiler in C++ for a class
+          competition. It was later ported to WebAssembly, so you can write
+          code, see how it changes along the way, and run the result here.
         </p>
-
-        <div className="mt-10 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
-          {STATS.map(([value, label]) => (
-            <div key={label}>
-              <p className="font-mono text-2xl tracking-tight text-[color:var(--accent)]">
-                {value}
-              </p>
-              <p className="mt-1.5 text-xs text-[color:var(--muted)]">{label}</p>
-            </div>
-          ))}
-        </div>
-
-        <ol className="group mt-10 space-y-1 font-mono text-sm">
-          {PIPELINE.map((layer, i) => {
-            const isLast = i === PIPELINE.length - 1;
-            return (
-              <li
-                key={layer}
-                className={`flex items-center gap-3 transition-colors hover:text-[color:var(--fg)]! ${
-                  isLast
-                    ? "text-[color:var(--fg)] group-hover:text-[color:var(--muted)]"
-                    : "text-[color:var(--muted)]"
-                }`}
-              >
-                <span className="w-6 text-[11px] opacity-50">{String(i + 1).padStart(2, "0")}</span>
-                <span>{layer}</span>
-              </li>
-            );
-          })}
-        </ol>
 
         <Link
           href={featuredProject.href ?? "/projects"}
@@ -205,14 +152,6 @@ export default function Home() {
             {featuredRole.start} — {featuredRole.end}
           </span>
         </div>
-        <ul className="mt-5 space-y-3 text-[15px] leading-relaxed text-[color:var(--muted)]">
-          {featuredRole.bullets.map((bullet) => (
-            <li key={bullet} className="flex gap-3">
-              <span className="mt-[0.55em] h-1 w-1 shrink-0 rounded-full bg-[color:var(--accent)]" />
-              <span>{bullet}</span>
-            </li>
-          ))}
-        </ul>
         <div className="mt-10 grid gap-8 sm:grid-cols-2">
           {pastRoles.map((role) => (
             <div key={role.company}>
@@ -230,12 +169,9 @@ export default function Home() {
 
       {/* Contact */}
       <Section label="Contact">
-        <p className="text-3xl sm:text-4xl font-semibold tracking-[-0.02em] leading-snug">
-          Let&apos;s talk.
-        </p>
         <a
           href={`mailto:${profile.email}`}
-          className="mt-4 inline-block text-lg link-underline break-all"
+          className="inline-block text-lg link-underline break-all"
         >
           {profile.email}
         </a>

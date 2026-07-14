@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Aiden Lee — compilers, distributed systems, and interactive tools.";
+export const alt = "Aiden Lee — useful, fast software.";
 
 export default function OG() {
   return new ImageResponse(

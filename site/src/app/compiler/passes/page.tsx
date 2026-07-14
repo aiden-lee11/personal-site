@@ -4,8 +4,7 @@ import PassExplorer from "./PassExplorer";
 
 export const metadata: Metadata = {
   title: "Compiler Passes · Aiden Lee",
-  description:
-    "Every IR optimization pass in my compiler — SCCP, DCE, LICM, GVN, and more — each with a minimal before/after example and a live demo.",
+  description: "A closer look at the compiler's optimizations.",
 };
 
 export default function CompilerPassesPage() {
@@ -16,12 +15,9 @@ export default function CompilerPassesPage() {
           What each pass does
         </h1>
         <p className="mt-4 text-[color:var(--muted)] max-w-2xl leading-relaxed">
-          Canonical illustrations of all {OPT_EXAMPLES.length} IR optimization
-          passes, each at the scale of a single transformation. These are
-          hand-crafted minimal examples in the compiler&apos;s own SSA syntax —
-          hit <span className="text-[color:var(--fg)]">run live</span> on any
-          pass to drop a real IR program into the playground with that pass
-          enabled and see it work on actual output.
+          Small examples of what each optimization changes. Use{" "}
+          <span className="text-[color:var(--fg)]">run live</span> to open an
+          example in the playground.
         </p>
       </header>
 

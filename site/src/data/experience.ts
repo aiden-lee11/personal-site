@@ -17,9 +17,8 @@ export const experience: Role[] = [
     end: "Sep 2026",
     featured: true,
     bullets: [
-      "Shipped Kafka High Disk agent (3–5×/day) on petabyte-scale clusters — automates broker-set analysis and mitigation via Slack for oncall.",
-      "Building MCP + Skills tooling for logging alerts (CDC GTID diffing), replacing error-prone manual runbooks.",
-      "Designing an internal OpenClaw integration where PagerDuty alerts auto-invoke agents that reply in the alert thread.",
+      "Built tools that help on-call engineers investigate and respond to Kafka alerts.",
+      "Working on alert tooling that replaces manual runbooks with useful context and next steps.",
     ],
   },
   {
@@ -29,9 +28,8 @@ export const experience: Role[] = [
     start: "Sep 2025",
     end: "Dec 2025",
     bullets: [
-      "LangGraph state machine for automated parser generation with human-in-the-loop validation — cut manual transform effort on unstructured datasets.",
-      "Parallelized producer-consumer pipeline streaming 1 GB+ files into Pinecone at 5× throughput.",
-      "Identity-resolution system (union-find + weighted phonetic similarity) at 98.4% precision across 86K+ records.",
+      "Built a tool to help turn messy datasets into reliable parsers.",
+      "Made large file processing five times faster.",
     ],
   },
   {
@@ -41,10 +39,8 @@ export const experience: Role[] = [
     start: "Jun 2025",
     end: "Aug 2025",
     bullets: [
-      "Built core utilities for Bool — 1K+ users generating websites from a prompt.",
-      "High-performance async job processor (Django + Redis) with 99%+ reliable stream completion.",
-      "Cut cloud costs 50% by eliminating duplicate startup instances spawning parallel workers.",
-      "Shipped the promo engine powering discount codes and a feature-flag system for PM A/B testing.",
+      "Built product and infrastructure work for Bool, a website builder used by more than 1,000 people.",
+      "Made background jobs more reliable and cut cloud costs in half.",
     ],
   },
 ];

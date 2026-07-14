@@ -25,8 +25,11 @@ function formatMonth(date: string): string {
 // Cascade slots for the peeking backs — a diagonal collage rather than a tight
 // pile: alternating left/right with a progressive drop (up-left, mid-right,
 // down-left, …) so every print is clearly visible and invites a click. Offsets
-// are % of the (active) slide box and kept modest so the overflow stays within
-// ~½ the 4vw inter-slide gap; deeper prints scale down to read as further back.
+// are % of the (active) slide box, tuned so on desktop the overflow stays
+// within ~½ the 4vw inter-slide gap; deeper prints scale down to read as
+// further back. On phone widths the slide spans ~86vw, so the same offsets
+// would sprawl into the neighbouring slide — the CSS `--peek` factor (see
+// .gallery-stack-back) squeezes the whole arrangement toward "tucked in" there.
 const CASCADE = [
   { x: -12, y: -9, r: -2.5, s: 0.86 },
   { x: 13, y: 4, r: 2, s: 0.83 },
@@ -36,15 +39,18 @@ const CASCADE = [
 // `d` is the print's depth in cycle order behind the active one (0 = next up),
 // so the arrangement is fully determined by which print is active; a tiny
 // index-keyed rotation jitter keeps the scrapbook feel from looking stamped.
+// The slot is handed to CSS as variables (not a literal transform) so the
+// phone breakpoint can rescale it without JS knowing the viewport.
 function backStyle(d: number, i: number): React.CSSProperties {
   const c = CASCADE[Math.min(d, CASCADE.length - 1)];
   const jitter = (i % 3) - 1; // -1 | 0 | 1, stable per original index
   return {
-    transform: `translate(${c.x}%, ${c.y}%) rotate(${(c.r + jitter * 0.6).toFixed(
-      2,
-    )}deg) scale(${c.s})`,
+    "--tx": `${c.x}%`,
+    "--ty": `${c.y}%`,
+    "--rot": `${(c.r + jitter * 0.6).toFixed(2)}deg`,
+    "--shrink": (1 - c.s).toFixed(2),
     zIndex: 3 - d, // nearer prints layer above farther ones, all below the top
-  };
+  } as React.CSSProperties;
 }
 
 // A single strip slide. For a lone photo it renders exactly as before; for a

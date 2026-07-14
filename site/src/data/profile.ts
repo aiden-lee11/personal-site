@@ -13,8 +13,7 @@ export const profile = {
   linkedin: "https://www.linkedin.com/in/aiden-lee11/",
   youtube: "https://www.youtube.com/@aiden-lee11",
   resumePdf: "/Aiden-Lee-Resume.pdf",
-  intro:
-    "Northwestern CS student working on compilers, distributed systems, and developer tools.",
+  intro: "Northwestern CS student who likes building useful, fast software.",
   coursework: [
     "Compiler Construction",
     "Distributed Systems",

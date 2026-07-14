@@ -4,8 +4,7 @@ import { projects, LIVE, type Project } from "@/data/projects";
 
 export const metadata: Metadata = {
   title: "Projects · Aiden Lee",
-  description:
-    "Compiler, dining-hall app, Discord bot, git reimpl, container runtime, poker — projects by Aiden Lee.",
+  description: "A few things Aiden Lee has made.",
 };
 
 function Row({ project }: { project: Project }) {
@@ -79,7 +78,7 @@ export default function ProjectsPage() {
           </h1>
         </div>
         <p className="text-[color:var(--muted)] lg:text-right">
-          Compilers, production systems, and tools with real users.
+          Things I&apos;ve made for school, work, and the people around me.
         </p>
       </header>
 
@@ -87,7 +86,7 @@ export default function ProjectsPage() {
         <div className="grid gap-4 md:grid-cols-[12rem_1fr] md:gap-12 lg:gap-20">
           <p className="eyebrow">Live &amp; usable</p>
           <p className="text-[color:var(--muted)] max-w-xl">
-            Things you can try right now.
+            A few things you can use right now.
           </p>
         </div>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -137,8 +136,7 @@ export default function ProjectsPage() {
           <div className="grid gap-4 md:grid-cols-[12rem_1fr] md:gap-12 lg:gap-20">
             <p className="eyebrow">Smaller builds</p>
             <p className="text-[color:var(--muted)] max-w-xl">
-              A Git reimplementation, a Linux container runtime, a poker server, a
-              Strands solver, and a lecture-summary extension.
+              Small projects I made to learn something new or solve a problem I had.
             </p>
           </div>
           <ol className="mt-12">

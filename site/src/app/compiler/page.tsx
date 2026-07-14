@@ -6,14 +6,13 @@ import ShareLinkRedirect from "./ShareLinkRedirect";
 
 export const metadata: Metadata = {
   title: "Compiler · Aiden Lee",
-  description:
-    "The 7-stage C++ compiler my partner and I built for Northwestern's CS 322 — LC → LB → LA → IR → L3 → L2 → L1 → x86-64, every line rolled by hand, faster than 100+ students' compilers. Runs in your browser with an interactive playground, an LC grammar reference, and every IR optimization pass.",
+  description: "A C-like compiler that you can explore and run in your browser.",
 };
 
 const STATS = [
-  { value: "536 ms", label: "outran 100+ students' compilers, 18× faster than GCC" },
-  { value: "8", label: "pipeline layers, LC source down to x86-64" },
-  { value: `${OPT_EXAMPLES.length}`, label: "IR optimization passes, each toggleable live" },
+  { value: "536 ms", label: "fastest compiler in the class competition" },
+  { value: "8", label: "steps from source code to assembly" },
+  { value: `${OPT_EXAMPLES.length}`, label: "optimizations you can turn on and off" },
 ];
 
 export default function CompilerOverviewPage() {
@@ -28,18 +27,16 @@ export default function CompilerOverviewPage() {
           <span className="text-[color:var(--accent)]">in your browser.</span>
         </h1>
         <p className="mt-6 text-[color:var(--muted)] max-w-2xl leading-relaxed">
-          My partner and I built this compiler for Northwestern&apos;s CS
-          322 — every line by hand. It outran 100+ students&apos; compilers across two
-          quarters. The WebAssembly build lets you write code, inspect every
-          intermediate representation, and toggle individual optimization
-          passes — and the{" "}
+          My partner and I built this compiler for Northwestern&apos;s CS 322.
+          Write a little C-like code, see how it changes on the way to assembly,
+          and run it. The{" "}
           <Link
             href="/compiler/grammar"
             className="text-[color:var(--fg)] link-underline"
           >
             language page
           </Link>{" "}
-          gets you writing LC in about a minute.
+          helps you get started.
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link href="/compiler/playground" className="btn btn-primary">
@@ -124,10 +121,7 @@ export default function CompilerOverviewPage() {
               Playground
             </p>
             <p className="text-sm text-[color:var(--muted)] leading-relaxed">
-              Write LC (or any layer below it) and step through every stage the
-              compiler emits — down to the exact assembly your CPU would run.
-              Toggle passes, diff optimized vs unoptimized, and time the real
-              binary on the server.
+              Write code, step through the compiler, and run the result.
             </p>
             <p className="mt-4 font-mono text-xs text-[color:var(--accent)]">
               open playground →
@@ -141,10 +135,8 @@ export default function CompilerOverviewPage() {
               Passes
             </p>
             <p className="text-sm text-[color:var(--muted)] leading-relaxed">
-              A guided tour of all {OPT_EXAMPLES.length} IR optimizations —
-              SCCP, DCE, LICM, GVN, and friends — each with a minimal
-              before/after example and a one-click demo that runs the pass on
-              real code.
+              See what each optimization changes with a small before-and-after
+              example.
             </p>
             <p className="mt-4 font-mono text-xs text-[color:var(--accent)]">
               explore passes →
@@ -158,9 +150,7 @@ export default function CompilerOverviewPage() {
               Language
             </p>
             <p className="text-sm text-[color:var(--muted)] leading-relaxed">
-              Everything LC gives you, on one page — a template program to
-              start from, the types, control flow, and built-ins at a glance,
-              and the handful of rules that bite.
+              A short reference and starter program for the language.
             </p>
             <p className="mt-4 font-mono text-xs text-[color:var(--accent)]">
               start writing LC →
