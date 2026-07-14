@@ -13,7 +13,7 @@ export default function PassExplorer({ examples }: { examples: OptExample[] }) {
 
   return (
     <div className="grid lg:grid-cols-[16rem_1fr] gap-6">
-      <nav className="space-y-2">
+      <nav className="hidden lg:block space-y-2">
         {examples.map((e) => {
           const isActive = e.id === activeId;
           return (
@@ -42,6 +42,25 @@ export default function PassExplorer({ examples }: { examples: OptExample[] }) {
       </nav>
 
       <div className="min-w-0">
+        {/* Mobile: a compact dropdown replaces the stacked card nav so the
+            animation stays at the top of the content without scrolling. */}
+        <label className="lg:hidden block mb-4">
+          <span className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)]">
+            Pass
+          </span>
+          <select
+            value={activeId}
+            onChange={(e) => setActiveId(e.target.value as OptExample["id"])}
+            className="mt-1 block w-full rounded border border-[color:var(--border)] bg-[color:var(--bg)] px-2 py-1 font-mono text-xs focus:border-[color:var(--accent)] focus:outline-none"
+          >
+            {examples.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name} — {e.fullName}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <div className="flex items-start justify-between gap-6 mb-4 flex-wrap">
           <div className="flex-1 min-w-0">
             <p className="font-serif text-2xl leading-tight">{active.fullName}</p>
