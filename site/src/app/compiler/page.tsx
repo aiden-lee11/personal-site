@@ -15,11 +15,17 @@ const STATS = [
   { value: `${OPT_EXAMPLES.length}`, label: "optimizations you can turn on and off" },
 ];
 
+const DIVE_LINKS = [
+  { href: "/compiler/playground", title: "Playground", cta: "open playground →" },
+  { href: "/compiler/passes", title: "Passes", cta: "explore passes →" },
+  { href: "/compiler/grammar", title: "Language", cta: "start writing LC →" },
+];
+
 export default function CompilerOverviewPage() {
   return (
     <div>
       <ShareLinkRedirect />
-      <header className="mb-16">
+      <header className="mb-12">
         <p className="eyebrow mb-5">Interactive / Compiler</p>
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-[-0.055em] leading-[0.95] max-w-4xl">
           C-like source to x86-64,
@@ -58,7 +64,7 @@ export default function CompilerOverviewPage() {
       </header>
 
       {/* Stats */}
-      <section className="mb-16 grid gap-8 sm:grid-cols-3 border-t border-[color:var(--border)] pt-10">
+      <section className="mb-12 grid gap-8 sm:grid-cols-3 border-t border-[color:var(--border)] pt-8">
         {STATS.map((s) => (
           <div key={s.label}>
             <p className="font-mono text-3xl text-[color:var(--accent)] tabular">
@@ -72,33 +78,27 @@ export default function CompilerOverviewPage() {
       </section>
 
       {/* The pipeline */}
-      <section className="mb-16">
-        <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)] mb-6">
+      <section className="mb-12">
+        <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)] mb-5">
           The pipeline
         </h2>
-        <ol className="space-y-0">
+        <ol className="grid gap-x-10 gap-y-4 sm:grid-cols-2">
           {LAYERS.map((L, i) => (
-            <li key={L} className="flex gap-5">
-              {/* Rail */}
-              <div className="flex flex-col items-center">
-                <span
-                  className={`flex-shrink-0 w-8 h-8 border flex items-center justify-center font-mono text-[11px] ${
-                    i === 0 || i === LAYERS.length - 1
-                      ? "border-[color:var(--accent)] text-[color:var(--accent)]"
-                      : "border-[color:var(--border)] text-[color:var(--muted)]"
-                  }`}
-                >
-                  {i + 1}
-                </span>
-                {i < LAYERS.length - 1 && (
-                  <span className="w-px flex-1 bg-[color:var(--border)]" />
-                )}
-              </div>
-              <div className="pb-8 min-w-0">
-                <p className="font-mono text-sm text-[color:var(--fg)] pt-1.5">
+            <li key={L} className="flex gap-3">
+              <span
+                className={`flex-shrink-0 w-6 h-6 border flex items-center justify-center font-mono text-[10px] ${
+                  i === 0 || i === LAYERS.length - 1
+                    ? "border-[color:var(--accent)] text-[color:var(--accent)]"
+                    : "border-[color:var(--border)] text-[color:var(--muted)]"
+                }`}
+              >
+                {i + 1}
+              </span>
+              <div className="min-w-0">
+                <p className="font-mono text-sm text-[color:var(--fg)] leading-6">
                   {LAYER_LABEL[L]}
                 </p>
-                <p className="mt-1 text-sm text-[color:var(--muted)] leading-relaxed max-w-2xl">
+                <p className="mt-0.5 text-[13px] text-[color:var(--muted)] leading-snug">
                   {LAYER_TAGLINE[L]}
                 </p>
               </div>
@@ -107,55 +107,26 @@ export default function CompilerOverviewPage() {
         </ol>
       </section>
 
-      {/* Section cards */}
-      <section>
-        <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)] mb-6">
+      {/* Dive in — compact CTA row */}
+      <section className="border-t border-[color:var(--border)] pt-8">
+        <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)] mb-5">
           Dive in
         </h2>
-        <div className="grid md:grid-cols-3 gap-4">
-          <Link
-            href="/compiler/playground"
-            className="group border border-[color:var(--border)] hover:border-[color:var(--accent)] p-6 transition-all"
-          >
-            <p className="text-2xl font-semibold tracking-tight leading-tight mb-2 group-hover:text-[color:var(--accent)] transition-colors">
-              Playground
-            </p>
-            <p className="text-sm text-[color:var(--muted)] leading-relaxed">
-              Write code, step through the compiler, and run the result.
-            </p>
-            <p className="mt-4 font-mono text-xs text-[color:var(--accent)]">
-              open playground →
-            </p>
-          </Link>
-          <Link
-            href="/compiler/passes"
-            className="group border border-[color:var(--border)] hover:border-[color:var(--accent)] p-6 transition-all"
-          >
-            <p className="text-2xl font-semibold tracking-tight leading-tight mb-2 group-hover:text-[color:var(--accent)] transition-colors">
-              Passes
-            </p>
-            <p className="text-sm text-[color:var(--muted)] leading-relaxed">
-              See what each optimization changes with a small before-and-after
-              example.
-            </p>
-            <p className="mt-4 font-mono text-xs text-[color:var(--accent)]">
-              explore passes →
-            </p>
-          </Link>
-          <Link
-            href="/compiler/grammar"
-            className="group border border-[color:var(--border)] hover:border-[color:var(--accent)] p-6 transition-all"
-          >
-            <p className="text-2xl font-semibold tracking-tight leading-tight mb-2 group-hover:text-[color:var(--accent)] transition-colors">
-              Language
-            </p>
-            <p className="text-sm text-[color:var(--muted)] leading-relaxed">
-              A short reference and starter program for the language.
-            </p>
-            <p className="mt-4 font-mono text-xs text-[color:var(--accent)]">
-              start writing LC →
-            </p>
-          </Link>
+        <div className="grid sm:grid-cols-3 gap-3">
+          {DIVE_LINKS.map((d) => (
+            <Link
+              key={d.href}
+              href={d.href}
+              className="group flex items-center justify-between gap-4 border border-[color:var(--border)] hover:border-[color:var(--accent)] px-4 py-3 transition-colors"
+            >
+              <span className="text-base font-semibold tracking-tight group-hover:text-[color:var(--accent)] transition-colors">
+                {d.title}
+              </span>
+              <span className="font-mono text-xs text-[color:var(--accent)]">
+                {d.cta}
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
     </div>
