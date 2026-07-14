@@ -41,6 +41,20 @@ export type OptExample = {
    * transform phases. Falls back to the tagline when omitted.
    */
   story?: { spot?: string; trace?: string; transform?: string };
+  /**
+   * Granular narrative beats played between the "spot" and "transform" phases.
+   * When present these REPLACE the single focus-token trace beat; each step
+   * moves attention with its own highlights, so the explainer reads as a
+   * sequence rather than one blanket highlight:
+   *   - marks:   tokens pill-highlighted (.pass-pill) during that step only,
+   *              matched with the same %/:-aware boundaries as `focus`. They
+   *              un-highlight when the step advances, so attention moves.
+   *   - outline: any line whose trimmed text contains one of these strings gets
+   *              the tight per-line ring (.pass-mark) during that step — lets a
+   *              step point at a whole instruction or a label's line.
+   *   - caption: the callout text for the step (focus tokens colored as usual).
+   */
+  steps?: { caption: string; marks?: string[]; outline?: string[] }[];
 };
 
 export const OPT_EXAMPLES: OptExample[] = [
@@ -57,6 +71,12 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "so the false arm is unreachable",
       transform: "the branch and every fold collapse to one constant",
     },
+    steps: [
+      { marks: ["%c"], outline: ["%c <- 1"], caption: "%c is assigned once — provably always 1" },
+      { marks: ["%c"], outline: ["br %c"], caption: "the branch condition is that constant" },
+      { marks: [":maybe_taken"], caption: ":maybe_taken is always the arm taken" },
+      { marks: [":never_taken"], outline: [":never_taken"], caption: "so the false arm is unreachable — dead" },
+    ],
     before: `define void @g () {
 
   :entry
@@ -95,6 +115,12 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "%unused and %also_unused appear nowhere else",
       transform: "so the dead computations are deleted",
     },
+    steps: [
+      { marks: ["%unused"], outline: ["%unused <- %x * %x"], caption: "%unused is computed here" },
+      { marks: ["%unused"], caption: "%unused appears nowhere else — no reader" },
+      { marks: ["%also_unused"], outline: ["%also_unused <- %a + %b"], caption: "%also_unused only feeds more dead code" },
+      { marks: ["%also_unused"], caption: "nothing live reads either — both are dead" },
+    ],
     before: `define void @f (%x) {
 
   :entry
@@ -127,6 +153,11 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "but %n never changes inside the loop",
       transform: "so %off is hoisted into a preheader that runs once",
     },
+    steps: [
+      { marks: ["%off"], outline: ["%off <- %n * 8"], caption: "%off is recomputed each iteration of :body" },
+      { marks: ["%n"], caption: "but %n never changes inside the loop" },
+      { marks: ["%off"], outline: ["%off <- %n * 8"], caption: "so %off is loop-invariant — hoist it to a preheader" },
+    ],
     before: `define void @sum_offsets (%arr, %n) {
 
   :entry
@@ -188,6 +219,11 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "same inputs hash to the same value number",
       transform: "so %b just reuses %a",
     },
+    steps: [
+      { marks: ["%t1"], outline: ["%t1 <- %x * %x"], caption: "%t1 computes %x * %x first" },
+      { marks: ["%t2"], outline: ["%t2 <- %x * %x"], caption: "%t2 recomputes the identical expression" },
+      { marks: ["%t1", "%t2"], caption: "same inputs hash to one value number — reuse %t1" },
+    ],
     before: `define void @dup (%x) {
 
   :entry
@@ -221,6 +257,12 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "every use traces straight back to %a",
       transform: "so the copies collapse into the source",
     },
+    steps: [
+      { marks: ["%a"], outline: ["%a <- 5"], caption: "%a holds the real value" },
+      { marks: ["%b", "%a"], outline: ["%b <- %a"], caption: "%b is just a copy of %a" },
+      { marks: ["%c", "%b"], outline: ["%c <- %b"], caption: "%c copies %b — the chain renames one value" },
+      { marks: ["%a"], caption: "every use traces straight back to %a" },
+    ],
     before: `define void @chain () {
 
   :entry
@@ -249,6 +291,12 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "the identity operands don't change the value",
       transform: "so each op becomes a plain copy",
     },
+    steps: [
+      { marks: ["1"], outline: ["%a <- %x * 1"], caption: "%x * 1 leaves %x unchanged" },
+      { marks: ["0"], outline: ["%b <- %a + 0"], caption: "%a + 0 leaves %a unchanged" },
+      { marks: ["0"], outline: ["%c <- %b << 0"], caption: "%b << 0 leaves %b unchanged" },
+      { marks: ["1", "0"], outline: ["%a <- %x * 1", "%b <- %a + 0", "%c <- %b << 0"], caption: "so each identity op collapses to a copy" },
+    ],
     before: `define void @idents (%x) {
 
   :entry
@@ -279,6 +327,11 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "+1, +2 and +0 fold together",
       transform: "into a single %x + 3",
     },
+    steps: [
+      { marks: ["1", "2"], outline: ["%a <- %x + 1", "%b <- %a + 2"], caption: "a window of adds chains through +1 then +2" },
+      { marks: ["0"], outline: ["%c <- %b + 0"], caption: "+0 does nothing" },
+      { marks: ["1", "2", "0"], caption: "+1, +2 and +0 fold into one %x + 3" },
+    ],
     before: `define void @window (%x) {
 
   :entry
@@ -307,6 +360,11 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "but %i is proven to stay in [0, %len)",
       transform: "so the always-true check is removed",
     },
+    steps: [
+      { marks: ["%ok"], outline: ["%ok <- %i < %len"], caption: "%ok is a per-access bounds check" },
+      { marks: ["%i", "%len"], caption: "but %i is proven to stay in [0, %len)" },
+      { marks: ["%ok"], outline: ["br %ok"], caption: "so %ok is always true — the check and its trap are dead" },
+    ],
     before: `define void @fill (%a, %len) {
 
   :entry
@@ -365,6 +423,12 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "control just falls straight through them",
       transform: "so the blocks merge and the branch goes unconditional",
     },
+    steps: [
+      { marks: [":mid", ":body"], caption: ":mid and :body are empty forwarder blocks" },
+      { marks: [":mid"], outline: ["br :mid"], caption: ":entry does nothing but branch to :mid" },
+      { marks: [":body"], outline: ["br :body"], caption: ":mid does nothing but fall through to :body" },
+      { marks: [":done"], outline: ["br %x :done :done"], caption: "and br %x :done :done has identical arms → unconditional" },
+    ],
     before: `define void @straight () {
 
   :entry
@@ -403,6 +467,12 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "the join φ picks %m from the two arms",
       transform: "so the whole triangle becomes one cmov",
     },
+    steps: [
+      { marks: ["%cmp"], outline: ["br %cmp"], caption: "the branch picks an arm on %cmp" },
+      { outline: ["br :join"], caption: "both arms are empty — they just reach :join" },
+      { marks: ["%m"], outline: ["%m <- φ"], caption: "the join φ selects %m from the two arms" },
+      { marks: ["%cmp", "%m"], caption: "so the whole triangle folds to one cmov on %cmp" },
+    ],
     before: `define void @max (%a, %b) {
 
   :entry
@@ -440,6 +510,11 @@ export const OPT_EXAMPLES: OptExample[] = [
       trace: "%t is never loaded — the next store kills it",
       transform: "so the dead store is dropped",
     },
+    steps: [
+      { marks: ["%t"], outline: ["store %tmp[%i], %t"], caption: "this store writes %t to tmp[%i]" },
+      { outline: ["store %tmp[%i], %i"], caption: "the very next store to tmp[%i] overwrites it" },
+      { marks: ["%t"], outline: ["%t <- %i * 999", "store %tmp[%i], %t"], caption: "%t is never loaded before the kill — the store is dead" },
+    ],
     before: `define void @kill_store (%tmp, %out, %n) {
 
   :entry

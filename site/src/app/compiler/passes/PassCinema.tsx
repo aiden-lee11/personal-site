@@ -13,14 +13,18 @@ import type { OptExample } from "@/data/compiler";
  *   before    — the input, all lines lit
  *   spot      — the lines that will change get a tight rounded outline hugging
  *               just their instruction text, everything else dims
- *   trace     — the pass's focus tokens light up everywhere they occur
+ *   step 1..N — a sequence of granular narrative beats. Each step pill-lights a
+ *               small set of tokens and/or rings whole instruction lines, moving
+ *               attention token-by-token; brightened lines pop while the rest
+ *               dim, so the highlight reads as motion. (An example without
+ *               authored `steps` falls back to a single focus-token `trace`.)
  *   transform — removed lines strike through + collapse, added lines grow in,
  *               unchanged lines glide to their new spots
  *   after     — the result, dims lift
  *
  * It autoplays only while on-screen (IntersectionObserver), pauses on
  * hover/focus like a GIF you can inspect, and degrades to a static aligned
- * diff under prefers-reduced-motion.
+ * diff under prefers-reduced-motion (steps don't appear there).
  */
 
 type Phase = "before" | "spot" | "trace" | "transform" | "after";
@@ -32,6 +36,8 @@ const DURATION: Record<Phase, number> = {
   transform: 1800,
   after: 3000,
 };
+// Each authored step dwells long enough to read the caption and the highlight.
+const STEP_DURATION = 2800;
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 // --accent (#a684f5) as rgba so we can animate to/from transparent.
@@ -41,6 +47,22 @@ const TRANSPARENT = "rgba(0, 0, 0, 0)";
 
 type RowKind = "same" | "del" | "add";
 type Row = { key: string; kind: RowKind; text: string };
+
+/**
+ * One beat of the timeline. Steps map onto the "trace" visual bucket (same
+ * dimming semantics) but each carries its own pill tokens + outline set and its
+ * own caption, and marks `isStep` so brightening is per-line rather than
+ * blanket. before/spot/transform/after are the fixed framing beats.
+ */
+type Stage = {
+  key: string;
+  phase: Phase;
+  caption?: string;
+  pillRe: RegExp | null;
+  outline: string[];
+  isStep: boolean;
+  duration: number;
+};
 
 function buildRows(before: string, after: string): Row[] {
   const chunks = diffArrays(before.split("\n"), after.split("\n"));
@@ -74,6 +96,20 @@ function buildTokenRegex(tokens: string[]): RegExp | null {
   return new RegExp(`(?<![\\w%:])(?:${body})(?![\\w])`, "g");
 }
 
+/** Whether a line contains at least one token this stage would pill. */
+function lineHasToken(text: string, re: RegExp | null): boolean {
+  if (!re) return false;
+  re.lastIndex = 0;
+  return re.test(text);
+}
+
+/** Whether a line should get a per-line ring this step (trimmed substring). */
+function lineMatchesOutline(text: string, outline: string[]): boolean {
+  if (!outline.length) return false;
+  const t = text.trim();
+  return outline.some((o) => t.includes(o));
+}
+
 /** Split a line into text + highlighted-token nodes. */
 function renderTokens(
   text: string,
@@ -88,13 +124,23 @@ function renderTokens(
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) out.push(text.slice(last, m.index));
+    const k = key++;
     out.push(
       variant === "pill" ? (
-        <span key={key++} className="pass-pill">
+        // Keying on the matched text forces a remount (so the fade/scale-in
+        // replays) whenever the token at this slot changes between steps.
+        <motion.span
+          key={`${k}-${m[0]}`}
+          className="pass-pill"
+          initial={{ opacity: 0, scale: 0.82 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, ease: EASE }}
+          style={{ display: "inline-block", verticalAlign: "baseline" }}
+        >
           {m[0]}
-        </span>
+        </motion.span>
       ) : (
-        <span key={key++} style={{ color: "var(--accent)" }}>
+        <span key={k} style={{ color: "var(--accent)" }}>
           {m[0]}
         </span>
       ),
@@ -124,23 +170,71 @@ export default function PassCinema({ example }: { example: OptExample }) {
     [example.before, example.after],
   );
   const tokens = useMemo(() => example.focus ?? [], [example.focus]);
+  // Focus-token regex — used only to accent-color tokens inside the callout.
   const tokenRe = useMemo(() => buildTokenRegex(tokens), [tokens]);
 
-  const phases = useMemo<Phase[]>(
-    () => ["before", "spot", ...(tokens.length ? (["trace"] as Phase[]) : []), "transform", "after"],
-    [tokens.length],
-  );
-
-  const captions = useMemo<Record<Phase, string>>(
-    () => ({
-      before: "before",
-      spot: example.story?.spot ?? example.tagline,
-      trace: example.story?.trace ?? "tracing the values involved",
-      transform: example.story?.transform ?? "applying the transform",
-      after: "after",
-    }),
-    [example.story, example.tagline],
-  );
+  const stages = useMemo<Stage[]>(() => {
+    const list: Stage[] = [];
+    list.push({
+      key: "before",
+      phase: "before",
+      pillRe: null,
+      outline: [],
+      isStep: false,
+      duration: DURATION.before,
+    });
+    list.push({
+      key: "spot",
+      phase: "spot",
+      caption: example.story?.spot ?? example.tagline,
+      pillRe: null,
+      outline: [],
+      isStep: false,
+      duration: DURATION.spot,
+    });
+    if (example.steps?.length) {
+      // Authored steps replace the single trace beat entirely.
+      example.steps.forEach((s, i) => {
+        list.push({
+          key: `step-${i}`,
+          phase: "trace",
+          caption: s.caption,
+          pillRe: buildTokenRegex(s.marks ?? []),
+          outline: s.outline ?? [],
+          isStep: true,
+          duration: STEP_DURATION,
+        });
+      });
+    } else if (tokens.length) {
+      list.push({
+        key: "trace",
+        phase: "trace",
+        caption: example.story?.trace ?? "tracing the values involved",
+        pillRe: tokenRe,
+        outline: [],
+        isStep: false,
+        duration: DURATION.trace,
+      });
+    }
+    list.push({
+      key: "transform",
+      phase: "transform",
+      caption: example.story?.transform ?? "applying the transform",
+      pillRe: null,
+      outline: [],
+      isStep: false,
+      duration: DURATION.transform,
+    });
+    list.push({
+      key: "after",
+      phase: "after",
+      pillRe: null,
+      outline: [],
+      isStep: false,
+      duration: DURATION.after,
+    });
+    return list;
+  }, [example.steps, example.story, example.tagline, tokens.length, tokenRe]);
 
   const maxLines = useMemo(
     () => Math.max(example.before.split("\n").length, example.after.split("\n").length),
@@ -151,7 +245,7 @@ export default function PassCinema({ example }: { example: OptExample }) {
   const [inView, setInView] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [playing, setPlaying] = useState(true);
-  const [phaseIdx, setPhaseIdx] = useState(0);
+  const [stageIdx, setStageIdx] = useState(0);
   const [loopCount, setLoopCount] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -179,21 +273,21 @@ export default function PassCinema({ example }: { example: OptExample }) {
   // Autoplay clock.
   useEffect(() => {
     if (reduced || !playing || !inView || hovered) return;
-    const phase = phases[phaseIdx] ?? "before";
+    const dwell = stages[stageIdx]?.duration ?? DURATION.before;
     const id = window.setTimeout(() => {
-      setPhaseIdx((prev) => {
-        const next = (prev + 1) % phases.length;
+      setStageIdx((prev) => {
+        const next = (prev + 1) % stages.length;
         if (next === 0) setLoopCount((c) => c + 1);
         return next;
       });
-    }, DURATION[phase]);
+    }, dwell);
     return () => window.clearTimeout(id);
-  }, [reduced, playing, inView, hovered, phaseIdx, phases]);
+  }, [reduced, playing, inView, hovered, stageIdx, stages]);
 
   if (reduced) return <StaticDiff rows={rows} minLines={maxLines} />;
 
-  const phase = phases[phaseIdx] ?? "before";
-  const showCallout = phase === "spot" || phase === "trace" || phase === "transform";
+  const stage = stages[stageIdx] ?? stages[0];
+  const showCallout = stage.caption != null;
 
   return (
     <div
@@ -219,7 +313,7 @@ export default function PassCinema({ example }: { example: OptExample }) {
               style={{ minHeight: `${maxLines * 1.6}em` }}
             >
               {rows.map((row) => (
-                <RowLine key={row.key} row={row} phase={phase} tokenRe={tokenRe} />
+                <RowLine key={row.key} row={row} stage={stage} />
               ))}
             </motion.div>
           </AnimatePresence>
@@ -228,7 +322,7 @@ export default function PassCinema({ example }: { example: OptExample }) {
         <AnimatePresence mode="wait">
           {showCallout && (
             <motion.div
-              key={phase}
+              key={stage.key}
               className="pass-callout font-mono"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
@@ -236,7 +330,7 @@ export default function PassCinema({ example }: { example: OptExample }) {
               transition={{ duration: 0.25, ease: EASE }}
               aria-hidden
             >
-              {renderTokens(captions[phase], tokenRe, "accent")}
+              {renderTokens(stage.caption ?? "", tokenRe, "accent")}
             </motion.div>
           )}
         </AnimatePresence>
@@ -253,15 +347,15 @@ export default function PassCinema({ example }: { example: OptExample }) {
         </button>
 
         <div className="flex items-center gap-1.5" role="tablist" aria-label="Animation steps">
-          {phases.map((p, i) => {
-            const isActive = i === phaseIdx;
+          {stages.map((s, i) => {
+            const isActive = i === stageIdx;
             return (
               <button
-                key={p}
+                key={s.key}
                 role="tab"
                 aria-selected={isActive}
-                aria-label={p}
-                onClick={() => setPhaseIdx(i)}
+                aria-label={s.key}
+                onClick={() => setStageIdx(i)}
                 className="rounded-full transition-all"
                 style={{
                   width: isActive ? 16 : 6,
@@ -275,7 +369,7 @@ export default function PassCinema({ example }: { example: OptExample }) {
 
         <button
           onClick={() => {
-            setPhaseIdx(0);
+            setStageIdx(0);
             setLoopCount((c) => c + 1);
             setPlaying(true);
           }}
@@ -289,7 +383,7 @@ export default function PassCinema({ example }: { example: OptExample }) {
   );
 }
 
-/** Height/opacity targets for a row in a given phase. */
+/** Height/opacity targets for a row in a given (non-step) phase. */
 function rowTarget(kind: RowKind, phase: Phase): { opacity: number; height: number | "auto" } {
   if (kind === "same") {
     const dim = phase === "spot" || phase === "trace";
@@ -335,16 +429,30 @@ const MARK_VARIANTS: Variants = {
   },
 };
 
-function RowLine({
-  row,
-  phase,
-  tokenRe,
-}: {
-  row: Row;
-  phase: Phase;
-  tokenRe: RegExp | null;
-}) {
-  const target = rowTarget(row.kind, phase);
+function RowLine({ row, stage }: { row: Row; stage: Stage }) {
+  const { phase, pillRe, outline, isStep } = stage;
+  const { indent, code, comment } = splitLine(row.text || " ");
+  const hasCode = code.trim() !== "";
+  const showPills = phase === "trace" && pillRe !== null;
+
+  // Per-line ring: during a step it follows the step's `outline`; otherwise it
+  // hugs the removed lines during spot / fallback-trace, exactly as before.
+  const marked = isStep
+    ? hasCode && lineMatchesOutline(row.text, outline)
+    : row.kind === "del" && hasCode && (phase === "spot" || phase === "trace");
+
+  // Within a step, only outlined lines and lines carrying a pilled token stay
+  // fully lit; everything else dims so attention lands on the beat.
+  const activeRow = isStep && (marked || lineHasToken(row.text, pillRe));
+
+  let target = rowTarget(row.kind, phase);
+  if (isStep) {
+    target =
+      row.kind === "add"
+        ? { opacity: 0, height: 0 }
+        : { opacity: activeRow ? 1 : 0.3, height: "auto" };
+  }
+
   const strike = row.kind === "del" && phase === "transform";
   const addBg =
     row.kind === "add"
@@ -352,12 +460,6 @@ function RowLine({
         ? ADD_TINT
         : ADD_TINT_OFF
       : TRANSPARENT;
-  const showPills = tokenRe !== null && phase === "trace";
-  const { indent, code, comment } = splitLine(row.text || " ");
-  const hasCode = code.trim() !== "";
-  // Each removed line gets its own tight outline during spot/trace — no
-  // group-spanning shapes, and never an empty box around a blank line.
-  const marked = row.kind === "del" && hasCode && (phase === "spot" || phase === "trace");
 
   return (
     <motion.div
@@ -384,10 +486,10 @@ function RowLine({
             variants={MARK_VARIANTS}
             transition={{ duration: 0.3, ease: EASE }}
           >
-            {renderTokens(code, showPills ? tokenRe : null, "pill")}
+            {renderTokens(code, showPills ? pillRe : null, "pill")}
           </motion.span>
         )}
-        {renderTokens(comment, showPills ? tokenRe : null, "pill")}
+        {renderTokens(comment, showPills ? pillRe : null, "pill")}
       </span>
     </motion.div>
   );
