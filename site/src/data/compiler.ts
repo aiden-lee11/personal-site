@@ -29,6 +29,18 @@ export type OptExample = {
   what: string;
   before: string;
   after: string;
+  /**
+   * Tokens at the heart of the pass. During the "trace" phase of the animated
+   * explainer every occurrence of these across the whole fragment gets a soft
+   * accent pill, so you can see (e.g. for DCE) that the circled dead line's
+   * variable has no other live use. Single identifiers match most reliably.
+   */
+  focus?: string[];
+  /**
+   * Short, concrete captions shown under the animation for the spot / trace /
+   * transform phases. Falls back to the tagline when omitted.
+   */
+  story?: { spot?: string; trace?: string; transform?: string };
 };
 
 export const OPT_EXAMPLES: OptExample[] = [
@@ -39,6 +51,12 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Propagate constants through the SSA lattice and prune unreachable branches.",
     what:
       "SCCP tracks each variable's abstract value (top / constant / bottom) and simultaneously evaluates branch conditions. Because `%c` is known to be `1`, the false arm of `:maybe_taken` is unreachable and gets pruned along with the constant expressions folded into `%out`.",
+    focus: ["%c"],
+    story: {
+      spot: "%c is proven to always be 1",
+      trace: "so the false arm is unreachable",
+      transform: "the branch and every fold collapse to one constant",
+    },
     before: `define void @g () {
 
   :entry
@@ -71,6 +89,12 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Remove instructions whose results are never used.",
     what:
       "`%unused` and `%also_unused` are computed but their results never leave the function. DCE walks def-use chains and drops any instruction with no live consumer (and no side effect).",
+    focus: ["%unused", "%also_unused"],
+    story: {
+      spot: "these results are never read",
+      trace: "%unused and %also_unused appear nowhere else",
+      transform: "so the dead computations are deleted",
+    },
     before: `define void @f (%x) {
 
   :entry
@@ -97,6 +121,12 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Hoist computations whose inputs don't change inside the loop into the preheader.",
     what:
       "Every iteration of the loop was recomputing `n * 8` even though `n` never changes inside the loop. LICM moves it into a preheader block that runs once.",
+    focus: ["%off", "%n"],
+    story: {
+      spot: "%off is recomputed every iteration",
+      trace: "but %n never changes inside the loop",
+      transform: "so %off is hoisted into a preheader that runs once",
+    },
     before: `define void @sum_offsets (%arr, %n) {
 
   :entry
@@ -152,6 +182,12 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Hash identical expressions to one value number and reuse the first result.",
     what:
       "`%a` and `%b` compute the same `x*x + 3`. GVN walks the dominator tree with expression hash maps and rewrites the second occurrence as a copy of the first, so the redundant arithmetic disappears.",
+    focus: ["%t1", "%t2"],
+    story: {
+      spot: "%t2 recomputes what %t1 already holds",
+      trace: "same inputs hash to the same value number",
+      transform: "so %b just reuses %a",
+    },
     before: `define void @dup (%x) {
 
   :entry
@@ -179,6 +215,12 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Replace uses of a copied variable with the original source.",
     what:
       "A chain of pure assignments `%a ← 5; %b ← %a; %c ← %b` just renames the same value. Copy prop substitutes the source through the uses (and drops identity copies like `%x ← %x`), so later constant folding can chase the value all the way to the consumer.",
+    focus: ["%a", "%b", "%c"],
+    story: {
+      spot: "%b and %c are pure copies of %a",
+      trace: "every use traces straight back to %a",
+      transform: "so the copies collapse into the source",
+    },
     before: `define void @chain () {
 
   :entry
@@ -201,6 +243,12 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Rewrite trivial arithmetic identities into cheaper forms.",
     what:
       "Recognizes identities like `x * 1 → x`, `y + 0 → y`, `z << 0 → z`, `a - a → 0`, and `x & x → x`. Each match replaces the binary op with a copy or a constant so later DCE can finish the cleanup.",
+    focus: ["1", "0"],
+    story: {
+      spot: "×1, +0 and <<0 are all no-ops",
+      trace: "the identity operands don't change the value",
+      transform: "so each op becomes a plain copy",
+    },
     before: `define void @idents (%x) {
 
   :entry
@@ -225,6 +273,12 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Local pattern rewrites that shrink instruction sequences in place.",
     what:
       "Scans short windows of SSA for idioms — chained `+ const` folds, compare-fed branches, redundant moves — and rewrites them into a tighter form without needing a full dataflow solve.",
+    focus: ["1", "2", "0"],
+    story: {
+      spot: "a window of adds chains through constants",
+      trace: "+1, +2 and +0 fold together",
+      transform: "into a single %x + 3",
+    },
     before: `define void @window (%x) {
 
   :entry
@@ -247,6 +301,12 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Prove index ranges and strip redundant bounds checks.",
     what:
       "A lattice of integer ranges flows through the CFG. When the induction variable is proven to stay inside `[0, len)`, the per-access array bounds check is dead and gets deleted — the hot path no longer pays for a check the compiler already discharged.",
+    focus: ["%ok"],
+    story: {
+      spot: "%ok is a per-access bounds check",
+      trace: "but %i is proven to stay in [0, %len)",
+      transform: "so the always-true check is removed",
+    },
     before: `define void @fill (%a, %len) {
 
   :entry
@@ -299,6 +359,12 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Collapse empty blocks, merge straight-line edges, and clean stale φs.",
     what:
       "Forwarding blocks (empty body, single unconditional branch) get spliced out, single-predecessor straight-line blocks merge into their pred, and conditional branches with identical targets become unconditional. φ-nodes are renormalized after the graph changes.",
+    focus: [":mid", ":body"],
+    story: {
+      spot: ":mid and :body are empty forwarders",
+      trace: "control just falls straight through them",
+      transform: "so the blocks merge and the branch goes unconditional",
+    },
     before: `define void @straight () {
 
   :entry
@@ -331,6 +397,12 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Turn a branchy select into a single cmov, killing the mispredict.",
     what:
       "Matches a triangle CFG — conditional branch, a short side arm, and a join φ — and rewrites it as `cmov`. The side-arm instructions hoist into the entry block, the branch disappears, and the backend emits one predicated move instead of a pipeline hazard.",
+    focus: ["%cmp", "%m"],
+    story: {
+      spot: "the branch selects between two values on %cmp",
+      trace: "the join φ picks %m from the two arms",
+      transform: "so the whole triangle becomes one cmov",
+    },
     before: `define void @max (%a, %b) {
 
   :entry
@@ -362,6 +434,12 @@ export const OPT_EXAMPLES: OptExample[] = [
     tagline: "Drop stores inside a loop that are overwritten before any read.",
     what:
       "For counted loops, if a store to `tmp[i]` is always killed by a later store to the same address before any load observes it, the first store is dead. Loop DSE removes it so the body only writes the value that actually escapes.",
+    focus: ["%t"],
+    story: {
+      spot: "this store is overwritten before any read",
+      trace: "%t is never loaded — the next store kills it",
+      transform: "so the dead store is dropped",
+    },
     before: `define void @kill_store (%tmp, %out, %n) {
 
   :entry

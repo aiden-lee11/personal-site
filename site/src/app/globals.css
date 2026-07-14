@@ -219,6 +219,57 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Token spotlight pill used by the animated pass explainer (PassCinema).
+   Soft --accent-soft (#c3aef8) wash at low alpha with a hairline ring. */
+.pass-pill {
+  background: rgba(195, 174, 248, 0.18);
+  box-shadow: 0 0 0 1px rgba(195, 174, 248, 0.32);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
+/* Granular per-line spotlight outline used by the animated pass explainer
+   (PassCinema). Wraps only a marked line's instruction text — the ring/tint
+   themselves fade in via framer; padding + negative margin are constant so the
+   box never reflows the line. */
+.pass-mark {
+  display: inline-block;
+  border-radius: 5px;
+  padding: 1px 3px;
+  margin: 0 -3px;
+}
+
+/* Floating spotlight callout pinned inside the code pane (PassCinema). Small
+   mono card, top-right, capped width so it wraps and never buries code on
+   narrow panes. Focus tokens inside are colored --accent inline. */
+.pass-callout {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  max-width: 60%;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--muted);
+  background: var(--subtle);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .pass-callout {
+    top: 0.45rem;
+    right: 0.45rem;
+    max-width: 64%;
+    font-size: 0.66rem;
+    line-height: 1.4;
+    padding: 0.4rem 0.55rem;
+  }
+}
+
 /* ─── Gallery: full-bleed horizontal scroller ─────────────────────────────
    Ported from the approved mock. A single rAF glide loop (in GalleryFeed)
    owns all programmatic motion and snaps to the nearest slide on idle. There
