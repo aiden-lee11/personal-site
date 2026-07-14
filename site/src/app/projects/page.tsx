@@ -99,13 +99,13 @@ export default function ProjectsPage() {
                 <p className="text-sm text-[color:var(--muted)] leading-relaxed">
                   {t.blurb}
                 </p>
-                <p className="mt-4 font-mono text-xs text-[color:var(--ember)]">
+                <p className="mt-4 font-mono text-xs text-[color:var(--accent)]">
                   {t.cta} →
                 </p>
               </>
             );
             const className =
-              "group flex flex-col border border-[color:var(--border)] hover:border-[rgba(242,166,90,0.5)] p-6 transition-all";
+              "group flex flex-col border border-[color:var(--border)] hover:border-[color:var(--accent)] p-6 transition-all";
             return t.external ? (
               <a
                 key={t.href}
