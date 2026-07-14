@@ -125,18 +125,26 @@ function nativeStageUsable(layer: Exclude<Layer, "S">): boolean {
   }
 }
 
-// One-time cached `docker version` probe (also fails when the daemon is down).
+// Cached `docker version` probe (also fails when the daemon is down).
+// Success is cached forever; failure is re-probed after a short TTL so
+// starting Docker Desktop mid-session brings LC/LB back without restarting
+// the dev server (a permanently cached false bricked them until restart).
 let dockerOk: boolean | null = null;
+let dockerProbedAt = 0;
+const DOCKER_REPROBE_MS = 30_000;
 function dockerAvailable(): boolean {
-  if (dockerOk === null) {
-    try {
-      dockerOk =
-        spawnSync("docker", ["version"], { stdio: "ignore", timeout: 10_000 })
-          .status === 0;
-    } catch {
-      dockerOk = false;
-    }
+  if (dockerOk === true) return true;
+  if (dockerOk === false && Date.now() - dockerProbedAt < DOCKER_REPROBE_MS) {
+    return false;
   }
+  try {
+    dockerOk =
+      spawnSync("docker", ["version"], { stdio: "ignore", timeout: 10_000 })
+        .status === 0;
+  } catch {
+    dockerOk = false;
+  }
+  dockerProbedAt = Date.now();
   return dockerOk;
 }
 
