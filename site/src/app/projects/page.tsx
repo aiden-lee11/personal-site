@@ -13,7 +13,7 @@ function Row({ project }: { project: Project }) {
     <li className="border-t border-[color:var(--border)] py-12 first:border-t-0">
       <div className="grid gap-4 md:grid-cols-[12rem_1fr] md:gap-12 lg:gap-20">
         <div className="flex items-baseline justify-between gap-4 md:block">
-          <p className="font-mono text-[11px] uppercase tracking-wider text-[color:var(--muted)]">
+          <p className="font-mono text-[11px] uppercase tracking-wider text-[color:var(--ember)] opacity-80">
             {p.period}
           </p>
           <p className="mt-0 md:mt-3 font-mono text-[10px] uppercase tracking-wider text-[color:var(--muted)] opacity-60">
@@ -99,13 +99,13 @@ export default function ProjectsPage() {
                 <p className="text-sm text-[color:var(--muted)] leading-relaxed">
                   {t.blurb}
                 </p>
-                <p className="mt-4 font-mono text-xs text-[color:var(--accent)]">
+                <p className="mt-4 font-mono text-xs text-[color:var(--ember)]">
                   {t.cta} →
                 </p>
               </>
             );
             const className =
-              "group flex flex-col border border-[color:var(--border)] hover:border-[color:var(--accent)] p-6 transition-all";
+              "group flex flex-col border border-[color:var(--border)] hover:border-[rgba(242,166,90,0.5)] p-6 transition-all";
             return t.external ? (
               <a
                 key={t.href}
