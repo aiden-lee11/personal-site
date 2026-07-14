@@ -42,6 +42,12 @@ const STEP_DURATION = 2800;
 // collapse/grow motion, so there is little new to read between beats.
 const TRANSFORM_STAGE_DURATION = 1000;
 
+// Playback-speed multipliers offered by the rail control. `speed` divides the
+// authored base durations, so 2 runs each stage in half the time and 0.25 runs
+// it four times as long. The authored DURATION/STEP_DURATION/TRANSFORM_STAGE
+// bases are left untouched — only the dwell is scaled at play time.
+const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const;
+
 const EASE = [0.22, 1, 0.36, 1] as const;
 // --accent (#a684f5) as rgba so we can animate to/from transparent.
 const ADD_TINT = "rgba(166, 132, 245, 0.18)";
@@ -201,7 +207,17 @@ const PANE_STYLE: React.CSSProperties = {
 
 /* ── Animated cinema ─────────────────────────────────────────────────────── */
 
-export default function PassCinema({ example }: { example: OptExample }) {
+export default function PassCinema({
+  example,
+  speed,
+  onSpeedChange,
+}: {
+  example: OptExample;
+  // Playback multiplier + setter, lifted to PassExplorer so the chosen speed
+  // persists when the user switches passes (each PassCinema remounts on switch).
+  speed: number;
+  onSpeedChange: (next: number) => void;
+}) {
   const rows = useMemo(
     () => buildRows(example.before, example.after),
     [example.before, example.after],
@@ -456,7 +472,10 @@ export default function PassCinema({ example }: { example: OptExample }) {
   // Autoplay clock.
   useEffect(() => {
     if (reduced || !playing || !inView || hovered) return;
-    const dwell = stages[stageIdx]?.duration ?? DURATION.before;
+    // Scale the authored base dwell by the multiplier: 2 = twice as fast.
+    // `speed` is in the deps, so changing it re-arms this timer immediately.
+    const base = stages[stageIdx]?.duration ?? DURATION.before;
+    const dwell = base / speed;
     const id = window.setTimeout(() => {
       setStageIdx((prev) => {
         const next = (prev + 1) % stages.length;
@@ -465,7 +484,7 @@ export default function PassCinema({ example }: { example: OptExample }) {
       });
     }, dwell);
     return () => window.clearTimeout(id);
-  }, [reduced, playing, inView, hovered, stageIdx, stages]);
+  }, [reduced, playing, inView, hovered, stageIdx, stages, speed]);
 
   if (reduced) return <StaticDiff rows={rows} minLines={maxLines} />;
 
@@ -565,6 +584,19 @@ export default function PassCinema({ example }: { example: OptExample }) {
           aria-label="Replay"
         >
           ↺ replay
+        </button>
+
+        {/* Speed: a compact button cycling the multipliers, pushed to the right
+            edge with ml-auto so it never crowds the step dots. */}
+        <button
+          onClick={() => {
+            const i = SPEEDS.indexOf(speed as (typeof SPEEDS)[number]);
+            onSpeedChange(SPEEDS[(i + 1) % SPEEDS.length]);
+          }}
+          className="ml-auto font-mono text-xs text-[color:var(--muted)] hover:text-[color:var(--fg)] transition-colors tabular-nums"
+          aria-label="playback speed"
+        >
+          {speed}×
         </button>
       </div>
     </div>

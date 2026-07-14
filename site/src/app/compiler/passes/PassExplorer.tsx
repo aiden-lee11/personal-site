@@ -8,6 +8,9 @@ import PassCinema from "./PassCinema";
 
 export default function PassExplorer({ examples }: { examples: OptExample[] }) {
   const [activeId, setActiveId] = useState<OptExample["id"]>(examples[0]?.id ?? "licm");
+  // Playback speed lives here (not in PassCinema) so it survives the remount
+  // that a pass switch triggers — the chosen multiplier carries across passes.
+  const [speed, setSpeed] = useState(1);
   const active = examples.find((e) => e.id === activeId) ?? examples[0];
   const hasDemo = active.id in PASS_DEMOS;
 
@@ -82,7 +85,7 @@ export default function PassExplorer({ examples }: { examples: OptExample[] }) {
         </p>
 
         {/* One looping animated explainer replaces the static before/after panes. */}
-        <PassCinema key={active.id} example={active} />
+        <PassCinema key={active.id} example={active} speed={speed} onSpeedChange={setSpeed} />
       </div>
     </div>
   );
