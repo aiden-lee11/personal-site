@@ -96,7 +96,7 @@ export default function Home() {
         <p className="mt-5 max-w-xl text-[color:var(--muted)] leading-relaxed">
           My partner and I built this compiler for Northwestern&apos;s CS 322
           class competition. After we won, I thought it&apos;d be fun to show it
-          off, so I ported it to WebAssembly — write a little C-like code, see
+          off, so I ported it to WebAssembly: write a little C-like code, see
           how it changes on the way to assembly, and run it right here.
         </p>
 

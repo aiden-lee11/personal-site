@@ -680,7 +680,7 @@ export default function GalleryFeed({ items }: { items: GalleryItem[] }) {
             ref={stripRef}
             className="gallery-strip"
             tabIndex={0}
-            aria-label="Photo scroller — scroll, drag, or use arrow keys"
+            aria-label="Photo scroller: scroll, drag, or use arrow keys"
           >
             {slides.map((slide, idx) => (
               <GallerySlide

@@ -217,7 +217,7 @@ export default function CompilerVisualizer({
             setSource(p.layers.LA);
             setFromLayer("LA");
             setFallbackNote(
-              "LC/LB lower server-side — not available here, so this preset loaded from LA (fully in-browser)",
+              "LC/LB lower server-side, not available here, so this preset loaded from LA (fully in-browser)",
             );
             compile({ ...opts, source: p.layers.LA, fromLayer: "LA", _laFallback: true });
             return;
@@ -939,7 +939,7 @@ export default function CompilerVisualizer({
                     <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--muted)] mb-1.5">
                       program runtime
                       <span className="normal-case tracking-normal ml-1.5 opacity-70">
-                        — how long the binary ran
+                        (how long the binary ran)
                       </span>
                     </p>
                     <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -1001,7 +1001,7 @@ export default function CompilerVisualizer({
                     Compile time
                   </p>
                   <p className="text-[10px] text-[color:var(--muted)] mb-3 leading-snug">
-                    How long the compiler took to emit each layer — not how fast
+                    How long the compiler took to emit each layer, not how fast
                     the program runs.
                   </p>
                   <TimingBars layerMs={result.layerMs} layers={["LC", "LB", "LA", "IR", "L3", "L2", "L1"]} />

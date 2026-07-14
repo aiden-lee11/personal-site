@@ -129,14 +129,14 @@ export const OPT_EXAMPLES: OptExample[] = [
     // instructions themselves, not just narrated. ember = the known value being
     // substituted in; purple (marks) = the target whose value just resolved.
     steps: [
-      { warm: ["%c"], outline: ["%c <- 1"], caption: "%c is assigned once — provably always 1" },
+      { warm: ["%c"], outline: ["%c <- 1"], caption: "%c is assigned once, provably always 1" },
       { warm: ["%c"], outline: ["br %c"], caption: "the branch condition is that constant" },
       { marks: [":maybe_taken"], caption: ":maybe_taken is always the arm taken" },
       {
         marks: ["%x"],
         outline: ["%x <- 5"],
         rewrites: [{ line: "%x <- 2 + 3", to: "%x <- 5" }],
-        caption: "2 + 3 is already constant — %x folds to 5",
+        caption: "2 + 3 is already constant, %x folds to 5",
       },
       {
         warm: ["5"],
@@ -148,7 +148,7 @@ export const OPT_EXAMPLES: OptExample[] = [
         marks: ["%y"],
         outline: ["%y <- 20"],
         rewrites: [{ line: "%y <- %x * 4", to: "%y <- 20" }],
-        caption: "5 * 4 folds — %y is 20",
+        caption: "5 * 4 folds, %y is 20",
       },
       {
         warm: ["20"],
@@ -160,22 +160,22 @@ export const OPT_EXAMPLES: OptExample[] = [
         marks: ["%out"],
         outline: ["%out <- 15"],
         rewrites: [{ line: "%out <- %y - 5", to: "%out <- 15" }],
-        caption: "20 - 5 folds — %out is just 15",
+        caption: "20 - 5 folds, %out is just 15",
       },
       {
         warm: ["15"],
         outline: ["return 15"],
         rewrites: [{ line: "return %out", to: "return 15" }],
-        caption: "the whole arm returns a constant — 15",
+        caption: "the whole arm returns a constant: 15",
       },
-      { marks: [":never_taken"], outline: [":never_taken"], caption: "and the false arm is unreachable — dead" },
+      { marks: [":never_taken"], outline: [":never_taken"], caption: "and the false arm is unreachable, dead" },
     ],
     // The folding story is now told in the steps above via inline rewrites, so
     // the transform phase is the physical cleanup: the folded lines collapse,
     // the arm reduces to `return 15`, then the dead false arm is pruned.
     transformStages: [
       { del: ["%x <- 2 + 3"], caption: "the folded lines now collapse away" },
-      { del: ["%y <- %x * 4"], caption: "%y's line goes too — it's just a constant" },
+      { del: ["%y <- %x * 4"], caption: "%y's line goes too, it's just a constant" },
       { del: ["%out <- %y - 5", "return %out"], add: ["return 15"], caption: "the arm reduces to return 15" },
       {
         del: ["%c <- 1", "br %c", ":never_taken", "some_side_effect", "return %z"],
@@ -196,13 +196,13 @@ export const OPT_EXAMPLES: OptExample[] = [
     return %out
 
   :never_taken
-    %z <- some_side_effect()    ;; unreachable — %c is always 1
+    %z <- some_side_effect()    ;; unreachable, %c is always 1
     return %z
 }`,
     after: `define void @g () {
 
   :entry
-    br :maybe_taken             ;; branch replaced — %c proven constant
+    br :maybe_taken             ;; branch replaced, %c proven constant
 
   :maybe_taken
     return 15                   ;; all ops folded to the final constant
@@ -223,14 +223,14 @@ export const OPT_EXAMPLES: OptExample[] = [
     },
     steps: [
       { marks: ["%unused"], outline: ["%unused <- %x * %x"], caption: "%unused is computed here" },
-      { marks: ["%unused"], caption: "%unused appears nowhere else — no reader" },
+      { marks: ["%unused"], caption: "%unused appears nowhere else, no reader" },
       { marks: ["%also_unused"], outline: ["%also_unused <- %a + %b"], caption: "%also_unused only feeds more dead code" },
-      { marks: ["%also_unused"], caption: "nothing live reads either — both are dead" },
+      { marks: ["%also_unused"], caption: "nothing live reads either, both are dead" },
     ],
     // Each dead computation collapses on its own beat.
     transformStages: [
-      { del: ["%unused <- %x * %x"], caption: "%unused has no reader — deleted" },
-      { del: ["%also_unused <- %a + %b"], caption: "%also_unused too — deleted" },
+      { del: ["%unused <- %x * %x"], caption: "%unused has no reader, deleted" },
+      { del: ["%also_unused <- %a + %b"], caption: "%also_unused too, deleted" },
     ],
     before: `define void @f (%x) {
 
@@ -267,7 +267,7 @@ export const OPT_EXAMPLES: OptExample[] = [
     steps: [
       { marks: ["%off"], outline: ["%off <- %n * 8"], caption: "%off is recomputed each iteration of :body" },
       { marks: ["%n"], caption: "but %n never changes inside the loop" },
-      { marks: ["%off"], outline: ["%off <- %n * 8"], caption: "so %off is loop-invariant — hoist it to a preheader" },
+      { marks: ["%off"], outline: ["%off <- %n * 8"], caption: "so %off is loop-invariant, hoist it to a preheader" },
     ],
     before: `define void @sum_offsets (%arr, %n) {
 
@@ -340,7 +340,7 @@ export const OPT_EXAMPLES: OptExample[] = [
         warm: ["%t1"],
         outline: ["%t2 <- %t1"],
         rewrites: [{ line: "%t2 <- %x * %x", to: "%t2 <- %t1" }],
-        caption: "same inputs hash to one value number — %t2 just reuses %t1",
+        caption: "same inputs hash to one value number, %t2 just reuses %t1",
       },
     ],
     before: `define void @dup (%x) {
@@ -358,7 +358,7 @@ export const OPT_EXAMPLES: OptExample[] = [
   :entry
     %t1 <- %x * %x
     %a  <- %t1 + 3
-    %b  <- %a            ;; reused — identical value number
+    %b  <- %a            ;; reused, identical value number
     %out <- %a + %b
     return %out
 }`,
@@ -381,7 +381,7 @@ export const OPT_EXAMPLES: OptExample[] = [
     steps: [
       { warm: ["%a"], outline: ["%a <- 5"], caption: "%a holds the real value" },
       { marks: ["%b"], warm: ["%a"], outline: ["%b <- %a"], caption: "%b is just a copy of %a" },
-      { marks: ["%c", "%b"], outline: ["%c <- %b"], caption: "%c copies %b — the chain renames one value" },
+      { marks: ["%c", "%b"], outline: ["%c <- %b"], caption: "%c copies %b, the chain renames one value" },
       {
         warm: ["%a"],
         outline: ["return %a"],
@@ -425,21 +425,21 @@ export const OPT_EXAMPLES: OptExample[] = [
         warm: ["1"],
         outline: ["%a <- %x"],
         rewrites: [{ line: "%a <- %x * 1", to: "%a <- %x" }],
-        caption: "%x * 1 leaves %x unchanged — %a is just %x",
+        caption: "%x * 1 leaves %x unchanged, %a is just %x",
       },
       {
         marks: ["%a"],
         warm: ["0"],
         outline: ["%b <- %a"],
         rewrites: [{ line: "%b <- %a + 0", to: "%b <- %a" }],
-        caption: "%a + 0 leaves %a unchanged — %b is just %a",
+        caption: "%a + 0 leaves %a unchanged, %b is just %a",
       },
       {
         marks: ["%b"],
         warm: ["0"],
         outline: ["%c <- %b"],
         rewrites: [{ line: "%c <- %b << 0", to: "%c <- %b" }],
-        caption: "%b << 0 leaves %b unchanged — %c is just %b",
+        caption: "%b << 0 leaves %b unchanged, %c is just %b",
       },
       {
         marks: ["%x", "%a", "%b"],
@@ -476,7 +476,7 @@ export const OPT_EXAMPLES: OptExample[] = [
     fullName: "Peephole",
     tagline: "Local pattern rewrites that shrink instruction sequences in place.",
     what:
-      "Scans short windows of SSA for idioms — chained `+ const` folds, compare-fed branches, redundant moves — and rewrites them into a tighter form without needing a full dataflow solve.",
+      "Scans short windows of SSA for idioms (chained `+ const` folds, compare-fed branches, redundant moves) and rewrites them into a tighter form without needing a full dataflow solve.",
     focus: ["1", "2", "0"],
     story: {
       spot: "a window of adds chains through constants",
@@ -492,7 +492,7 @@ export const OPT_EXAMPLES: OptExample[] = [
         warm: ["0"],
         outline: ["%c <- %b"],
         rewrites: [{ line: "%c <- %b + 0", to: "%c <- %b" }],
-        caption: "+0 does nothing — %c is just %b",
+        caption: "+0 does nothing, %c is just %b",
       },
       {
         marks: ["%x"],
@@ -505,7 +505,7 @@ export const OPT_EXAMPLES: OptExample[] = [
     // The +const window folds first, then the trivial +0 drops.
     transformStages: [
       { del: ["%a <- %x + 1", "%b <- %a + 2"], add: ["+1 and +2 collapsed"], caption: "+1 then +2 fold to +3" },
-      { del: ["%c <- %b + 0", "return %c"], add: ["+0 dropped"], caption: "+0 does nothing — dropped" },
+      { del: ["%c <- %b + 0", "return %c"], add: ["+0 dropped"], caption: "+0 does nothing, dropped" },
     ],
     before: `define void @window (%x) {
 
@@ -528,7 +528,7 @@ export const OPT_EXAMPLES: OptExample[] = [
     fullName: "Value Range Analysis / Branch-Check Elimination",
     tagline: "Prove index ranges and strip redundant bounds checks.",
     what:
-      "A lattice of integer ranges flows through the CFG. When the induction variable is proven to stay inside `[0, len)`, the per-access array bounds check is dead and gets deleted — the hot path no longer pays for a check the compiler already discharged.",
+      "A lattice of integer ranges flows through the CFG. When the induction variable is proven to stay inside `[0, len)`, the per-access array bounds check is dead and gets deleted, so the hot path no longer pays for a check the compiler already discharged.",
     focus: ["%ok"],
     story: {
       spot: "%ok is a per-access bounds check",
@@ -545,7 +545,7 @@ export const OPT_EXAMPLES: OptExample[] = [
         warm: ["true"],
         outline: ["%ok <- true", "br %ok"],
         rewrites: [{ line: "%ok <- %i < %len", to: "%ok <- true" }],
-        caption: "so %ok folds to true — the check and its trap are dead",
+        caption: "so %ok folds to true: the check and its trap are dead",
       },
     ],
     // First the proven check + its branch drop and the store falls straight
@@ -556,7 +556,7 @@ export const OPT_EXAMPLES: OptExample[] = [
         add: ["check proven redundant"],
         caption: "%i in range → check dropped, store falls through",
       },
-      { del: [":trap", "@bounds_error", "return"], caption: "trap block now unreachable — removed" },
+      { del: [":trap", "@bounds_error", "return"], caption: "trap block now unreachable, removed" },
     ],
     before: `define void @fill (%a, %len) {
 
@@ -569,7 +569,7 @@ export const OPT_EXAMPLES: OptExample[] = [
     br %cond :body :exit
 
   :body
-    %ok <- %i < %len     ;; bounds check — always true here
+    %ok <- %i < %len     ;; bounds check, always true here
     br %ok :store :trap
 
   :store
@@ -595,7 +595,7 @@ export const OPT_EXAMPLES: OptExample[] = [
     br %cond :body :exit
 
   :body
-    store %a[%i], %i     ;; check proven redundant — gone
+    store %a[%i], %i     ;; check proven redundant, gone
     %i <- %i + 1
     br :header
 
@@ -621,7 +621,7 @@ export const OPT_EXAMPLES: OptExample[] = [
       { marks: [":mid"], outline: ["br :mid"], caption: ":entry does nothing but branch to :mid" },
       { marks: [":body"], outline: ["br :body"], caption: ":mid does nothing but fall through to :body" },
       { marks: [":done"], outline: ["br %x :done :done"], caption: "and br %x :done :done has identical arms → unconditional" },
-      { marks: [":done"], outline: ["return %x"], caption: ":done will end with a single predecessor — it merges up too" },
+      { marks: [":done"], outline: ["return %x"], caption: ":done will end with a single predecessor, it merges up too" },
     ],
     // One forwarder folds per beat, then the identical-arm branch resolves and
     // the lone-predecessor :done merges up — collapsing to a single block.
@@ -667,7 +667,7 @@ export const OPT_EXAMPLES: OptExample[] = [
     fullName: "Conditional-Move Synthesis",
     tagline: "Turn a branchy select into a single cmov, killing the mispredict.",
     what:
-      "Matches a triangle CFG — conditional branch, a short side arm, and a join φ — and rewrites it as `cmov`. The side-arm instructions hoist into the entry block, the branch disappears, and the backend emits one predicated move instead of a pipeline hazard.",
+      "Matches a triangle CFG (conditional branch, a short side arm, and a join φ) and rewrites it as `cmov`. The side-arm instructions hoist into the entry block, the branch disappears, and the backend emits one predicated move instead of a pipeline hazard.",
     focus: ["%cmp", "%m"],
     story: {
       spot: "the branch selects between two values on %cmp",
@@ -678,7 +678,7 @@ export const OPT_EXAMPLES: OptExample[] = [
     // cmov result the triangle folds into.
     steps: [
       { marks: ["%cmp"], outline: ["br %cmp"], caption: "the branch picks an arm on %cmp" },
-      { outline: ["br :join"], caption: "both arms are empty — they just reach :join" },
+      { outline: ["br :join"], caption: "both arms are empty, they just reach :join" },
       { marks: ["%m"], outline: ["%m <- φ"], caption: "the join φ selects %m from the two arms" },
       {
         marks: ["%m"],
@@ -722,13 +722,13 @@ export const OPT_EXAMPLES: OptExample[] = [
     focus: ["%t"],
     story: {
       spot: "this store is overwritten before any read",
-      trace: "%t is never loaded — the next store kills it",
+      trace: "%t is never loaded, the next store kills it",
       transform: "so the dead store is dropped",
     },
     steps: [
       { marks: ["%t"], outline: ["store %tmp[%i], %t"], caption: "this store writes %t to tmp[%i]" },
       { outline: ["store %tmp[%i], %i"], caption: "the very next store to tmp[%i] overwrites it" },
-      { marks: ["%t"], outline: ["%t <- %i * 999", "store %tmp[%i], %t"], caption: "%t is never loaded before the kill — the store is dead" },
+      { marks: ["%t"], outline: ["%t <- %i * 999", "store %tmp[%i], %t"], caption: "%t is never loaded before the kill, the store is dead" },
     ],
     before: `define void @kill_store (%tmp, %out, %n) {
 
@@ -742,7 +742,7 @@ export const OPT_EXAMPLES: OptExample[] = [
 
   :body
     %t <- %i * 999
-    store %tmp[%i], %t   ;; overwritten below — dead
+    store %tmp[%i], %t   ;; overwritten below, dead
     store %tmp[%i], %i   ;; kills the previous store
     %v <- load %tmp[%i]
     store %out[%i], %v

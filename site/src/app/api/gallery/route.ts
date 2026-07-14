@@ -82,7 +82,7 @@ export async function POST(req: Request) {
   }
   if (files.length > MAX_GROUP) {
     return NextResponse.json(
-      { error: `Too many photos — ${MAX_GROUP} max per upload.` },
+      { error: `Too many photos: ${MAX_GROUP} max per upload.` },
       { status: 400 },
     );
   }

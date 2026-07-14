@@ -469,7 +469,7 @@ export async function POST(req: Request) {
       {
         ok: false,
         error: "rate limited",
-        linkError: "rate limited: too many runs — slow down and retry",
+        linkError: "rate limited: too many runs, slow down and retry",
       },
       { status: 429 },
     );

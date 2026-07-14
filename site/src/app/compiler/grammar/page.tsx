@@ -118,7 +118,7 @@ const TOOLBOX: Array<{ title: string; items: Array<[string, string]> }> = [
   {
     title: "Types",
     items: [
-      ["int", "64-bit integer — the only scalar"],
+      ["int", "64-bit integer, the only scalar"],
       ["int[] / int[][]", "heap arrays; add brackets per dimension"],
       ["tuple", "heterogeneous heap record"],
       ["code", "a function you can store and call"],
@@ -137,7 +137,7 @@ const TOOLBOX: Array<{ title: string; items: Array<[string, string]> }> = [
     title: "Operators",
     items: [
       ["+  -  *  &  <<  >>", "arithmetic, bitwise AND, shifts"],
-      ["<  <=  =  >=  >", "comparisons — yield 1 or 0"],
+      ["<  <=  =  >=  >", "comparisons that yield 1 or 0"],
       ["<-", "assignment (= is equality)"],
     ],
   },
@@ -147,26 +147,26 @@ const TOOLBOX: Array<{ title: string; items: Array<[string, string]> }> = [
       ["print(x)", "output an int, array, or tuple"],
       ["new Array(d1, …)", "allocate an array, sizes at runtime"],
       ["new Tuple(n)", "allocate an n-slot tuple"],
-      ["length arr d", "length of dimension d — no parens"],
+      ["length arr d", "length of dimension d, no parens"],
     ],
   },
 ];
 
 const RULES: React.ReactNode[] = [
   <>
-    Assignment is <C>{"<-"}</C> — <C>=</C> is equality.
+    Assignment is <C>{"<-"}</C>; <C>=</C> is equality.
   </>,
   <>
     One operator per statement: no <C>x {"<-"} (a + b) * 2</C>. Split it up.
   </>,
   <>
-    Conditions are one comparison — no <C>&amp;&amp;</C> / <C>||</C>; nest{" "}
+    Conditions are one comparison: no <C>&amp;&amp;</C> / <C>||</C>; nest{" "}
     <C>if</C>s.
   </>,
   <>
     Declare before use: <C>int a, b</C> on its own line.
   </>,
-  <>No strings, floats, or bools — ints only.</>,
+  <>No strings, floats, or bools; ints only.</>,
   <>
     The entry point is exactly <C>void main ( )</C>.
   </>,

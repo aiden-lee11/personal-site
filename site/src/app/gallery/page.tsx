@@ -6,7 +6,7 @@ import GalleryFeed from "./GalleryFeed";
 
 export const metadata: Metadata = {
   title: "Gallery · Aiden Lee",
-  description: "Photos, moments, and things worth remembering — off the clock.",
+  description: "Photos, moments, and things worth remembering, off the clock.",
 };
 
 // The manifest changes whenever a photo is added, so render on every request.

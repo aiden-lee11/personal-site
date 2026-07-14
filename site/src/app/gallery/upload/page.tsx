@@ -263,12 +263,12 @@ export default function GalleryUploadPage() {
       // overflows, take what fits and say so rather than dropping silently.
       const room = 10 - files.length;
       if (room <= 0) {
-        setStatus({ kind: "err", msg: "That’s the limit — 10 photos per stack." });
+        setStatus({ kind: "err", msg: "That’s the limit: 10 photos per stack." });
         return;
       }
       const capped = fresh.slice(0, room);
       if (fresh.length > room) {
-        setStatus({ kind: "err", msg: `Only room for ${room} more — capped at 10.` });
+        setStatus({ kind: "err", msg: `Only room for ${room} more, capped at 10.` });
       }
       // EXIF: read the ORIGINAL bytes (compress() re-encodes it away) and prefill
       // from the FIRST file across the accumulated set that yields a date. Earlier
@@ -509,7 +509,7 @@ export default function GalleryUploadPage() {
         {/* Once photos are in, the zone reads as additive — click/drop appends. */}
         {files.length > 0 && (
           <p className="mt-3 font-mono text-[11px] text-[color:var(--muted)]">
-            {files.length >= 10 ? "10 photos — that’s the limit" : "+ add another photo"}
+            {files.length >= 10 ? "10 photos, that’s the limit" : "+ add another photo"}
           </p>
         )}
         <input

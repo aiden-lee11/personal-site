@@ -35,7 +35,7 @@ export type PassDemoId =
   | "combo";
 
 export const PASS_DEMOS: Record<PassDemoId, string> = {
-  dce: `// Dead Code Elimination — %unused is never read again.
+  dce: `// Dead Code Elimination: %unused is never read again.
 // With DCE off, its multiplication survives all the way to x86.
 define void @main (){
 	:bb_0
@@ -60,7 +60,7 @@ define void @main (){
 	return
 }`,
 
-  licm: `// Loop-Invariant Code Motion — %off <- %n * 8 does not depend on %i,
+  licm: `// Loop-Invariant Code Motion: %off <- %n * 8 does not depend on %i,
 // so LICM hoists it into a preheader that runs once instead of every iter.
 define void @main (){
 	:done_0
@@ -95,7 +95,7 @@ define void @main (){
 	return
 }`,
 
-  sccp: `// Sparse Conditional Constant Propagation — %c is provably 1, so the
+  sccp: `// Sparse Conditional Constant Propagation: %c is provably 1, so the
 // false arm is unreachable and the constant arithmetic folds to 20.
 define void @main (){
 	:taken_0
@@ -124,7 +124,7 @@ define void @main (){
 	return
 }`,
 
-  gvn: `// Global Value Numbering — %a and %b compute the identical expression.
+  gvn: `// Global Value Numbering: %a and %b compute the identical expression.
 // GVN replaces the repeat with a copy of the first.
 define void @main (){
 	:bb_0
@@ -150,7 +150,7 @@ define void @main (){
 	return
 }`,
 
-  "copy-prop": `// Copy Propagation — a chain of pure copies collapses so print(%c)
+  "copy-prop": `// Copy Propagation: a chain of pure copies collapses so print(%c)
 // becomes print of the original 5 once folding chases the copies.
 define void @main (){
 	:bb_0
@@ -171,7 +171,7 @@ define void @main (){
 	return
 }`,
 
-  algebra: `// Algebraic Simplification — x*1 => x, y+0 => y, z<<0 => z.
+  algebra: `// Algebraic Simplification: x*1 => x, y+0 => y, z<<0 => z.
 // Without this pass those trivial ops survive to the final assembly.
 define void @main (){
 	:bb_0
@@ -191,7 +191,7 @@ define void @main (){
 	return
 }`,
 
-  peephole: `// Peephole — ints are tagged as (x<<1)+1 at runtime boundaries, so
+  peephole: `// Peephole: ints are tagged as (x<<1)+1 at runtime boundaries, so
 // decode/re-encode chains crop up everywhere. Peephole collapses the
 // round-trip ((x<<1)+1)>>1 back to plain x.
 define void @main (){
@@ -214,7 +214,7 @@ define void @main (){
 	return
 }`,
 
-  "vra-bce": `// Value Range Analysis / Branch-Check Elimination — the compiler proves
+  "vra-bce": `// Value Range Analysis / Branch-Check Elimination: the compiler proves
 // %i stays in [0, len) so it can strip the array-bounds check per access.
 define void @main (){
 	:done_5
@@ -299,7 +299,7 @@ define void @main (){
 	return
 }`,
 
-  "simplify-cfg": `// CFG Simplification — the entry block just falls through and :done is
+  "simplify-cfg": `// CFG Simplification: the entry block just falls through and :done is
 // empty. Both collapse in the cleaned control-flow graph.
 define void @main (){
 	:main_body_0
@@ -323,7 +323,7 @@ define void @main (){
 	return
 }`,
 
-  "cmov-synth": `// Conditional-Move Synthesis — this branchy relu(a - b) triangle becomes
+  "cmov-synth": `// Conditional-Move Synthesis: this branchy relu(a - b) triangle becomes
 // a single cmov on x86, eliminating the mispredictable jump.
 define void @main (){
 	:join_0
@@ -354,7 +354,7 @@ define void @main (){
 	return
 }`,
 
-  "loop-dse": `// Loop Dead-Store Elim — the first loop fills %tmp with a constant, but
+  "loop-dse": `// Loop Dead-Store Elim: the first loop fills %tmp with a constant, but
 // the second loop overwrites every cell before anything reads it, so the
 // whole fill loop is deleted. (sccp + vra-bce are enabled too: the pass
 // only sees the fill once the stored constant is folded and the in-loop

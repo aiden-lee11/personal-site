@@ -162,7 +162,7 @@ export async function runPipeline(
       layerMs: {},
       totalMs: 0,
       error:
-        "LC/LB lower server-side via the instructor reference binaries — the in-browser wasm pipeline starts at LA",
+        "LC/LB lower server-side via the instructor reference binaries; the in-browser wasm pipeline starts at LA",
     };
   }
 

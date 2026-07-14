@@ -5,7 +5,7 @@ import CompilerVisualizer from "./CompilerVisualizer";
 export const metadata: Metadata = {
   title: "Compiler Playground · Aiden Lee",
   description:
-    "Write LC (or any layer below it) and step through our 7-stage C++ compiler — LC → LB → LA → IR → L3 → L2 → L1 → x86-64 — with live pass toggles and optimized-vs-unoptimized diffs.",
+    "Write LC (or any layer below it) and step through our 7-stage C++ compiler (LC → LB → LA → IR → L3 → L2 → L1 → x86-64) with live pass toggles and optimized-vs-unoptimized diffs.",
 };
 
 export default function CompilerPlaygroundPage() {

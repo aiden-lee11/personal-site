@@ -38,7 +38,7 @@ function ensureWorker(): Worker {
 // static/dev deploy without the compiler runtime). Kept verbatim so the UI can
 // explain why in-browser compilation stopped short of these layers.
 const SERVER_ONLY_MSG =
-  "LC/LB compilation runs server-side and isn't available on this deployment — start from LA or below to compile fully in-browser";
+  "LC/LB compilation runs server-side and isn't available on this deployment. Start from LA or below to compile fully in-browser";
 
 /**
  * Compile a LC/LB source via the server runtime. The wasm worker cannot run
