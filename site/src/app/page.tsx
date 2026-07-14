@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { profile } from "@/data/profile";
 import { projects } from "@/data/projects";
 import { experience } from "@/data/experience";
@@ -61,17 +62,28 @@ export default function Home() {
           </div>
         </div>
 
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-8 self-end lg:grid-cols-1 lg:gap-y-7">
-          {STATUS.map(([label, value, detail]) => (
-            <div key={label}>
-              <dt className="eyebrow">{label}</dt>
-              <dd className="mt-2 text-sm font-medium">{value}</dd>
-              <dd className="mt-0.5 font-mono text-[11px] text-[color:var(--muted)]">
-                {detail}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <div className="flex flex-col gap-9 lg:h-full lg:justify-between lg:gap-6">
+          <Image
+            src="/aiden-platform.jpg"
+            alt="Aiden on a Chicago L platform"
+            width={800}
+            height={800}
+            priority
+            className="hero-photo w-40 self-start aspect-square lg:w-full lg:self-auto"
+          />
+
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-1 lg:gap-y-7">
+            {STATUS.map(([label, value, detail]) => (
+              <div key={label}>
+                <dt className="eyebrow">{label}</dt>
+                <dd className="mt-2 text-sm font-medium">{value}</dd>
+                <dd className="mt-0.5 font-mono text-[11px] text-[color:var(--muted)]">
+                  {detail}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       </section>
 
       {/* Featured — the compiler */}
