@@ -7,7 +7,7 @@ void main () {
   v <- 21
   m <- new Array(4, 4)
 
-  // empty matrix — the value is absent, so found is 0
+  // empty matrix, the value is absent, so found is 0
   initMatrix(m, 0)
   r <- checkMatrix(m, v)
   print(r)

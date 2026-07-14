@@ -1,5 +1,5 @@
 // fibonacci
-// iterative approach — fib(20) is 6765 (fits in int); the outer loop
+// iterative approach: fib(20) is 6765 (fits in int); the outer loop
 // repeats the computation 5,000,000 times so opt vs unopt runtime is
 // measurable
 void main () {
