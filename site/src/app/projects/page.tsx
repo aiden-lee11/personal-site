@@ -78,7 +78,7 @@ export default function ProjectsPage() {
           </h1>
         </div>
         <p className="text-[color:var(--muted)] lg:text-right">
-          Things I&apos;ve made for school, work, and the people around me.
+          Things I&apos;ve made for school, work, the people around me, or just out of curiosity.
         </p>
       </header>
 
