@@ -64,8 +64,32 @@ export type OptExample = {
    *   - caption: the callout text for the step. Tokens matching that step's
    *              marks render accent, tokens matching warm render ember, so the
    *              callout legend matches the pills in the code.
+   *   - rewrites: per-step INLINE line rewrites — the payoff feature for SCCP.
+   *              Each entry substring-matches an ORIGINAL before-code line (same
+   *              trimmed-`includes` convention as `outline`) and replaces that
+   *              row's instruction text with `to` for the rest of the loop. `to`
+   *              is just the code (no indent — the original row's indent is
+   *              reused; any trailing `;;` comment on the source line is dropped,
+   *              so a rewrite reads as the freshly-folded instruction). Rewrites
+   *              are CUMULATIVE and keyed by the ORIGINAL line, so a later step
+   *              can fold the same line again by matching the same `line` string
+   *              (e.g. `%y <- %x * 4` → `%y <- 5 * 4` → `%y <- 20`). The overlay
+   *              is display-only: diff alignment and the transform phase still run
+   *              on the original text, and it resets when the loop wraps to
+   *              `before`. `marks`/`warm`/`outline` in a step apply to the
+   *              DISPLAYED (rewritten) text, so a step can pill the substituted
+   *              constant (e.g. warm: ["5"] on `%y <- 5 * 4`). A step that
+   *              declares `rewrites` scopes its pills + line-lighting to its
+   *              `outline` lines, so a bare-number token like "5" lights only the
+   *              rewritten line, not every line that happens to contain a 5.
    */
-  steps?: { caption: string; marks?: string[]; warm?: string[]; outline?: string[] }[];
+  steps?: {
+    caption: string;
+    marks?: string[];
+    warm?: string[];
+    outline?: string[];
+    rewrites?: { line: string; to: string }[];
+  }[];
   /**
    * Staged transform sub-beats. The transform phase normally collapses every
    * removed line and grows every added line at once; with `transformStages` it
@@ -100,21 +124,59 @@ export const OPT_EXAMPLES: OptExample[] = [
     },
     // ember = the proven-known value (%c, then %x, then %y as each is folded and
     // becomes the known input to the next fold); purple = the arm/target in flux.
+    // Substitute-then-fold beats: each fold rewrites the CODE inline (2 + 3 →
+    // 5, then 5 * 4 → 20, …) so the constant propagation is visible in the
+    // instructions themselves, not just narrated. ember = the known value being
+    // substituted in; purple (marks) = the target whose value just resolved.
     steps: [
       { warm: ["%c"], outline: ["%c <- 1"], caption: "%c is assigned once — provably always 1" },
       { warm: ["%c"], outline: ["br %c"], caption: "the branch condition is that constant" },
       { marks: [":maybe_taken"], caption: ":maybe_taken is always the arm taken" },
-      { marks: ["%x"], outline: ["%x <- 2 + 3"], caption: "2 + 3 is already constant — %x folds to 5" },
-      { marks: ["%y"], warm: ["%x"], outline: ["%y <- %x * 4"], caption: "%x is known to be 5, so %y folds to 20" },
-      { marks: ["%out"], warm: ["%y"], outline: ["%out <- %y - 5"], caption: "constants keep propagating — %out is just 15" },
-      { marks: [":never_taken"], outline: [":never_taken"], caption: "so the false arm is unreachable — dead" },
-      { marks: ["%out"], outline: ["return %out"], caption: "the whole arm collapses to return 15" },
+      {
+        marks: ["%x"],
+        outline: ["%x <- 5"],
+        rewrites: [{ line: "%x <- 2 + 3", to: "%x <- 5" }],
+        caption: "2 + 3 is already constant — %x folds to 5",
+      },
+      {
+        warm: ["5"],
+        outline: ["%y <- 5 * 4"],
+        rewrites: [{ line: "%y <- %x * 4", to: "%y <- 5 * 4" }],
+        caption: "the known 5 substitutes into %y's expression",
+      },
+      {
+        marks: ["%y"],
+        outline: ["%y <- 20"],
+        rewrites: [{ line: "%y <- %x * 4", to: "%y <- 20" }],
+        caption: "5 * 4 folds — %y is 20",
+      },
+      {
+        warm: ["20"],
+        outline: ["%out <- 20 - 5"],
+        rewrites: [{ line: "%out <- %y - 5", to: "%out <- 20 - 5" }],
+        caption: "the known 20 flows into %out's expression",
+      },
+      {
+        marks: ["%out"],
+        outline: ["%out <- 15"],
+        rewrites: [{ line: "%out <- %y - 5", to: "%out <- 15" }],
+        caption: "20 - 5 folds — %out is just 15",
+      },
+      {
+        warm: ["15"],
+        outline: ["return 15"],
+        rewrites: [{ line: "return %out", to: "return 15" }],
+        caption: "the whole arm returns a constant — 15",
+      },
+      { marks: [":never_taken"], outline: [":never_taken"], caption: "and the false arm is unreachable — dead" },
     ],
-    // Fold the taken arm top-down, then prune the false arm and re-point entry.
+    // The folding story is now told in the steps above via inline rewrites, so
+    // the transform phase is the physical cleanup: the folded lines collapse,
+    // the arm reduces to `return 15`, then the dead false arm is pruned.
     transformStages: [
-      { del: ["%x <- 2 + 3"], caption: "2 + 3 folds to 5" },
-      { del: ["%y <- %x * 4"], caption: "%x is 5 → %y folds to 20" },
-      { del: ["%out <- %y - 5", "return %out"], add: ["return 15"], caption: "%out is 15 → return 15" },
+      { del: ["%x <- 2 + 3"], caption: "the folded lines now collapse away" },
+      { del: ["%y <- %x * 4"], caption: "%y's line goes too — it's just a constant" },
+      { del: ["%out <- %y - 5", "return %out"], add: ["return 15"], caption: "the arm reduces to return 15" },
       {
         del: ["%c <- 1", "br %c", ":never_taken", "some_side_effect", "return %z"],
         add: ["br :maybe_taken"],

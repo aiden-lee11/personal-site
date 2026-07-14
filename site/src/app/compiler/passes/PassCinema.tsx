@@ -52,6 +52,8 @@ const TRANSPARENT = "rgba(0, 0, 0, 0)";
 const EMBER = "var(--ember, #f2a65a)";
 // Shared empty set for stages that have no warm (ember) tokens — avoids realloc.
 const EMPTY_WARM: ReadonlySet<string> = new Set<string>();
+// Shared empty map for stages with no inline line rewrites — avoids realloc.
+const EMPTY_REWRITES: ReadonlyMap<string, string> = new Map<string, string>();
 
 type RowKind = "same" | "del" | "add";
 type Row = { key: string; kind: RowKind; text: string };
@@ -73,6 +75,15 @@ type Stage = {
   outline: string[];
   isStep: boolean;
   duration: number;
+  // Cumulative inline line rewrites in force by this stage: originalRowKey →
+  // full replacement line text (indent + folded code). A display overlay only —
+  // diff alignment and transform still run on the original row text. Empty on the
+  // `before` stage, so it resets each loop.
+  rewrites: ReadonlyMap<string, string>;
+  // True only on a step that declared its own `rewrites`: scope this step's pills
+  // and line-lighting to its `outline` lines, so a bare-number token (e.g. "5")
+  // lights just the rewritten line, not every line that contains that digit.
+  scoped: boolean;
   // Only set on a staged transform sub-beat: the cumulative set of del row keys
   // that have collapsed and add row keys that have grown by this beat. When
   // absent (unstaged transform / any other phase) rows use the default targets.
@@ -209,6 +220,8 @@ export default function PassCinema({ example }: { example: OptExample }) {
       outline: [],
       isStep: false,
       duration: DURATION.before,
+      rewrites: EMPTY_REWRITES,
+      scoped: false,
     });
     list.push({
       key: "spot",
@@ -219,13 +232,32 @@ export default function PassCinema({ example }: { example: OptExample }) {
       outline: [],
       isStep: false,
       duration: DURATION.spot,
+      rewrites: EMPTY_REWRITES,
+      scoped: false,
     });
+    // Cumulative inline-rewrite overlay, grown as we walk the steps. `line`
+    // substring-matches an ORIGINAL before-code row (kind same/del) by trimmed
+    // `includes`; we store originalRowKey → (original indent + `to`), dropping
+    // any source-line comment. Keyed by the original line so a later step folding
+    // the same line again just matches the same `line` string.
+    const rw = new Map<string, string>();
+    const beforeRows = rows.filter((r) => r.kind !== "add");
+    const resolveRewriteRow = (sub: string): Row | undefined => {
+      const s = sub.trim();
+      return beforeRows.find((r) => r.text.trim().includes(s));
+    };
     if (example.steps?.length) {
       // Authored steps replace the single trace beat entirely. Purple marks and
       // ember warm tokens share one match regex; warmSet tags which are ember.
       example.steps.forEach((s, i) => {
         const marks = s.marks ?? [];
         const warm = s.warm ?? [];
+        if (s.rewrites?.length) {
+          for (const { line, to } of s.rewrites) {
+            const row = resolveRewriteRow(line);
+            if (row) rw.set(row.key, splitLine(row.text).indent + to);
+          }
+        }
         list.push({
           key: `step-${i}`,
           phase: "trace",
@@ -235,6 +267,9 @@ export default function PassCinema({ example }: { example: OptExample }) {
           outline: s.outline ?? [],
           isStep: true,
           duration: STEP_DURATION,
+          // Snapshot the overlay as it stands at this step (later steps add more).
+          rewrites: rw.size ? new Map(rw) : EMPTY_REWRITES,
+          scoped: !!s.rewrites?.length,
         });
       });
     } else if (tokens.length) {
@@ -247,8 +282,13 @@ export default function PassCinema({ example }: { example: OptExample }) {
         outline: [],
         isStep: false,
         duration: DURATION.trace,
+        rewrites: EMPTY_REWRITES,
+        scoped: false,
       });
     }
+    // Rewritten lines stay rewritten through the transform/after framing beats
+    // (a still-visible folded line just fades out on its del-beat).
+    const finalRewrites: ReadonlyMap<string, string> = rw.size ? new Map(rw) : EMPTY_REWRITES;
     const tStages = example.transformStages;
     if (tStages?.length) {
       // Staged transform: play the rewrite as an ordered sequence of quick beats.
@@ -314,6 +354,8 @@ export default function PassCinema({ example }: { example: OptExample }) {
           isStep: false,
           duration: TRANSFORM_STAGE_DURATION,
           transformDone: { del: cumDel, add: cumAdd },
+          rewrites: finalRewrites,
+          scoped: false,
         });
       }
     } else {
@@ -326,6 +368,8 @@ export default function PassCinema({ example }: { example: OptExample }) {
         outline: [],
         isStep: false,
         duration: DURATION.transform,
+        rewrites: finalRewrites,
+        scoped: false,
       });
     }
     list.push({
@@ -336,6 +380,8 @@ export default function PassCinema({ example }: { example: OptExample }) {
       outline: [],
       isStep: false,
       duration: DURATION.after,
+      rewrites: finalRewrites,
+      scoped: false,
     });
     return list;
   }, [
@@ -572,20 +618,29 @@ const MARK_VARIANTS: Variants = {
 };
 
 function RowLine({ row, stage }: { row: Row; stage: Stage }) {
-  const { phase, pillRe, warmSet, outline, isStep } = stage;
-  const { indent, code, comment } = splitLine(row.text || " ");
+  const { phase, pillRe, warmSet, outline, isStep, scoped, rewrites } = stage;
+  // Inline-rewrite overlay: show the (possibly folded) text, but keep matching
+  // ring/pills against this DISPLAYED text so a step can pill the substituted
+  // constant. Height/kind targets below still use the original row identity.
+  const displayText = rewrites.get(row.key) ?? row.text;
+  const { indent, code, comment } = splitLine(displayText || " ");
   const hasCode = code.trim() !== "";
-  const showPills = phase === "trace" && pillRe !== null;
+
+  // A scoped step (one that declared rewrites) restricts its pills + lighting to
+  // its outlined lines, so a bare-number token lights only the rewritten line.
+  const onOutline = lineMatchesOutline(displayText, outline);
+  const effectivePillRe = scoped && !onOutline ? null : pillRe;
+  const showPills = phase === "trace" && effectivePillRe !== null;
 
   // Per-line ring: during a step it follows the step's `outline`; otherwise it
   // hugs the removed lines during spot / fallback-trace, exactly as before.
   const marked = isStep
-    ? hasCode && lineMatchesOutline(row.text, outline)
+    ? hasCode && onOutline
     : row.kind === "del" && hasCode && (phase === "spot" || phase === "trace");
 
   // Within a step, only outlined lines and lines carrying a pilled token stay
   // fully lit; everything else dims so attention lands on the beat.
-  const activeRow = isStep && (marked || lineHasToken(row.text, pillRe));
+  const activeRow = isStep && (marked || lineHasToken(displayText, effectivePillRe));
 
   // A staged transform collapses/grows only the rows this sub-beat has reached.
   const done = stage.transformDone;
@@ -625,20 +680,31 @@ function RowLine({ row, stage }: { row: Row; stage: Stage }) {
         }}
       >
         {indent}
-        {/* Wrap the instruction text only when there is some — a whitespace-only
-            line never gets a mark span (so no empty outlined box, any phase). */}
-        {hasCode && (
-          <motion.span
-            className="pass-mark"
-            initial={false}
-            animate={marked ? "on" : "off"}
-            variants={MARK_VARIANTS}
-            transition={{ duration: 0.3, ease: EASE }}
-          >
-            {renderTokens(code, showPills ? pillRe : null, "pill", warmSet)}
-          </motion.span>
-        )}
-        {renderTokens(comment, showPills ? pillRe : null, "pill", warmSet)}
+        {/* Keyed on the displayed text so a folded line settles with a quick
+            fade when it rewrites (e.g. `%y <- %x * 4` → `%y <- 5 * 4`); the key
+            is stable across non-rewrite beats, so unchanged lines never re-fade.
+            (Under prefers-reduced-motion the component isn't rendered at all.) */}
+        <motion.span
+          key={displayText}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, ease: EASE }}
+        >
+          {/* Wrap the instruction text only when there is some — a whitespace-only
+              line never gets a mark span (so no empty outlined box, any phase). */}
+          {hasCode && (
+            <motion.span
+              className="pass-mark"
+              initial={false}
+              animate={marked ? "on" : "off"}
+              variants={MARK_VARIANTS}
+              transition={{ duration: 0.3, ease: EASE }}
+            >
+              {renderTokens(code, showPills ? effectivePillRe : null, "pill", warmSet)}
+            </motion.span>
+          )}
+          {renderTokens(comment, showPills ? effectivePillRe : null, "pill", warmSet)}
+        </motion.span>
       </span>
     </motion.div>
   );
