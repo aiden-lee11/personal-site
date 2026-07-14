@@ -501,22 +501,29 @@ export const OPT_EXAMPLES: OptExample[] = [
     story: {
       spot: ":mid and :body are empty forwarders",
       trace: "control just falls straight through them",
-      transform: "so the blocks merge and the branch goes unconditional",
+      transform: "so it all collapses into one straight-line block",
     },
     steps: [
       { marks: [":mid", ":body"], caption: ":mid and :body are empty forwarder blocks" },
       { marks: [":mid"], outline: ["br :mid"], caption: ":entry does nothing but branch to :mid" },
       { marks: [":body"], outline: ["br :body"], caption: ":mid does nothing but fall through to :body" },
       { marks: [":done"], outline: ["br %x :done :done"], caption: "and br %x :done :done has identical arms → unconditional" },
+      { marks: [":done"], outline: ["return %x"], caption: ":done will end with a single predecessor — it merges up too" },
     ],
-    // One forwarder folds per beat, then the identical-arm branch goes direct.
+    // One forwarder folds per beat, then the identical-arm branch resolves and
+    // the lone-predecessor :done merges up — collapsing to a single block.
     transformStages: [
       { del: ["br :mid", ":mid"], caption: ":mid folds away" },
       { del: ["br :body", ":body"], caption: ":body folds away" },
       {
         del: ["%x <- 7", "br %x :done :done"],
-        add: ["forwarders merged", "br :done"],
-        caption: "identical arms → unconditional",
+        add: ["forwarders merged"],
+        caption: "identical arms resolve → branch dropped",
+      },
+      {
+        del: [":done", "return %x"],
+        add: ["return %x"],
+        caption: ":done merges up into :entry",
       },
     ],
     before: `define void @straight () {
@@ -538,10 +545,7 @@ export const OPT_EXAMPLES: OptExample[] = [
 
   :entry
     %x <- 7              ;; forwarders merged away
-    br :done             ;; cond branch → unconditional
-
-  :done
-    return %x
+    return %x            ;; :done merged up too
 }`,
   },
   {
