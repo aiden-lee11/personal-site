@@ -62,19 +62,8 @@ export default function Home() {
               View projects <span aria-hidden>→</span>
             </Link>
           </div>
-        </div>
 
-        <div className="flex flex-col gap-9 lg:h-full lg:justify-between lg:gap-6">
-          <Image
-            src="/aiden-platform.jpg"
-            alt="Aiden on a Chicago L platform"
-            width={800}
-            height={800}
-            priority
-            className="hero-photo w-40 self-start aspect-square lg:w-full lg:self-auto"
-          />
-
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-1 lg:gap-y-7">
+          <dl className="mt-14 grid grid-cols-2 gap-x-8 gap-y-8 sm:mt-16 sm:grid-cols-4">
             {STATUS.map(([label, value, detail]) => (
               <div key={label}>
                 <dt className="eyebrow">{label}</dt>
@@ -85,6 +74,17 @@ export default function Home() {
               </div>
             ))}
           </dl>
+        </div>
+
+        <div className="lg:self-start">
+          <Image
+            src="/aiden-platform.jpg"
+            alt="Aiden on a Chicago L platform"
+            width={800}
+            height={800}
+            priority
+            className="hero-photo w-40 self-start aspect-square lg:w-full"
+          />
         </div>
       </section>
 
