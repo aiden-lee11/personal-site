@@ -66,10 +66,12 @@ body {
   background: transparent;
 }
 
-/* Site-level ambient wash — deep blue pooling bottom-right, violet mid-right.
-   A single fixed layer behind all content: pointer-events off, clipped to the
-   viewport so it never adds scroll. Softness is baked into the gradient stops
-   (no filter:blur on a full-screen element). */
+/* Site-level ambient wash — a subtle warm ember glow pooling bottom-right,
+   violet mid-right. A single fixed layer behind all content: pointer-events
+   off, clipped to the viewport so it never adds scroll. Softness is baked into
+   the gradient stops (no filter:blur on a full-screen element). The ember is
+   toned down (low alpha, tight radius) so it reads as a warm corner accent that
+   complements the purple rather than a cool wash fighting it. */
 body::before {
   content: "";
   position: fixed;
@@ -78,9 +80,9 @@ body::before {
   pointer-events: none;
   background:
     radial-gradient(
-      60rem 60rem at 108% 100%,
-      rgba(52, 82, 164, 0.24) 0%,
-      transparent 62%
+      46rem 46rem at 108% 100%,
+      rgba(242, 166, 90, 0.12) 0%,
+      transparent 57%
     ),
     radial-gradient(
       52rem 52rem at 112% 52%,
