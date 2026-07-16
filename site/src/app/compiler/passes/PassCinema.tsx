@@ -553,6 +553,18 @@ export default function PassCinema({
           {playing ? "❚❚ pause" : "▸ play"}
         </button>
 
+        <button
+          onClick={() => {
+            setPlaying(false);
+            setStageIdx((i) => Math.max(0, i - 1));
+          }}
+          disabled={stageIdx === 0}
+          className="font-mono text-xs text-[color:var(--muted)] hover:text-[color:var(--fg)] transition-colors disabled:opacity-40 disabled:hover:text-[color:var(--muted)] disabled:cursor-default"
+          aria-label="Previous step"
+        >
+          ‹
+        </button>
+
         <div className="flex items-center gap-1.5" role="tablist" aria-label="Animation steps">
           {dots.map((d) => {
             const isActive = stageIdx >= d.start && stageIdx <= d.end;
@@ -573,6 +585,18 @@ export default function PassCinema({
             );
           })}
         </div>
+
+        <button
+          onClick={() => {
+            setPlaying(false);
+            setStageIdx((i) => Math.min(stages.length - 1, i + 1));
+          }}
+          disabled={stageIdx === stages.length - 1}
+          className="font-mono text-xs text-[color:var(--muted)] hover:text-[color:var(--fg)] transition-colors disabled:opacity-40 disabled:hover:text-[color:var(--muted)] disabled:cursor-default"
+          aria-label="Next step"
+        >
+          ›
+        </button>
 
         <button
           onClick={() => {

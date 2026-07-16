@@ -186,7 +186,7 @@ export default function GrammarPage() {
       {/* Hero + template — first viewport */}
       <header className="mb-8">
         <p className="eyebrow mb-5">Interactive / Compiler</p>
-        <h1 className="font-serif text-4xl sm:text-5xl tracking-tight leading-[1.02]">
+        <h1 className="text-4xl sm:text-5xl font-semibold tracking-[-0.035em] leading-[1.02]">
           Writing LC
         </h1>
         <p className="mt-4 max-w-2xl text-[color:var(--muted)] leading-relaxed">

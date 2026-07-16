@@ -833,7 +833,7 @@ export default function CompilerVisualizer({
               <p className="font-mono text-[10px] tracking-widest uppercase text-[color:var(--muted)] mb-1">
                 Current layer
               </p>
-              <p className="font-serif text-2xl leading-tight mb-2">
+              <p className="text-2xl font-semibold tracking-tight leading-tight mb-2">
                 {layerLabel[selectedLayer]}
               </p>
               <p className="text-sm text-[color:var(--muted)] leading-relaxed">

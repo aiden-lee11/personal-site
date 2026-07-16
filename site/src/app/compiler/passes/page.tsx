@@ -11,7 +11,7 @@ export default function CompilerPassesPage() {
   return (
     <div>
       <header className="mb-12">
-        <h1 className="font-serif text-3xl sm:text-4xl tracking-tight leading-tight">
+        <h1 className="text-3xl sm:text-4xl font-semibold tracking-[-0.035em] leading-tight">
           What each pass does
         </h1>
         <p className="mt-4 text-[color:var(--muted)] max-w-2xl leading-relaxed">
