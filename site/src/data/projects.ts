@@ -36,7 +36,7 @@ export const LIVE: LiveThing[] = [
     external: true,
   },
   {
-    title: "The End",
+    title: "The End?",
     blurb: "A Minecraft End scene in hand-rolled WebGL.",
     href: "/the-end",
     cta: "fly around the End",
@@ -78,7 +78,7 @@ export const projects: Project[] = [
   },
   {
     slug: "the-end",
-    title: "The End (WebGL)",
+    title: "The End?",
     tagline: "A Minecraft End scene rendered from scratch in WebGL",
     stack: ["JavaScript", "WebGL", "GLSL"],
     period: "Nov 2025 – Dec 2025",
