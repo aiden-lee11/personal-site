@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { profile } from "@/data/profile";
-import { projects } from "@/data/projects";
+import { projects, type Project } from "@/data/projects";
 import { experience } from "@/data/experience";
 
 const STATUS = [
@@ -35,7 +35,10 @@ function Section({
 
 export default function Home() {
   const featuredProject = projects.find((p) => p.featured) ?? projects[0];
-  const otherProjects = projects.filter((p) => p.slug !== featuredProject.slug).slice(0, 3);
+  // Explicit pick + order for the home page; /projects keeps its own order.
+  const otherProjects = ["nufood", "nu-esports-bot", "the-end", "content"]
+    .map((slug) => projects.find((p) => p.slug === slug))
+    .filter((p): p is Project => Boolean(p));
   const featuredRole = experience.find((r) => r.featured) ?? experience[0];
   const pastRoles = experience.filter((r) => !r.featured);
 

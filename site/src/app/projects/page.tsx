@@ -89,8 +89,11 @@ export default function ProjectsPage() {
             A few things you can use right now.
           </p>
         </div>
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {LIVE.map((t) => {
+        {/* Wide: 6 tracks with 2-track cards makes 3 per row; with 5 cards the
+            4th starts at track 2 so the bottom pair sits centered under the
+            gaps of the top three. Other counts keep the plain flow. */}
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          {LIVE.map((t, i) => {
             const inner = (
               <>
                 <p className="text-xl font-semibold tracking-tight leading-tight mb-2 group-hover:text-[color:var(--accent)] transition-colors">
@@ -104,8 +107,11 @@ export default function ProjectsPage() {
                 </p>
               </>
             );
+            const stagger =
+              LIVE.length === 5 && i === 3 ? " lg:col-start-2" : "";
             const className =
-              "group flex flex-col border border-[color:var(--border)] p-6 transition-colors";
+              "group flex flex-col border border-[color:var(--border)] p-6 transition-colors lg:col-span-2" +
+              stagger;
             return t.external ? (
               <a
                 key={t.href}

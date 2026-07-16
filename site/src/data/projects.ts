@@ -36,6 +36,12 @@ export const LIVE: LiveThing[] = [
     external: true,
   },
   {
+    title: "The End",
+    blurb: "A Minecraft End scene in hand-rolled WebGL.",
+    href: "/the-end",
+    cta: "fly around the End",
+  },
+  {
     title: "Panopto Summarizer",
     blurb: "Lecture summaries when you need them.",
     href: "https://chromewebstore.google.com/detail/panopto-summarizer/cpeanbbcgghgjbpjpkgidndkmhgoplob?hl=en",
@@ -68,6 +74,22 @@ export const projects: Project[] = [
     links: [
       { label: "Try the visualizer", href: "/compiler" },
       { label: "LinkedIn post", href: "https://www.linkedin.com/feed/update/urn:li:activity:7476648103211585536/" },
+    ],
+  },
+  {
+    slug: "the-end",
+    title: "The End (WebGL)",
+    tagline: "A Minecraft End scene rendered from scratch in WebGL",
+    stack: ["JavaScript", "WebGL", "GLSL"],
+    period: "Nov 2025 – Dec 2025",
+    href: "/the-end",
+    bullets: [
+      "Hand-rolled WebGL with no engine and no three.js, from the scene graph to the GLSL shaders.",
+      "The scene has the ender dragon, up to 250 endermen wandering procedural terrain, end crystals, and torches you can place.",
+      "Fly-through camera controls to move around the world.",
+    ],
+    links: [
+      { label: "Fly around the End", href: "/the-end" },
     ],
   },
   {

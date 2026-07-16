@@ -1,0 +1,354 @@
+<!-- Last edited by Dietrich Geisler 2025 -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>The End</title>
+    <style>
+        :root {
+            --bg: #08080e;
+            --fg: #ede8df;
+            --muted: #8b849b;
+            --subtle: #121017;
+            --border: #201c2c;
+            --accent: #a684f5;
+            --accent-soft: #c3aef8;
+            --ember: #f2a65a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--fg);
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* No min-height here: the parent page sizes the iframe to this
+           document's content height, so a viewport-based minimum would feed
+           back into itself and grow forever. */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.25rem;
+            padding: 1.25rem;
+        }
+
+        /* Square stage — the drawing buffer stays 800x800 (aspect ratio is
+           baked into the projection matrix); CSS only scales the display. */
+        #canvas {
+            display: block;
+            width: 100%;
+            max-width: min(800px, 100%);
+            height: auto;
+            aspect-ratio: 1 / 1;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            touch-action: none;
+        }
+
+        .controls {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .legend {
+            color: var(--muted);
+            font-size: 0.82rem;
+            line-height: 1.6;
+            font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        }
+
+        .legend b {
+            color: var(--fg);
+            font-weight: 600;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        input[type="button"] {
+            appearance: none;
+            -webkit-appearance: none;
+            font-family: ui-monospace, "SF Mono", Menlo, monospace;
+            font-size: 0.8rem;
+            color: var(--fg);
+            background: var(--subtle);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 0.45rem 0.9rem;
+            cursor: pointer;
+            transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+        }
+
+        input[type="button"]:hover:not(:disabled) {
+            color: var(--accent-soft);
+            border-color: var(--accent);
+            background: #17131f;
+        }
+
+        input[type="button"]:active:not(:disabled) {
+            background: #1d1729;
+        }
+
+        input[type="button"]:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .torch-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .torch-row label {
+            font-family: ui-monospace, "SF Mono", Menlo, monospace;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        input[type="number"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 4.5rem;
+            font-family: ui-monospace, "SF Mono", Menlo, monospace;
+            font-size: 0.8rem;
+            color: var(--fg);
+            background: var(--subtle);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.4rem 0.55rem;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .torch-status {
+            font-family: ui-monospace, "SF Mono", Menlo, monospace;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .torch-status.error {
+            color: var(--ember);
+        }
+
+        .torch-status.flash {
+            animation: status-flash 900ms ease;
+        }
+
+        @keyframes status-flash {
+            0% {
+                color: var(--accent-soft);
+            }
+
+            100% {
+                color: var(--muted);
+            }
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .slider-row label {
+            font-family: ui-monospace, "SF Mono", Menlo, monospace;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .slider-row label span {
+            color: var(--fg);
+        }
+
+        input[type="range"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 200px;
+            max-width: 100%;
+            height: 4px;
+            border-radius: 999px;
+            background: var(--border);
+            outline-offset: 4px;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+        }
+
+        ::selection {
+            background: var(--accent);
+            color: var(--bg);
+        }
+    </style>
+</head>
+
+<body onload="main()">
+    <!-- WebGL Utility Scripts -->
+    <script src="lib/webgl-utils.js"></script>
+    <script src="lib/webgl-debug.js"></script>
+    <script src="lib/cuon-utils-cs351.js"></script>
+    <script src="lib/cuon-algebra-cs351.js"></script>
+
+    <!-- Load scene graph system -->
+    <script src="sceneGraph.js"></script>
+    <script src="dragon.js"></script>
+
+    <!-- Load modular components (order matters!) -->
+    <script src="utils.js"></script>      <!-- Must be first: defines helper functions -->
+    <script src="terrain.js"></script>    <!-- Uses calculateTerrainHeightAt from utils -->
+    <script src="camera.js"></script>     <!-- Uses utils functions -->
+    <script src="enderman.js"></script>   <!-- Uses getTerrainSample from utils -->
+    <script src="torch.js"></script>      <!-- Torch placement and rendering -->
+    <script src="loader.js"></script>     <!-- Loads assets -->
+
+    <!-- Main application entry point -->
+    <script src="main.js"></script>
+
+    <!-- Setup the Canvas — keep 800x800 drawing buffer; the projection matrix
+         assumes a 1:1 aspect ratio, so only scale it with CSS. -->
+    <canvas id="canvas" width="800" height="800">
+        Please use a browser that supports "canvas"
+    </canvas>
+
+    <div class="controls">
+        <!-- Explanation of camera controls -->
+        <p class="legend">
+            Click the scene first, then use your keyboard.
+            <br><b>WASD</b> move &nbsp;·&nbsp; <b>R/F</b> up/down &nbsp;·&nbsp; <b>T</b> toggle camera mode (free-cam / drivable)
+            <br><b>Place Torch</b> drops one at the X and Z you give it, snapped to the terrain (both run -50 to 50).
+        </p>
+
+        <div class="button-row">
+            <input type="button" onclick="lookAtDragon()" value="Look at Dragon">
+            <input type="button" onclick="lookAtNextCrystal()" value="Look at Next Crystal">
+            <input type="button" onclick="lookAtPrevCrystal()" value="Look at Previous Crystal">
+            <input type="button" id="perchDragonBtn" onclick="startDragonFlyIn()" value="Perch Dragon" style="display: none;">
+            <input type="button" id="unperchDragonBtn" value="Unperch Dragon" style="display: none;" disabled>
+            <input type="button" id="killDragonBtn" onclick="startDragonDeath()" value="Kill Dragon" style="display: none;">
+            <input type="button" id="respawnDragonBtn" onclick="respawnDragon()" value="Respawn Dragon" style="display: none;">
+            <input type="button" id="moonLightToggle" onclick="toggleMoonLight()" value="Trigger End Flash">
+        </div>
+
+        <div class="torch-row">
+            <label for="torchX">X</label>
+            <input type="number" id="torchX" min="-50" max="50" step="1" placeholder="0">
+            <label for="torchZ">Z</label>
+            <input type="number" id="torchZ" min="-50" max="50" step="1" placeholder="0">
+            <input type="button" onclick="placeTorchFromInputs()" value="Place Torch">
+            <span id="torchStatus" class="torch-status" role="status"></span>
+        </div>
+
+        <div class="slider-row">
+            <label for="endermanSlider">Number of Endermen: <span id="endermanCount">150</span></label>
+            <input type="range" id="endermanSlider" min="30" max="250" value="150" oninput="updateEndermanCount(this.value)">
+        </div>
+    </div>
+
+    <!-- Inline torch placement: reads the X/Z inputs, validates against the
+         terrain bounds (the terrain is 100x100 centered on the origin), and
+         reports in the status span instead of prompt()/alert() dialogs. -->
+    <script>
+        function placeTorchFromInputs() {
+            const status = document.getElementById('torchStatus');
+            const xEl = document.getElementById('torchX');
+            const zEl = document.getElementById('torchZ');
+
+            status.classList.remove('flash');
+
+            const x = parseFloat(xEl.value);
+            const z = parseFloat(zEl.value);
+
+            if (xEl.value.trim() === '' || isNaN(x) || x < -50 || x > 50) {
+                status.textContent = 'X needs a number from -50 to 50';
+                status.classList.add('error');
+                xEl.focus();
+                return;
+            }
+            if (zEl.value.trim() === '' || isNaN(z) || z < -50 || z > 50) {
+                status.textContent = 'Z needs a number from -50 to 50';
+                status.classList.add('error');
+                zEl.focus();
+                return;
+            }
+
+            const torch = placeTorch(x, z);
+            status.classList.remove('error');
+            if (torch) {
+                status.textContent = 'torch placed at (' + x + ', ' + torch.position.y.toFixed(1) + ', ' + z + ')';
+                void status.offsetWidth; // restart the highlight animation
+                status.classList.add('flash');
+            } else {
+                status.textContent = 'could not place a torch there';
+                status.classList.add('error');
+            }
+        }
+    </script>
+
+    <!-- Tell the parent page how tall this document is so the embedding
+         iframe can size itself to fit the canvas AND the controls. -->
+    <script>
+        (function () {
+            if (window.parent === window) return; // not embedded
+            let lastHeight = 0;
+            function postHeight() {
+                const height = Math.ceil(document.documentElement.scrollHeight);
+                if (height === lastHeight) return;
+                lastHeight = height;
+                window.parent.postMessage({ type: 'the-end-height', height: height }, '*');
+            }
+            window.addEventListener('load', postHeight);
+            if ('ResizeObserver' in window) {
+                new ResizeObserver(postHeight).observe(document.body);
+            } else {
+                window.addEventListener('resize', postHeight);
+            }
+            postHeight();
+        })();
+    </script>
+
+</body>
+
+</html>
