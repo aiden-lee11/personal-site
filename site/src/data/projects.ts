@@ -127,7 +127,7 @@ export const projects: Project[] = [
     slug: "content",
     title: "YouTube — @aiden-lee11",
     tagline: "Coding streams, interview prep, and project builds",
-    stack: ["OBS", "Real-time coding"],
+    stack: [],
     period: "Dec 2024 – Present",
     href: "https://www.youtube.com/@aiden-lee11",
     bullets: [

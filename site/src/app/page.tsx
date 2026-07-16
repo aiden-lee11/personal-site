@@ -57,12 +57,9 @@ export default function Home() {
             I&apos;m a Northwestern CS student, currently at Pinterest. I like
             making people&apos;s lives easier, and code that runs fast.
           </p>
-          <div className="mt-10 flex flex-wrap items-center gap-3">
+          <div className="mt-10">
             <Link href="/compiler" className="btn btn-primary">
               Explore my compiler <span aria-hidden>↗</span>
-            </Link>
-            <Link href="/projects" className="btn btn-ghost">
-              View projects <span aria-hidden>→</span>
             </Link>
           </div>
 
@@ -138,9 +135,11 @@ export default function Home() {
                   </span>
                 </div>
                 <p className="mt-1.5 text-sm text-[color:var(--muted)]">{p.tagline}</p>
-                <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[color:var(--muted)] opacity-70">
-                  {p.stack.join(" · ")}
-                </p>
+                {p.stack.length > 0 && (
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[color:var(--muted)] opacity-70">
+                    {p.stack.join(" · ")}
+                  </p>
+                )}
               </>
             );
             return (

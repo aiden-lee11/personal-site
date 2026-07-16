@@ -16,9 +16,11 @@ function Row({ project }: { project: Project }) {
           <p className="font-mono text-[11px] uppercase tracking-wider text-[color:var(--ember)] opacity-80">
             {p.period}
           </p>
-          <p className="mt-0 md:mt-3 font-mono text-[10px] uppercase tracking-wider text-[color:var(--muted)] opacity-60">
-            {p.stack.join(" · ")}
-          </p>
+          {p.stack.length > 0 && (
+            <p className="mt-0 md:mt-3 font-mono text-[10px] uppercase tracking-wider text-[color:var(--muted)] opacity-60">
+              {p.stack.join(" · ")}
+            </p>
+          )}
         </div>
         <article>
           <h2 className="text-2xl sm:text-3xl font-semibold tracking-[-0.035em]">
@@ -83,12 +85,7 @@ export default function ProjectsPage() {
       </header>
 
       <section className="pb-16">
-        <div className="grid gap-4 md:grid-cols-[12rem_1fr] md:gap-12 lg:gap-20">
-          <p className="eyebrow">Live &amp; usable</p>
-          <p className="text-[color:var(--muted)] max-w-xl">
-            A few things you can use right now.
-          </p>
-        </div>
+        <p className="eyebrow">Live &amp; usable</p>
         {/* Wide: 6 tracks with 2-track cards makes 3 per row; with 5 cards the
             4th starts at track 2 so the bottom pair sits centered under the
             gaps of the top three. Other counts keep the plain flow. */}

@@ -1,16 +1,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LAYERS, LAYER_LABEL, LAYER_TAGLINE } from "@/lib/loadPresets";
 import { OPT_EXAMPLES } from "@/data/compiler";
 import ShareLinkRedirect from "./ShareLinkRedirect";
+import PipelineChain from "./PipelineChain";
 
 export const metadata: Metadata = {
   title: "Compiler · Aiden Lee",
   description: "A C-like compiler that you can explore and run in your browser.",
 };
 
-const STATS = [
-  { value: "536 ms", label: "fastest compiler in the class competition" },
+const STATS: {
+  value: string;
+  label: string;
+  link?: { label: string; href: string };
+}[] = [
+  {
+    value: "536 ms",
+    label: "fastest compiler in the class competition",
+    link: {
+      label: "the announcement post ↗",
+      href: "https://www.linkedin.com/feed/update/urn:li:activity:7476648103211585536/",
+    },
+  },
   { value: "8", label: "steps from source code to assembly" },
   { value: `${OPT_EXAMPLES.length}`, label: "optimizations you can turn on and off" },
 ];
@@ -46,14 +57,6 @@ export default function CompilerOverviewPage() {
           <Link href="/compiler/passes" className="btn btn-ghost">
             Explore the passes
           </Link>
-          <a
-            href="https://www.linkedin.com/feed/update/urn:li:activity:7476648103211585536/"
-            target="_blank"
-            rel="noreferrer"
-            className="font-mono text-sm link-underline"
-          >
-            the announcement post ↗
-          </a>
         </div>
       </header>
 
@@ -67,6 +70,17 @@ export default function CompilerOverviewPage() {
             <p className="mt-2 text-sm text-[color:var(--muted)] leading-snug">
               {s.label}
             </p>
+            {s.link && (
+              <a
+                href={s.link.href}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block font-mono text-xs link-underline"
+                style={{ color: "var(--muted)" }}
+              >
+                {s.link.label}
+              </a>
+            )}
           </div>
         ))}
       </section>
@@ -76,29 +90,7 @@ export default function CompilerOverviewPage() {
         <h2 className="font-mono text-xs tracking-widest uppercase text-[color:var(--muted)] mb-5">
           The pipeline
         </h2>
-        <ol className="grid gap-x-10 gap-y-4 sm:grid-cols-2">
-          {LAYERS.map((L, i) => (
-            <li key={L} className="flex gap-3">
-              <span
-                className={`flex-shrink-0 w-6 h-6 border flex items-center justify-center font-mono text-[10px] ${
-                  i === 0 || i === LAYERS.length - 1
-                    ? "border-[color:var(--accent)] text-[color:var(--accent)]"
-                    : "border-[color:var(--border)] text-[color:var(--muted)]"
-                }`}
-              >
-                {i + 1}
-              </span>
-              <div className="min-w-0">
-                <p className="font-mono text-sm text-[color:var(--fg)] leading-6">
-                  {LAYER_LABEL[L]}
-                </p>
-                <p className="mt-0.5 text-[13px] text-[color:var(--muted)] leading-snug">
-                  {LAYER_TAGLINE[L]}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
+        <PipelineChain />
       </section>
     </div>
   );
