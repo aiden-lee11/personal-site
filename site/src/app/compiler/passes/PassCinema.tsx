@@ -19,7 +19,11 @@ import type { OptExample } from "@/data/compiler";
  *               dim, so the highlight reads as motion. (An example without
  *               authored `steps` falls back to a single focus-token `trace`.)
  *   transform — removed lines strike through + collapse, added lines grow in,
- *               unchanged lines glide to their new spots
+ *               unchanged lines glide to their new spots. A del row whose inline
+ *               rewrite landed exactly on an add row's code is PAIRED: it settles
+ *               in place (adopting the add row's comment) instead of striking,
+ *               and the add row never renders — in-place simplification reads as
+ *               settling, not as shuffling.
  *   after     — the result, dims lift
  *
  * It autoplays only while on-screen (IntersectionObserver), pauses on
@@ -63,6 +67,12 @@ const EMPTY_REWRITES: ReadonlyMap<string, string> = new Map<string, string>();
 
 type RowKind = "same" | "del" | "add";
 type Row = { key: string; kind: RowKind; text: string };
+
+// Rewrite-pairing, computed once alongside the stages: `delText` maps a paired
+// del row to the add row's FULL text (indent + code + fresh comment) it settles
+// into on its transform beat; `addHidden` is the set of paired add rows, which
+// never render — the del row itself becomes the after-line.
+type Pairing = { delText: ReadonlyMap<string, string>; addHidden: ReadonlySet<string> };
 
 /**
  * One beat of the timeline. Steps map onto the "trace" visual bucket (same
@@ -226,7 +236,7 @@ export default function PassCinema({
   // Focus-token regex — used only to accent-color tokens inside the callout.
   const tokenRe = useMemo(() => buildTokenRegex(tokens), [tokens]);
 
-  const stages = useMemo<Stage[]>(() => {
+  const { stages, pairing } = useMemo<{ stages: Stage[]; pairing: Pairing }>(() => {
     const list: Stage[] = [];
     list.push({
       key: "before",
@@ -282,7 +292,7 @@ export default function PassCinema({
           warmSet: warm.length ? new Set(warm) : EMPTY_WARM,
           outline: s.outline ?? [],
           isStep: true,
-          duration: STEP_DURATION,
+          duration: STEP_DURATION * (s.dwell ?? 1),
           // Snapshot the overlay as it stands at this step (later steps add more).
           rewrites: rw.size ? new Map(rw) : EMPTY_REWRITES,
           scoped: !!s.rewrites?.length,
@@ -305,6 +315,29 @@ export default function PassCinema({
     // Rewritten lines stay rewritten through the transform/after framing beats
     // (a still-visible folded line just fades out on its del-beat).
     const finalRewrites: ReadonlyMap<string, string> = rw.size ? new Map(rw) : EMPTY_REWRITES;
+    // Rewrite-pairing: a del row whose FINAL rewrite lands on exactly the code
+    // an add row carries is the same instruction simplified in place, so the
+    // transform shouldn't strike the settled line and regrow an identical copy
+    // elsewhere. Only rewrite-bearing del rows are eligible — a rewrite-less
+    // identical line (LICM's hoisted `%off <- %n * 8`) genuinely moves between
+    // blocks and must keep its collapse/grow. Greedy 1:1 matching in row order;
+    // codes compare trimmed, comments ignored.
+    const delText = new Map<string, string>();
+    const addHidden = new Set<string>();
+    for (const d of rows) {
+      if (d.kind !== "del") continue;
+      const rewritten = finalRewrites.get(d.key);
+      if (rewritten === undefined) continue;
+      const code = splitLine(rewritten).code.trim();
+      if (!code) continue;
+      const match = rows.find(
+        (a) => a.kind === "add" && !addHidden.has(a.key) && splitLine(a.text).code.trim() === code,
+      );
+      if (match) {
+        delText.set(d.key, match.text);
+        addHidden.add(match.key);
+      }
+    }
     const tStages = example.transformStages;
     if (tStages?.length) {
       // Staged transform: play the rewrite as an ordered sequence of quick beats.
@@ -399,7 +432,7 @@ export default function PassCinema({
       rewrites: finalRewrites,
       scoped: false,
     });
-    return list;
+    return { stages: list, pairing: { delText, addHidden } };
   }, [
     example.steps,
     example.story,
@@ -520,7 +553,7 @@ export default function PassCinema({
               style={{ minHeight: `${maxLines * 1.6}em` }}
             >
               {rows.map((row) => (
-                <RowLine key={row.key} row={row} stage={stage} />
+                <RowLine key={row.key} row={row} stage={stage} pairing={pairing} />
               ))}
             </motion.div>
           </AnimatePresence>
@@ -673,12 +706,24 @@ const MARK_VARIANTS: Variants = {
   },
 };
 
-function RowLine({ row, stage }: { row: Row; stage: Stage }) {
+function RowLine({ row, stage, pairing }: { row: Row; stage: Stage; pairing: Pairing }) {
   const { phase, pillRe, warmSet, outline, isStep, rewrites } = stage;
+  // A staged transform collapses/grows only the rows this sub-beat has reached.
+  const done = stage.transformDone;
+  // Rewrite-pairing: a paired add row never renders (the del row becomes the
+  // after-line); a paired del row SETTLES once its transform beat arrives — it
+  // stays fully visible, drops the strike, and adopts the add row's full text,
+  // so the freshly-simplified line just gains its new comment via the
+  // displayText-keyed fade instead of striking out and regrowing elsewhere.
+  const pairedAdd = row.kind === "add" && pairing.addHidden.has(row.key);
+  const pairedText = row.kind === "del" ? pairing.delText.get(row.key) : undefined;
+  const settled =
+    pairedText !== undefined &&
+    (phase === "after" || (phase === "transform" && (!done || done.del.has(row.key))));
   // Inline-rewrite overlay: show the (possibly folded) text, but keep matching
   // ring/pills against this DISPLAYED text so a step can pill the substituted
   // constant. Height/kind targets below still use the original row identity.
-  const displayText = rewrites.get(row.key) ?? row.text;
+  const displayText = settled ? pairedText : (rewrites.get(row.key) ?? row.text);
   const { indent, code, comment } = splitLine(displayText || " ");
   const hasCode = code.trim() !== "";
 
@@ -704,12 +749,10 @@ function RowLine({ row, stage }: { row: Row; stage: Stage }) {
   // comment, so a token that only appears in a `;;` note doesn't light the line.
   const activeRow = isStep && (marked || lineHasToken(code, effectivePillRe));
 
-  // A staged transform collapses/grows only the rows this sub-beat has reached.
-  const done = stage.transformDone;
   const delCollapsing =
-    row.kind === "del" && phase === "transform" && (!done || done.del.has(row.key));
+    row.kind === "del" && !settled && phase === "transform" && (!done || done.del.has(row.key));
   const addGrown =
-    row.kind === "add" && phase === "transform" && (!done || done.add.has(row.key));
+    row.kind === "add" && !pairedAdd && phase === "transform" && (!done || done.add.has(row.key));
 
   let target = rowTarget(row.kind, phase);
   if (isStep) {
@@ -723,6 +766,10 @@ function RowLine({ row, stage }: { row: Row; stage: Stage }) {
     else if (row.kind === "add")
       target = addGrown ? { opacity: 1, height: "auto" } : { opacity: 0, height: 0 };
   }
+  // Pairing overrides: the hidden add row in EVERY phase; the settled del row
+  // through transform + after.
+  if (pairedAdd) target = { opacity: 0, height: 0 };
+  else if (settled) target = { opacity: 1, height: "auto" };
 
   const strike = delCollapsing;
   const addBg = addGrown ? ADD_TINT : row.kind === "add" ? ADD_TINT_OFF : TRANSPARENT;

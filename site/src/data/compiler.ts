@@ -82,6 +82,10 @@ export type OptExample = {
    *              declares `rewrites` scopes its pills + line-lighting to its
    *              `outline` lines, so a bare-number token like "5" lights only the
    *              rewritten line, not every line that happens to contain a 5.
+   *   - dwell:   per-step duration multiplier on the base step dwell, default 1.
+   *              Author >1 on steps that carry a real reasoning leap — a proof,
+   *              a lattice fact, reachability logic — so they get more time to
+   *              internalize; leave mechanical substitutions/folds at the default.
    */
   steps?: {
     caption: string;
@@ -89,6 +93,7 @@ export type OptExample = {
     warm?: string[];
     outline?: string[];
     rewrites?: { line: string; to: string }[];
+    dwell?: number;
   }[];
   /**
    * Staged transform sub-beats. The transform phase normally collapses every
@@ -129,9 +134,9 @@ export const OPT_EXAMPLES: OptExample[] = [
     // instructions themselves, not just narrated. ember = the known value being
     // substituted in; purple (marks) = the target whose value just resolved.
     steps: [
-      { warm: ["%c"], outline: ["%c <- 1"], caption: "%c is assigned once, provably always 1" },
+      { warm: ["%c"], outline: ["%c <- 1"], caption: "%c is assigned once, provably always 1", dwell: 1.75 },
       { warm: ["%c"], outline: ["br %c"], caption: "the branch condition is that constant" },
-      { marks: [":maybe_taken"], caption: ":maybe_taken is always the arm taken" },
+      { marks: [":maybe_taken"], caption: ":maybe_taken is always the arm taken", dwell: 1.5 },
       {
         marks: ["%x"],
         outline: ["%x <- 5"],
@@ -168,7 +173,7 @@ export const OPT_EXAMPLES: OptExample[] = [
         rewrites: [{ line: "return %out", to: "return 15" }],
         caption: "the whole arm returns a constant: 15",
       },
-      { marks: [":never_taken"], outline: [":never_taken"], caption: "and the false arm is unreachable, dead" },
+      { marks: [":never_taken"], outline: [":never_taken"], caption: "and the false arm is unreachable, dead", dwell: 2 },
     ],
     // The folding story is now told in the steps above via inline rewrites, so
     // the transform phase is the physical cleanup: the folded lines collapse,
@@ -223,8 +228,8 @@ export const OPT_EXAMPLES: OptExample[] = [
     },
     steps: [
       { marks: ["%unused"], outline: ["%unused <- %x * %x"], caption: "%unused is computed here" },
-      { marks: ["%unused"], caption: "%unused appears nowhere else, no reader" },
-      { marks: ["%also_unused"], outline: ["%also_unused <- %a + %b"], caption: "%also_unused only feeds more dead code" },
+      { marks: ["%unused"], caption: "%unused appears nowhere else, no reader", dwell: 1.5 },
+      { marks: ["%also_unused"], outline: ["%also_unused <- %a + %b"], caption: "%also_unused is computed here and read by nothing", dwell: 1.5 },
       { marks: ["%also_unused"], caption: "nothing live reads either, both are dead" },
     ],
     // Each dead computation collapses on its own beat.
@@ -238,7 +243,7 @@ export const OPT_EXAMPLES: OptExample[] = [
     %a <- %x + 1
     %b <- %x * 2
     %unused <- %x * %x          ;; result never read
-    %also_unused <- %a + %b     ;; feeds only more dead code
+    %also_unused <- %a + %b     ;; never read either
     %result <- %a + %b
     return %result
 }`,
@@ -262,12 +267,13 @@ export const OPT_EXAMPLES: OptExample[] = [
     story: {
       spot: "%off is recomputed every iteration",
       trace: "but %n never changes inside the loop",
-      transform: "so %off is hoisted into a preheader that runs once",
+      transform: "so %off and %ptr hoist into a preheader that runs once",
     },
     steps: [
       { marks: ["%off"], outline: ["%off <- %n * 8"], caption: "%off is recomputed each iteration of :body" },
-      { marks: ["%n"], caption: "but %n never changes inside the loop" },
+      { marks: ["%n"], caption: "but %n never changes inside the loop", dwell: 1.5 },
       { marks: ["%off"], outline: ["%off <- %n * 8"], caption: "so %off is loop-invariant, hoist it to a preheader" },
+      { marks: ["%ptr"], outline: ["%ptr <- %arr + %off"], caption: "%ptr depends only on invariants, so it hoists along", dwell: 1.5 },
     ],
     before: `define void @sum_offsets (%arr, %n) {
 
@@ -328,7 +334,7 @@ export const OPT_EXAMPLES: OptExample[] = [
     story: {
       spot: "%t2 recomputes what %t1 already holds",
       trace: "same inputs hash to the same value number",
-      transform: "so %b just reuses %a",
+      transform: "the redundant recompute is deleted",
     },
     // ember = %t1, the original computation that is kept and reused; purple = %t2,
     // the redundant recompute that gets rewritten into a copy.
@@ -341,6 +347,22 @@ export const OPT_EXAMPLES: OptExample[] = [
         outline: ["%t2 <- %t1"],
         rewrites: [{ line: "%t2 <- %x * %x", to: "%t2 <- %t1" }],
         caption: "same inputs hash to one value number, %t2 just reuses %t1",
+        dwell: 1.5,
+      },
+      {
+        warm: ["%t1"],
+        outline: ["%b  <- %t1 + 3"],
+        rewrites: [{ line: "%b  <- %t2 + 3", to: "%b  <- %t1 + 3" }],
+        caption: "with %t2 gone, %b computes %t1 + 3, the same expression as %a",
+        dwell: 1.5,
+      },
+      {
+        marks: ["%b"],
+        warm: ["%a"],
+        outline: ["%b  <- %a"],
+        rewrites: [{ line: "%b  <- %t2 + 3", to: "%b  <- %a" }],
+        caption: "same value number as %a, so %b just reuses %a",
+        dwell: 1.5,
       },
     ],
     before: `define void @dup (%x) {
@@ -387,6 +409,7 @@ export const OPT_EXAMPLES: OptExample[] = [
         outline: ["return %a"],
         rewrites: [{ line: "return %c", to: "return %a" }],
         caption: "every use traces straight back to %a",
+        dwell: 1.5,
       },
     ],
     before: `define void @chain () {
@@ -441,17 +464,6 @@ export const OPT_EXAMPLES: OptExample[] = [
         rewrites: [{ line: "%c <- %b << 0", to: "%c <- %b" }],
         caption: "%b << 0 leaves %b unchanged, %c is just %b",
       },
-      {
-        marks: ["%x", "%a", "%b"],
-        outline: ["%a <- %x", "%b <- %a", "%c <- %b"],
-        caption: "so each identity op has collapsed to a plain copy",
-      },
-    ],
-    // One identity op rewrites to a copy per beat.
-    transformStages: [
-      { del: ["%x * 1"], add: ["*1 → copy"], caption: "%x * 1 → copy" },
-      { del: ["%a + 0"], add: ["+0 → copy"], caption: "%a + 0 → copy" },
-      { del: ["%b << 0"], add: ["<<0 → copy"], caption: "%b << 0 → copy" },
     ],
     before: `define void @idents (%x) {
 
@@ -490,9 +502,12 @@ export const OPT_EXAMPLES: OptExample[] = [
       {
         marks: ["%b"],
         warm: ["0"],
-        outline: ["%c <- %b"],
-        rewrites: [{ line: "%c <- %b + 0", to: "%c <- %b" }],
-        caption: "+0 does nothing, %c is just %b",
+        outline: ["%c <- %b", "return %b"],
+        rewrites: [
+          { line: "%c <- %b + 0", to: "%c <- %b" },
+          { line: "return %c", to: "return %b" },
+        ],
+        caption: "+0 does nothing, %c is just %b, so the return uses %b directly",
       },
       {
         marks: ["%x"],
@@ -538,14 +553,15 @@ export const OPT_EXAMPLES: OptExample[] = [
     // ember = %len, the fixed/known upper bound; purple = %i, the induction
     // variable whose range is being proven (and %ok, the check being removed).
     steps: [
-      { marks: ["%ok"], outline: ["%ok <- %i < %len"], caption: "%ok is a per-access bounds check" },
-      { marks: ["%i"], warm: ["%len"], caption: "but %i is proven to stay in [0, %len)" },
+      { marks: ["%ok"], outline: ["%ok <- %i < %len"], caption: "%ok is a per-access bounds check", dwell: 1.5 },
+      { marks: ["%i"], warm: ["%len"], caption: "but %i is proven to stay in [0, %len)", dwell: 2.25 },
       {
         marks: ["%ok"],
         warm: ["true"],
         outline: ["%ok <- true", "br %ok"],
         rewrites: [{ line: "%ok <- %i < %len", to: "%ok <- true" }],
         caption: "so %ok folds to true: the check and its trap are dead",
+        dwell: 2,
       },
     ],
     // First the proven check + its branch drop and the store falls straight
@@ -612,16 +628,16 @@ export const OPT_EXAMPLES: OptExample[] = [
       "Forwarding blocks (empty body, single unconditional branch) get spliced out, single-predecessor straight-line blocks merge into their pred, and conditional branches with identical targets become unconditional. φ-nodes are renormalized after the graph changes.",
     focus: [":mid", ":body"],
     story: {
-      spot: ":mid and :body are empty forwarders",
+      spot: ":mid just forwards, the graph is a straight line",
       trace: "control just falls straight through them",
       transform: "so it all collapses into one straight-line block",
     },
     steps: [
-      { marks: [":mid", ":body"], caption: ":mid and :body are empty forwarder blocks" },
+      { marks: [":mid", ":body"], caption: "control threads :entry through :mid into :body in a straight line" },
       { marks: [":mid"], outline: ["br :mid"], caption: ":entry does nothing but branch to :mid" },
       { marks: [":body"], outline: ["br :body"], caption: ":mid does nothing but fall through to :body" },
-      { marks: [":done"], outline: ["br %x :done :done"], caption: "and br %x :done :done has identical arms → unconditional" },
-      { marks: [":done"], outline: ["return %x"], caption: ":done will end with a single predecessor, it merges up too" },
+      { marks: [":done"], outline: ["br %x :done :done"], caption: "and br %x :done :done has identical arms → unconditional", dwell: 1.5 },
+      { marks: [":done"], outline: ["return %x"], caption: ":done will end with a single predecessor, it merges up too", dwell: 1.5 },
     ],
     // One forwarder folds per beat, then the identical-arm branch resolves and
     // the lone-predecessor :done merges up — collapsing to a single block.
@@ -679,13 +695,14 @@ export const OPT_EXAMPLES: OptExample[] = [
     steps: [
       { marks: ["%cmp"], outline: ["br %cmp"], caption: "the branch picks an arm on %cmp" },
       { outline: ["br :join"], caption: "both arms are empty, they just reach :join" },
-      { marks: ["%m"], outline: ["%m <- φ"], caption: "the join φ selects %m from the two arms" },
+      { marks: ["%m"], outline: ["%m <- φ"], caption: "the join φ selects %m from the two arms", dwell: 1.5 },
       {
         marks: ["%m"],
         warm: ["%cmp"],
         outline: ["%m <- cmov"],
         rewrites: [{ line: "%m <- φ", to: "%m <- cmov %cmp, %a, %b" }],
         caption: "so the whole triangle folds to one cmov on %cmp",
+        dwell: 1.5,
       },
     ],
     before: `define void @max (%a, %b) {
@@ -723,12 +740,17 @@ export const OPT_EXAMPLES: OptExample[] = [
     story: {
       spot: "this store is overwritten before any read",
       trace: "%t is never loaded, the next store kills it",
-      transform: "so the dead store is dropped",
+      transform: "so the dead store is dropped, and %t's dead compute goes with it",
     },
     steps: [
       { marks: ["%t"], outline: ["store %tmp[%i], %t"], caption: "this store writes %t to tmp[%i]" },
-      { outline: ["store %tmp[%i], %i"], caption: "the very next store to tmp[%i] overwrites it" },
-      { marks: ["%t"], outline: ["%t <- %i * 999", "store %tmp[%i], %t"], caption: "%t is never loaded before the kill, the store is dead" },
+      {
+        outline: ["store %tmp[%i], %i"],
+        rewrites: [{ line: "store %tmp[%i], %i", to: "store %tmp[%i], %i" }],
+        caption: "the very next store to tmp[%i] overwrites it",
+        dwell: 1.5,
+      },
+      { marks: ["%t"], outline: ["%t <- %i * 999", "store %tmp[%i], %t"], caption: "%t is never loaded before the kill, the store is dead", dwell: 1.5 },
     ],
     before: `define void @kill_store (%tmp, %out, %n) {
 
