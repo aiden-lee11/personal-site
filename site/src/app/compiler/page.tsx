@@ -75,8 +75,7 @@ export default function CompilerOverviewPage() {
                 href={s.link.href}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-block font-mono text-xs link-underline"
-                style={{ color: "var(--muted)" }}
+                className="mt-2 inline-block font-mono text-xs text-[color:var(--fg)] link-underline"
               >
                 {s.link.label}
               </a>
