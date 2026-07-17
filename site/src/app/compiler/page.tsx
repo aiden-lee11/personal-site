@@ -55,7 +55,7 @@ export default function CompilerOverviewPage() {
             <span aria-hidden>→</span>
           </Link>
           <Link href="/compiler/passes" className="btn btn-ghost">
-            Explore the passes
+            Explore the optimizations
           </Link>
         </div>
       </header>

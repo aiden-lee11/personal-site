@@ -3,7 +3,7 @@ import { OPT_EXAMPLES } from "@/data/compiler";
 import PassExplorer from "./PassExplorer";
 
 export const metadata: Metadata = {
-  title: "Compiler Passes · Aiden Lee",
+  title: "Compiler Optimizations · Aiden Lee",
   description: "A closer look at the compiler's optimizations.",
 };
 
@@ -12,12 +12,10 @@ export default function CompilerPassesPage() {
     <div>
       <header className="mb-12">
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-[-0.035em] leading-tight">
-          What each pass does
+          What each optimization does
         </h1>
         <p className="mt-4 text-[color:var(--muted)] max-w-2xl leading-relaxed">
-          Small examples of what each optimization changes. Use{" "}
-          <span className="text-[color:var(--fg)]">run live</span> to open an
-          example in the playground.
+          Small examples of what each optimization changes.
         </p>
       </header>
 

@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { OptExample } from "@/data/compiler";
-import { PASS_DEMOS } from "@/data/passDemos";
 import PassCinema from "./PassCinema";
 
 export default function PassExplorer({ examples }: { examples: OptExample[] }) {
@@ -12,7 +10,6 @@ export default function PassExplorer({ examples }: { examples: OptExample[] }) {
   // that a pass switch triggers — the chosen multiplier carries across passes.
   const [speed, setSpeed] = useState(1);
   const active = examples.find((e) => e.id === activeId) ?? examples[0];
-  const hasDemo = active.id in PASS_DEMOS;
 
   return (
     <div className="grid lg:grid-cols-[16rem_1fr] gap-6">
@@ -64,20 +61,9 @@ export default function PassExplorer({ examples }: { examples: OptExample[] }) {
           </select>
         </label>
 
-        <div className="flex items-start justify-between gap-6 mb-4 flex-wrap">
-          <div className="flex-1 min-w-0">
-            <p className="text-2xl font-semibold tracking-tight leading-tight">{active.fullName}</p>
-            <p className="text-[color:var(--muted)] mt-1">{active.tagline}</p>
-          </div>
-          {hasDemo && (
-            <Link
-              href={`/compiler/playground?demo=${active.id}`}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[color:var(--accent)] text-[color:var(--accent)] hover:bg-[color:var(--accent)] hover:text-[color:var(--bg)] transition-colors font-mono text-xs"
-              title="Load a demo program into the playground with only this pass enabled"
-            >
-              ▸ run live
-            </Link>
-          )}
+        <div className="mb-4">
+          <p className="text-2xl font-semibold tracking-tight leading-tight">{active.fullName}</p>
+          <p className="text-[color:var(--muted)] mt-1">{active.tagline}</p>
         </div>
 
         <p className="text-sm text-[color:var(--muted)] leading-relaxed mb-4 max-w-2xl">

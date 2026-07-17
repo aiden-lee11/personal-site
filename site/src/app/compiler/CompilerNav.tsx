@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { href: "/compiler", label: "Overview" },
   { href: "/compiler/playground", label: "Playground" },
-  { href: "/compiler/passes", label: "Passes" },
+  { href: "/compiler/passes", label: "Optimizations" },
   { href: "/compiler/grammar", label: "Language" },
 ];
 
