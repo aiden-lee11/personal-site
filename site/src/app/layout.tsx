@@ -62,14 +62,14 @@ export default function RootLayout({
         className={`${inter.variable} ${serif.variable} ${mono.variable} min-h-screen flex flex-col`}
       >
         <header>
-          <nav className="mx-auto max-w-5xl px-6 h-16 flex items-center gap-6">
+          <nav className="mx-auto max-w-5xl px-4 sm:px-6 h-16 flex items-center gap-4 sm:gap-6">
             <Link
               href="/"
               className="font-mono text-sm tracking-tight hover:text-[color:var(--accent)] transition-colors whitespace-nowrap"
             >
               aiden lee<span className="text-[color:var(--accent)]">.</span>
             </Link>
-            <ul className="ml-auto flex items-center gap-5 sm:gap-6 text-sm">
+            <ul className="ml-auto flex items-center gap-3 sm:gap-6 text-[13px] sm:text-sm">
               {NAV_LINKS.map((l) =>
                 l.external ? (
                   <li key={l.href}>

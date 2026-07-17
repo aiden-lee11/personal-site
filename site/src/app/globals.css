@@ -235,6 +235,14 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Utility: horizontal scroll without a visible scrollbar */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Token spotlight pill used by the animated pass explainer (PassCinema).
    Soft --accent-soft (#c3aef8) wash at low alpha with a hairline ring. */
 .pass-pill {
