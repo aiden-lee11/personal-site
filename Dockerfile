@@ -24,6 +24,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY site/package.json site/package-lock.json ./
 RUN npm ci
 COPY site/ ./
+# NEXT_PUBLIC_ vars are inlined at build time; Railway supplies this as a build arg.
+ARG NEXT_PUBLIC_GA_ID
+ENV NEXT_PUBLIC_GA_ID=$NEXT_PUBLIC_GA_ID
 RUN npm run build
 
 #############################  Final: runtime  ###############################
